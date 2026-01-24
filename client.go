@@ -8,8 +8,8 @@ import (
 const (
 	fxTradeURL                  = "https://api-fxtrade.oanda.com"
 	fxTradePracticeURL          = "https://api-fxpractice.oanda.com"
-	fxTradeStreamingURL         = "https://stream-fxtrade.oanda.com/"
-	fxTradeStreamingPracticeURL = "https://stream-fxpractice.oanda.com/"
+	fxTradeStreamingURL         = "https://stream-fxtrade.oanda.com"
+	fxTradeStreamingPracticeURL = "https://stream-fxpractice.oanda.com"
 )
 
 type Client struct {
