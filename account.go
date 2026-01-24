@@ -24,7 +24,7 @@ func (c *Client) AccountsList() ([]AccountProperties, error) {
 
 	slog.Info(resp.Status)
 	if resp.StatusCode != http.StatusOK {
-		return nil, decodeError(resp)
+		return nil, decodeErrorResponse(resp)
 	}
 
 	accountsResp := struct {

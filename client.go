@@ -64,25 +64,26 @@ func closeBody(resp *http.Response) {
 	}
 }
 
-func decodeError(resp *http.Response) error {
+func decodeErrorResponse(resp *http.Response) error {
 	errResp := struct {
 		Message string `json:"errorMessage"`
 	}{}
 	if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
 		panic(fmt.Errorf("failed to decode response body: %w", err))
 	}
+	err := errors.New(errResp.Message)
 	switch resp.StatusCode {
 	case http.StatusBadRequest:
-		return BadRequest{Code: resp.StatusCode, Err: errors.New(errResp.Message)}
+		return BadRequest{HTTPError{resp.StatusCode, "bad request", err}}
 	case http.StatusUnauthorized:
-		return Unauthorized{Code: resp.StatusCode, Err: errors.New(errResp.Message)}
+		return Unauthorized{HTTPError{resp.StatusCode, "unauthorized", err}}
 	case http.StatusForbidden:
-		return Forbidden{Code: resp.StatusCode, Err: errors.New(errResp.Message)}
+		return Forbidden{HTTPError{resp.StatusCode, "forbidden", err}}
 	case http.StatusNotFound:
-		return NotFoundError{Code: resp.StatusCode, Err: errors.New(errResp.Message)}
+		return NotFoundError{HTTPError{resp.StatusCode, "not found", err}}
 	case http.StatusMethodNotAllowed:
-		return MethodNotAllowed{Code: resp.StatusCode, Err: errors.New(errResp.Message)}
+		return MethodNotAllowed{HTTPError{resp.StatusCode, "method not allowed", err}}
 	default:
-		panic(fmt.Errorf("unexpected status code: %d", resp.StatusCode))
+		return err
 	}
 }
