@@ -15,7 +15,7 @@ type AccountProperties struct {
 	Tags         []string  `json:"tags"`
 }
 
-func (c *Client) AccountsList() ([]AccountProperties, error) {
+func (c *Client) AccountList() ([]AccountProperties, error) {
 	resp, err := c.sendGetRequest("/v3/accounts")
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)

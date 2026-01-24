@@ -7,7 +7,7 @@ func TestClient_AccountsList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	accounts, err := client.AccountsList()
+	accounts, err := client.AccountList()
 	if err != nil {
 		t.Errorf("failed to list accounts: %v", err)
 	}
