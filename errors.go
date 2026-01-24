@@ -3,9 +3,8 @@ package oanda
 import "fmt"
 
 type BadRequest struct {
-	Code    int
-	Message string
-	Err     error
+	Code int
+	Err  error
 }
 
 func (e BadRequest) Error() string {
@@ -17,9 +16,8 @@ func (e BadRequest) Unwrap() error {
 }
 
 type Unauthorized struct {
-	Code    int
-	Message string
-	Err     error
+	Code int
+	Err  error
 }
 
 func (e Unauthorized) Error() string {
@@ -31,9 +29,8 @@ func (e Unauthorized) Unwrap() error {
 }
 
 type Forbidden struct {
-	Code    int
-	Message string
-	Err     error
+	Code int
+	Err  error
 }
 
 func (e Forbidden) Error() string {
@@ -45,13 +42,12 @@ func (e Forbidden) Unwrap() error {
 }
 
 type NotFoundError struct {
-	Code    int
-	Message string
-	Err     error
+	Code int
+	Err  error
 }
 
 func (e NotFoundError) Error() string {
-	return fmt.Sprintf("404 not found: %s", e.Message)
+	return fmt.Sprintf("404 not found: %s", e.Err.Error())
 }
 
 func (e NotFoundError) Unwrap() error {
@@ -59,13 +55,12 @@ func (e NotFoundError) Unwrap() error {
 }
 
 type MethodNotAllowed struct {
-	Code    int
-	Message string
-	Err     error
+	Code int
+	Err  error
 }
 
 func (e MethodNotAllowed) Error() string {
-	return fmt.Sprintf("405 method not allowed: %s", e.Message)
+	return fmt.Sprintf("405 method not allowed: %s", e.Err.Error())
 }
 
 func (e MethodNotAllowed) Unwrap() error {
