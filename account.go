@@ -1,6 +1,7 @@
 package oanda
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -360,10 +361,10 @@ const (
 	PositionAggregationModeNetSum PositionAggregationMode = "NET_SUM"
 )
 
-// Endpoints
+// Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 
-func (c *Client) AccountList() ([]AccountProperties, error) {
-	resp, err := c.sendGetRequest("/v3/accounts")
+func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
+	resp, err := c.sendGetRequest(ctx, "/v3/accounts")
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -383,8 +384,8 @@ func (c *Client) AccountList() ([]AccountProperties, error) {
 	return accountsResp.Accounts, nil
 }
 
-func (c *Client) AccountDetails(id AccountID) (*Account, TransactionID, error) {
-	resp, err := c.sendGetRequest(fmt.Sprintf("/v3/accounts/%v", id))
+func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, TransactionID, error) {
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v", id))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -405,8 +406,8 @@ func (c *Client) AccountDetails(id AccountID) (*Account, TransactionID, error) {
 	return &accountsDetailsResp.Account, accountsDetailsResp.LastTransactionID, nil
 }
 
-func (c *Client) AccountSummary(id AccountID) (*AccountSummary, TransactionID, error) {
-	resp, err := c.sendGetRequest(fmt.Sprintf("/v3/accounts/%v/summary", id))
+func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummary, TransactionID, error) {
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/summary", id))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}

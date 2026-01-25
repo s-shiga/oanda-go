@@ -23,7 +23,7 @@ func setupAccountID(t *testing.T) AccountID {
 
 func TestClient_AccountsList(t *testing.T) {
 	client := setupClient(t)
-	accounts, err := client.AccountList()
+	accounts, err := client.AccountList(t.Context())
 	if err != nil {
 		t.Errorf("failed to list accounts: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestClient_AccountsList(t *testing.T) {
 func TestClient_AccountDetails(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
-	account, lastTransactionID, err := client.AccountDetails(accountID)
+	account, lastTransactionID, err := client.AccountDetails(t.Context(), accountID)
 	if err != nil {
 		t.Errorf("failed to get account details: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestClient_AccountDetails(t *testing.T) {
 func TestClient_AccountSummary(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
-	accountSummary, lastTransactionID, err := client.AccountSummary(accountID)
+	accountSummary, lastTransactionID, err := client.AccountSummary(t.Context(), accountID)
 	if err != nil {
 		t.Errorf("failed to get account summary: %v", err)
 	}

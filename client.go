@@ -1,6 +1,7 @@
 package oanda
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,8 +50,8 @@ func NewPracticeClient() (*Client, error) {
 	}, nil
 }
 
-func (c *Client) sendGetRequest(path string) (*http.Response, error) {
-	req, err := http.NewRequest("GET", c.URL+path, nil)
+func (c *Client) sendGetRequest(ctx context.Context, path string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.URL+path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
