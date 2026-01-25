@@ -974,21 +974,21 @@ type TrailingStopLossOrderRequest struct {
 // Order-related Definitions
 
 // OrderID is the unique identifier for an Order within an Account.
-type OrderID uint
+type OrderID string
 
 // OrderType represents the type of an Order.
 type OrderType string
 
 const (
-	OrderTypeMarket                OrderType = "MARKET"
-	OrderTypeLimit                 OrderType = "LIMIT"
-	OrderTypeStop                  OrderType = "STOP"
-	OrderTypeMarketIfTouched       OrderType = "MARKET_IF_TOUCHED"
-	OrderTypeFixedPrice            OrderType = "FIXED_PRICE"
-	OrderTypeTakeProfit            OrderType = "TAKE_PROFIT"
-	OrderTypeStopLoss              OrderType = "STOP_LOSS"
-	OrderTypeGuaranteedStopLoss    OrderType = "GUARANTEED_STOP_LOSS"
-	OrderTypeTrailingStopLoss      OrderType = "TRAILING_STOP_LOSS"
+	OrderTypeMarket             OrderType = "MARKET"
+	OrderTypeLimit              OrderType = "LIMIT"
+	OrderTypeStop               OrderType = "STOP"
+	OrderTypeMarketIfTouched    OrderType = "MARKET_IF_TOUCHED"
+	OrderTypeFixedPrice         OrderType = "FIXED_PRICE"
+	OrderTypeTakeProfit         OrderType = "TAKE_PROFIT"
+	OrderTypeStopLoss           OrderType = "STOP_LOSS"
+	OrderTypeGuaranteedStopLoss OrderType = "GUARANTEED_STOP_LOSS"
+	OrderTypeTrailingStopLoss   OrderType = "TRAILING_STOP_LOSS"
 )
 
 // CancellableOrderType represents the type of Orders that can be cancelled.
