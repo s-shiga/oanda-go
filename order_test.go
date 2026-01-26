@@ -24,3 +24,15 @@ func TestClient_OrderListPending(t *testing.T) {
 	t.Logf("orders: %#v", orders)
 	t.Logf("lastTransactionID: %v", lastTransactionID)
 }
+
+func TestClient_OrderDetails(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	orderID := "15750"
+	details, transactionID, err := client.OrderDetails(t.Context(), accountID, orderID)
+	if err != nil {
+		t.Errorf("failed to get order details: %v", err)
+	}
+	t.Logf("details: %#v", details)
+	t.Logf("transactionID: %v", transactionID)
+}

@@ -1024,6 +1024,13 @@ const (
 	OrderStateCancelled OrderState = "CANCELLED"
 )
 
+type OrderIdentifier struct {
+	OrderID       OrderID  `json:"orderID"`
+	ClientOrderID ClientID `json:"clientOrderID"`
+}
+
+type OrderSpecifier = string
+
 // TimeInForce specifies how long an Order should remain pending before being automatically
 // cancelled by the execution system.
 type TimeInForce string
@@ -1304,4 +1311,20 @@ func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]O
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
 	return orderListResp.Orders, orderListResp.LastTransactionID, nil
+}
+
+func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*Order, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	orderDetailsResponse := struct {
+		Order             Order         `json:"order"`
+		LastTransactionID TransactionID `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &orderDetailsResponse); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &orderDetailsResponse.Order, orderDetailsResponse.LastTransactionID, nil
 }
