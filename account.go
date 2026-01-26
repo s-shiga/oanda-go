@@ -377,7 +377,8 @@ func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 }
 
 func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, TransactionID, error) {
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v", id), nil)
+	path := fmt.Sprintf("/v3/accounts/%v", id)
+	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -392,7 +393,8 @@ func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, Tr
 }
 
 func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummary, TransactionID, error) {
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/summary", id), nil)
+	path := fmt.Sprintf("/v3/accounts/%v/summary", id)
+	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -407,11 +409,12 @@ func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSumm
 }
 
 func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) ([]Instrument, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/instruments", id)
 	v := url.Values{}
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
 	}
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/instruments", id), v)
+	resp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -426,9 +429,10 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 }
 
 func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChanges, *AccountChangesState, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/changes", id)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/changes", id), v)
+	resp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
