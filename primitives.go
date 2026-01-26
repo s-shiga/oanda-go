@@ -141,23 +141,26 @@ type Instrument struct {
 
 // DateTime represents a date and time value in RFC 3339 format. The DateTime format is used for
 // fields representing specific points in time.
-type DateTime time.Time
+type DateTime struct {
+	*time.Time
+}
 
 // UnmarshalJSON implements custom JSON unmarshaling for DateTime to handle both RFC3339 format
 // and the special "0" value which represents an unset/zero time.
-func (t *DateTime) UnmarshalJSON(b []byte) (err error) {
+func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
 	if s == "0" {
+		dt.Time = nil
 		return nil
 	}
-	tm, err := time.Parse(time.RFC3339Nano, s)
+	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
 		return err
 	}
-	*t = DateTime(tm)
+	dt.Time = &t
 	return nil
 }
 
