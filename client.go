@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -50,8 +51,14 @@ func NewPracticeClient() (*Client, error) {
 	}, nil
 }
 
-func (c *Client) sendGetRequest(ctx context.Context, path string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", c.URL+path, nil)
+func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+	u, err := url.Parse(c.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path
+	u.RawQuery = values.Encode()
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

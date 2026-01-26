@@ -3,6 +3,8 @@ package oanda
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 )
 
 // Definitions https://developer.oanda.com/rest-live-v20/account-df/
@@ -361,7 +363,7 @@ const (
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 
 func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
-	resp, err := c.sendGetRequest(ctx, "/v3/accounts")
+	resp, err := c.sendGetRequest(ctx, "/v3/accounts", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -375,7 +377,7 @@ func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 }
 
 func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, TransactionID, error) {
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v", id))
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v", id), nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -390,7 +392,7 @@ func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, Tr
 }
 
 func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummary, TransactionID, error) {
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/summary", id))
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/summary", id), nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
@@ -404,11 +406,16 @@ func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSumm
 	return &accountsSummaryResp.Account, accountsSummaryResp.LastTransactionID, nil
 }
 
-func (c *Client) AccountInstruments(ctx context.Context, id AccountID) ([]Instrument, TransactionID, error) {
-	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/instruments", id))
+func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) ([]Instrument, TransactionID, error) {
+	v := url.Values{}
+	if len(instruments) != 0 {
+		v.Set("instruments", strings.Join(instruments, ","))
+	}
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/instruments", id), v)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
+	println(resp.StatusCode)
 	accountsInstrumentsResp := struct {
 		Instruments       []Instrument  `json:"instruments"`
 		LastTransactionID TransactionID `json:"lastTransactionID"`

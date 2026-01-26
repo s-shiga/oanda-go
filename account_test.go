@@ -57,7 +57,7 @@ func TestClient_AccountSummary(t *testing.T) {
 func TestClient_AccountInstruments(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
-	accountInstruments, lastTransactionID, err := client.AccountInstruments(t.Context(), accountID)
+	accountInstruments, lastTransactionID, err := client.AccountInstruments(t.Context(), accountID, "EUR_USD", "USD_JPY")
 	if err != nil {
 		t.Errorf("failed to get account instruments: %v", err)
 	}

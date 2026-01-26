@@ -28,7 +28,7 @@ type Tag struct {
 
 // InstrumentName is a string containing the base currency and quote currency delimited by a "_"
 // (e.g., EUR_USD, GBP_JPY).
-type InstrumentName string
+type InstrumentName = string
 
 // InstrumentType represents the type of an Instrument.
 type InstrumentType string
@@ -217,7 +217,9 @@ const (
 	DirectionShort Direction = "SHORT"
 )
 
-type PricingComponent string
+// PricingComponent to get Candlestick data for
+// Can contain any combination of the characters “M” (midpoint candles) “B” (bid candles) and “A” (ask candles).
+type PricingComponent = string
 
 // ConversionFactor represents a conversion factor used in currency conversions.
 type ConversionFactor struct {
