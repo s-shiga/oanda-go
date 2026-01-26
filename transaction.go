@@ -3,7 +3,7 @@ package oanda
 // Definitions https://developer.oanda.com/rest-live-v20/transaction-df/
 
 // TransactionID is the unique identifier of a Transaction.
-type TransactionID string
+type TransactionID = string
 
 // ClientID is a client-provided identifier, used by clients to refer to their Orders or Trades
 // with an identifier that they have provided.

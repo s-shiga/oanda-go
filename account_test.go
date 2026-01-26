@@ -64,3 +64,16 @@ func TestClient_AccountInstruments(t *testing.T) {
 	t.Logf("%#v", accountInstruments)
 	t.Logf("lastTransactionID: %v", lastTransactionID)
 }
+
+func TestClient_AccountChanges(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	transactionID := "15741"
+	accountChanges, accountChangesState, lastTransactionID, err := client.AccountChanges(t.Context(), accountID, transactionID)
+	if err != nil {
+		t.Errorf("failed to get account changes: %v", err)
+	}
+	t.Logf("%#v", accountChanges)
+	t.Logf("%#v", accountChangesState)
+	t.Logf("lastTransactionID: %v", lastTransactionID)
+}

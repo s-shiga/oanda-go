@@ -415,7 +415,6 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	println(resp.StatusCode)
 	accountsInstrumentsResp := struct {
 		Instruments       []Instrument  `json:"instruments"`
 		LastTransactionID TransactionID `json:"lastTransactionID"`
@@ -424,4 +423,22 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
 	}
 	return accountsInstrumentsResp.Instruments, accountsInstrumentsResp.LastTransactionID, nil
+}
+
+func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChanges, *AccountChangesState, TransactionID, error) {
+	v := url.Values{}
+	v.Set("sinceTransactionID", since)
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/changes", id), v)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	accountsChangesResp := struct {
+		Changes           AccountChanges      `json:"changes"`
+		State             AccountChangesState `json:"state"`
+		LastTransactionID TransactionID       `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &accountsChangesResp); err != nil {
+		return nil, nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	}
+	return &accountsChangesResp.Changes, &accountsChangesResp.State, accountsChangesResp.LastTransactionID, nil
 }
