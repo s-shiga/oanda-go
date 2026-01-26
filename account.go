@@ -362,6 +362,15 @@ const (
 
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 
+// AccountList retrieves the list of accounts authorized for the provided token.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts
+//
+// Returns:
+//   - []AccountProperties: A slice of account properties for all authorized accounts.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_1
 func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 	resp, err := c.sendGetRequest(ctx, "/v3/accounts", nil)
 	if err != nil {
@@ -376,6 +385,20 @@ func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 	return accountsResp.Accounts, nil
 }
 
+// AccountDetails retrieves the full details for a single Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - id: The Account identifier to retrieve details for.
+//
+// Returns:
+//   - *Account: Full account details including open trades, positions, and pending orders.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
 func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v", id)
 	resp, err := c.sendGetRequest(ctx, path, nil)
@@ -392,6 +415,24 @@ func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, Tr
 	return &accountsDetailsResp.Account, accountsDetailsResp.LastTransactionID, nil
 }
 
+// AccountSummary retrieves a summary for a single Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/summary
+//
+// Unlike AccountDetails, this method does not include full pending Order, open Trade,
+// and Position representations, making it more lightweight for cases where only
+// account-level summary information is needed.
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - id: The Account identifier to retrieve the summary for.
+//
+// Returns:
+//   - *AccountSummary: Summary account information without full trade/position details.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
 func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummary, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/summary", id)
 	resp, err := c.sendGetRequest(ctx, path, nil)
@@ -408,6 +449,25 @@ func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSumm
 	return &accountsSummaryResp.Account, accountsSummaryResp.LastTransactionID, nil
 }
 
+// AccountInstruments retrieves the list of tradeable instruments for the given Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/instruments
+//
+// The instruments returned are those that can be traded using the specified account.
+// You can optionally filter the results by providing specific instrument names.
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - id: The Account identifier.
+//   - instruments: Optional list of instrument names to filter. If empty, all tradeable
+//     instruments are returned.
+//
+// Returns:
+//   - []Instrument: A slice of instruments available for trading.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
 func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) ([]Instrument, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/instruments", id)
 	v := url.Values{}
@@ -428,6 +488,28 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 	return accountsInstrumentsResp.Instruments, accountsInstrumentsResp.LastTransactionID, nil
 }
 
+// AccountChanges retrieves the changes to an Account's Orders, Trades, and Positions
+// since a specified TransactionID.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/changes
+//
+// This endpoint is useful for polling-based synchronization. By tracking the
+// LastTransactionID from each response, you can efficiently fetch only the changes
+// that have occurred since your last request.
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - id: The Account identifier.
+//   - since: The TransactionID to get Account changes since. This should typically
+//     be the LastTransactionID returned from a previous call.
+//
+// Returns:
+//   - *AccountChanges: The changes to orders, trades, and positions since the given transaction.
+//   - *AccountChangesState: The current price-dependent state of the account.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
 func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChanges, *AccountChangesState, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/changes", id)
 	v := url.Values{}

@@ -1202,6 +1202,8 @@ type MarketOrderDelayedTradeClose struct {
 
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
 
+// OrderListRequest contains the parameters for retrieving a list of Orders for an Account.
+// Use NewOrderListRequest to create a new request and the builder methods to configure options.
 type OrderListRequest struct {
 	AccountID  AccountID
 	IDs        []OrderID
@@ -1211,6 +1213,9 @@ type OrderListRequest struct {
 	BeforeID   *OrderID
 }
 
+// NewOrderListRequest creates a new OrderListRequest for the specified account.
+// Use the builder methods (AddIDs, SetState, SetInstrument, SetCount, SetBeforeID)
+// to configure optional filtering parameters.
 func NewOrderListRequest(accountID AccountID) *OrderListRequest {
 	return &OrderListRequest{
 		AccountID: accountID,
@@ -1218,26 +1223,32 @@ func NewOrderListRequest(accountID AccountID) *OrderListRequest {
 	}
 }
 
+// AddIDs adds Order IDs to filter the results. Only Orders with matching IDs will be returned.
 func (req *OrderListRequest) AddIDs(ids ...OrderID) *OrderListRequest {
 	req.IDs = append(req.IDs, ids...)
 	return req
 }
 
+// SetState filters Orders by their state (PENDING, FILLED, TRIGGERED, CANCELLED).
 func (req *OrderListRequest) SetState(state OrderState) *OrderListRequest {
 	req.State = &state
 	return req
 }
 
+// SetInstrument filters Orders by the specified instrument.
 func (req *OrderListRequest) SetInstrument(instrument InstrumentName) *OrderListRequest {
 	req.Instrument = &instrument
 	return req
 }
 
+// SetCount sets the maximum number of Orders to return. Must be between 1 and 500.
 func (req *OrderListRequest) SetCount(count int) *OrderListRequest {
 	req.Count = &count
 	return req
 }
 
+// SetBeforeID filters to return only Orders with an ID less than the specified ID.
+// Used for pagination to retrieve older Orders.
 func (req *OrderListRequest) SetBeforeID(beforeID OrderID) *OrderListRequest {
 	req.BeforeID = &beforeID
 	return req
@@ -1278,11 +1289,38 @@ func (req *OrderListRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+// OrderListResponse contains the response from the OrderList and OrderListPending endpoints.
 type OrderListResponse struct {
 	Orders            []Order       `json:"orders"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+// OrderList retrieves a list of Orders for an Account based on the specified request parameters.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders
+//
+// The request can be configured to filter by Order IDs, state, instrument, and to paginate
+// results using count and beforeID parameters.
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - req: The OrderListRequest containing the account ID and optional filter parameters.
+//     Use NewOrderListRequest to create and configure the request.
+//
+// Returns:
+//   - []Order: A slice of Orders matching the request criteria.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails, validation fails, or response cannot be decoded.
+//
+// Example:
+//
+//	req := oanda.NewOrderListRequest(accountID).
+//	    SetState(oanda.OrderStatePending).
+//	    SetInstrument("EUR_USD").
+//	    SetCount(50)
+//	orders, lastTxID, err := client.OrderList(ctx, req)
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
 func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", req.AccountID)
 	v, err := req.values()
@@ -1300,6 +1338,23 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order,
 	return orderListResp.Orders, orderListResp.LastTransactionID, nil
 }
 
+// OrderListPending retrieves all pending Orders in an Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/pendingOrders
+//
+// This is a convenience method that returns only Orders in the PENDING state.
+// For more flexible filtering options, use OrderList with SetState(OrderStatePending).
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - accountID: The Account identifier.
+//
+// Returns:
+//   - []Order: A slice of all pending Orders for the account.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
 func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]Order, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", accountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
@@ -1313,6 +1368,22 @@ func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]O
 	return orderListResp.Orders, orderListResp.LastTransactionID, nil
 }
 
+// OrderDetails retrieves the details of a single Order in an Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders/{orderSpecifier}
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - accountID: The Account identifier.
+//   - specifier: The Order specifier, which can be either the Order's OANDA-assigned OrderID
+//     (e.g., "1234") or the client-provided ClientID prefixed with "@" (e.g., "@my_order_id").
+//
+// Returns:
+//   - *Order: The full details of the specified Order.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
 func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*Order, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
 	resp, err := c.sendGetRequest(ctx, path, nil)
