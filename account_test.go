@@ -53,3 +53,14 @@ func TestClient_AccountSummary(t *testing.T) {
 	t.Logf("%#v", accountSummary)
 	t.Logf("lastTransactionID: %v", lastTransactionID)
 }
+
+func TestClient_AccountInstruments(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	accountInstruments, lastTransactionID, err := client.AccountInstruments(t.Context(), accountID)
+	if err != nil {
+		t.Errorf("failed to get account instruments: %v", err)
+	}
+	t.Logf("%#v", accountInstruments)
+	t.Logf("lastTransactionID: %v", lastTransactionID)
+}

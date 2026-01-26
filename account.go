@@ -2,10 +2,7 @@ package oanda
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"net/http"
 )
 
 // Definitions https://developer.oanda.com/rest-live-v20/account-df/
@@ -368,18 +365,11 @@ func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer closeBody(resp)
-
-	slog.Info(resp.Status)
-	if resp.StatusCode != http.StatusOK {
-		return nil, decodeErrorResponse(resp)
-	}
-
 	accountsResp := struct {
 		Accounts []AccountProperties `json:"accounts"`
 	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&accountsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response body: %w", err)
+	if err := decodeResponse(resp, &accountsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	return accountsResp.Accounts, nil
 }
@@ -389,18 +379,11 @@ func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, Tr
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer closeBody(resp)
-
-	slog.Info(resp.Status)
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", decodeErrorResponse(resp)
-	}
-
 	accountsDetailsResp := struct {
 		Account           Account       `json:"account"`
 		LastTransactionID TransactionID `json:"lastTransactionID"`
 	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&accountsDetailsResp); err != nil {
+	if err := decodeResponse(resp, &accountsDetailsResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
 	}
 	return &accountsDetailsResp.Account, accountsDetailsResp.LastTransactionID, nil
@@ -411,18 +394,27 @@ func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSumm
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	defer closeBody(resp)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, "", decodeErrorResponse(resp)
-	}
-
 	accountsSummaryResp := struct {
 		Account           AccountSummary `json:"account"`
 		LastTransactionID TransactionID  `json:"lastTransactionID"`
 	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&accountsSummaryResp); err != nil {
+	if err := decodeResponse(resp, &accountsSummaryResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
 	}
 	return &accountsSummaryResp.Account, accountsSummaryResp.LastTransactionID, nil
+}
+
+func (c *Client) AccountInstruments(ctx context.Context, id AccountID) ([]Instrument, TransactionID, error) {
+	resp, err := c.sendGetRequest(ctx, fmt.Sprintf("/v3/accounts/%v/instruments", id))
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	accountsInstrumentsResp := struct {
+		Instruments       []Instrument  `json:"instruments"`
+		LastTransactionID TransactionID `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &accountsInstrumentsResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	}
+	return accountsInstrumentsResp.Instruments, accountsInstrumentsResp.LastTransactionID, nil
 }

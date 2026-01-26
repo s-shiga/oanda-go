@@ -65,6 +65,17 @@ func closeBody(resp *http.Response) {
 	}
 }
 
+func decodeResponse(resp *http.Response, v any) error {
+	defer closeBody(resp)
+	if resp.StatusCode != http.StatusOK {
+		return decodeErrorResponse(resp)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		return err
+	}
+	return nil
+}
+
 func decodeErrorResponse(resp *http.Response) error {
 	errResp := struct {
 		Message string `json:"errorMessage"`
