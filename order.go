@@ -1271,6 +1271,11 @@ func (req *OrderListRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+type OrderListResponse struct {
+	Orders            []Order       `json:"orders"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
 func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", req.AccountID)
 	v, err := req.values()
@@ -1281,10 +1286,20 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order,
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	orderListResp := struct {
-		Orders            []Order       `json:"orders"`
-		LastTransactionID TransactionID `json:"lastTransactionID"`
-	}{}
+	var orderListResp OrderListResponse
+	if err := decodeResponse(resp, &orderListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return orderListResp.Orders, orderListResp.LastTransactionID, nil
+}
+
+func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]Order, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", accountID)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	var orderListResp OrderListResponse
 	if err := decodeResponse(resp, &orderListResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
