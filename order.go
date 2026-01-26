@@ -1,5 +1,14 @@
 package oanda
 
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+)
+
 // Definitions https://developer.oanda.com/rest-live-v20/order-df/
 
 // Orders
@@ -974,7 +983,7 @@ type TrailingStopLossOrderRequest struct {
 // Order-related Definitions
 
 // OrderID is the unique identifier for an Order within an Account.
-type OrderID string
+type OrderID = string
 
 // OrderType represents the type of an Order.
 type OrderType string
@@ -1182,4 +1191,102 @@ type MarketOrderDelayedTradeClose struct {
 	// SourceTransactionID is the Transaction ID of the DelayedTradeClosure transaction to which this
 	// Delayed Trade Close belongs to.
 	SourceTransactionID TransactionID `json:"sourceTransactionID"`
+}
+
+// Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
+
+type OrderListRequest struct {
+	AccountID  AccountID
+	IDs        []OrderID
+	State      *OrderState
+	Instrument *InstrumentName
+	Count      *int
+	BeforeID   *OrderID
+}
+
+func NewOrderListRequest(accountID AccountID) *OrderListRequest {
+	return &OrderListRequest{
+		AccountID: accountID,
+		IDs:       make([]OrderID, 0),
+	}
+}
+
+func (req *OrderListRequest) AddIDs(ids ...OrderID) *OrderListRequest {
+	req.IDs = append(req.IDs, ids...)
+	return req
+}
+
+func (req *OrderListRequest) SetState(state OrderState) *OrderListRequest {
+	req.State = &state
+	return req
+}
+
+func (req *OrderListRequest) SetInstrument(instrument InstrumentName) *OrderListRequest {
+	req.Instrument = &instrument
+	return req
+}
+
+func (req *OrderListRequest) SetCount(count int) *OrderListRequest {
+	req.Count = &count
+	return req
+}
+
+func (req *OrderListRequest) SetBeforeID(beforeID OrderID) *OrderListRequest {
+	req.BeforeID = &beforeID
+	return req
+}
+
+func (req *OrderListRequest) validate() error {
+	if req.Count != nil {
+		if *req.Count <= 0 {
+			return errors.New("count must be greater than zero")
+		}
+		if *req.Count > 500 {
+			return errors.New("count must be less than or equal to 500")
+		}
+	}
+	return nil
+}
+
+func (req *OrderListRequest) values() (url.Values, error) {
+	if err := req.validate(); err != nil {
+		return nil, err
+	}
+	v := url.Values{}
+	if len(req.IDs) > 0 {
+		v.Set("ids", strings.Join(req.IDs, ","))
+	}
+	if req.State != nil {
+		v.Set("state", string(*req.State))
+	}
+	if req.Instrument != nil {
+		v.Set("instrument", *req.Instrument)
+	}
+	if req.Count != nil {
+		v.Set("count", strconv.Itoa(*req.Count))
+	}
+	if req.BeforeID != nil {
+		v.Set("beforeID", *req.BeforeID)
+	}
+	return v, nil
+}
+
+func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders", req.AccountID)
+	v, err := req.values()
+	if err != nil {
+		return nil, "", err
+	}
+	resp, err := c.sendGetRequest(ctx, path, v)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	orderListResp := struct {
+		Orders            []Order       `json:"orders"`
+		LastTransactionID TransactionID `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &orderListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return orderListResp.Orders, orderListResp.LastTransactionID, nil
 }
