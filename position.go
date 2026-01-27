@@ -80,16 +80,31 @@ type CalculatedPositionState struct {
 
 // Endpoints https://developer.oanda.com/rest-live-v20/position-ep/
 
+type PositionListResponse struct {
+	Positions         []Position    `json:"positions"`
+	LastTransactionID TransactionID `json:"lastTransactionId"`
+}
+
 func (c *Client) PositionList(ctx context.Context, accountID AccountID) ([]Position, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions", accountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	positionListResp := struct {
-		Positions         []Position    `json:"positions"`
-		LastTransactionID TransactionID `json:"lastTransactionId"`
-	}{}
+	var positionListResp PositionListResponse
+	if err := decodeResponse(resp, &positionListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return positionListResp.Positions, positionListResp.LastTransactionID, nil
+}
+
+func (c *Client) PositionListOpen(ctx context.Context, accountID AccountID) ([]Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/openPositions", accountID)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	var positionListResp PositionListResponse
 	if err := decodeResponse(resp, &positionListResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
