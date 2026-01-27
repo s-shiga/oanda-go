@@ -23,3 +23,14 @@ func TestClient_PositionListOpen(t *testing.T) {
 	t.Logf("positions: %#v", positions)
 	t.Logf("transactionID: %#v", transactionID)
 }
+
+func TestClient_PositionListInstrument(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	position, transactionID, err := client.PositionListInstrument(t.Context(), accountID, "USD_JPY")
+	if err != nil {
+		t.Errorf("failed to list positions: %v", err)
+	}
+	t.Logf("position: %#v", position)
+	t.Logf("transactionID: %#v", transactionID)
+}

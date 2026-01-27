@@ -110,3 +110,19 @@ func (c *Client) PositionListOpen(ctx context.Context, accountID AccountID) ([]P
 	}
 	return positionListResp.Positions, positionListResp.LastTransactionID, nil
 }
+
+func (c *Client) PositionListInstrument(ctx context.Context, accountID AccountID, instrument InstrumentName) (*Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", accountID, instrument)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	positionListResp := struct {
+		Position          Position      `json:"position"`
+		LastTransactionID TransactionID `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &positionListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &positionListResp.Position, positionListResp.LastTransactionID, nil
+}
