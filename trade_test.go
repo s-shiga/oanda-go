@@ -13,3 +13,14 @@ func TestClient_TradeList(t *testing.T) {
 	t.Logf("trades: %#v", trades)
 	t.Logf("transactions: %#v", transactionID)
 }
+
+func TestClient_TradeListOpen(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	trades, transactionID, err := client.TradeListOpen(t.Context(), accountID)
+	if err != nil {
+		t.Errorf("failed to list trades: %s", err)
+	}
+	t.Logf("trades: %#v", trades)
+	t.Logf("transactions: %#v", transactionID)
+}

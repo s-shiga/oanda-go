@@ -259,6 +259,11 @@ func (r *TradeListRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+type TradeListResponse struct {
+	Trades             []Trade       `json:"trades"`
+	LastTransactionsID TransactionID `json:"lastTransactionsID"`
+}
+
 func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades", req.AccountID)
 	v, err := req.values()
@@ -269,10 +274,20 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade,
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
 	}
-	tradeListResp := struct {
-		Trades             []Trade       `json:"trades"`
-		LastTransactionsID TransactionID `json:"lastTransactionsID"`
-	}{}
+	var tradeListResp TradeListResponse
+	if err := decodeResponse(resp, &tradeListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return tradeListResp.Trades, tradeListResp.LastTransactionsID, nil
+}
+
+func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trade, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/openTrades", accountID)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	var tradeListResp TradeListResponse
 	if err := decodeResponse(resp, &tradeListResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
