@@ -1,6 +1,11 @@
 package oanda
 
-// Definitions
+import (
+	"context"
+	"fmt"
+)
+
+// Definitions https://developer.oanda.com/rest-live-v20/position-df/
 
 // Position is the specification of a Position within an Account.
 type Position struct {
@@ -71,4 +76,22 @@ type CalculatedPositionState struct {
 	ShortUnrealizedPL AccountUnits `json:"shortUnrealizedPL"`
 	// MarginUsed is the margin currently used by the Position.
 	MarginUsed AccountUnits `json:"marginUsed"`
+}
+
+// Endpoints https://developer.oanda.com/rest-live-v20/position-ep/
+
+func (c *Client) PositionList(ctx context.Context, accountID AccountID) ([]Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions", accountID)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	positionListResp := struct {
+		Positions         []Position    `json:"positions"`
+		LastTransactionID TransactionID `json:"lastTransactionId"`
+	}{}
+	if err := decodeResponse(resp, &positionListResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return positionListResp.Positions, positionListResp.LastTransactionID, nil
 }
