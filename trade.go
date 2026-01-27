@@ -18,7 +18,7 @@ type TradeID = string
 
 // TradeSpecifier is the specification of a Trade as referred to by clients. Either the Trade's
 // OANDA-assigned TradeID or the Trade's client-provided ClientID prefixed by the "@" symbol.
-type TradeSpecifier string
+type TradeSpecifier = string
 
 // Trade is the specification of a Trade within an Account. This includes the full representation
 // of the Trade's dependent Orders in addition to the IDs of those Orders.
@@ -260,8 +260,8 @@ func (r *TradeListRequest) values() (url.Values, error) {
 }
 
 type TradeListResponse struct {
-	Trades             []Trade       `json:"trades"`
-	LastTransactionsID TransactionID `json:"lastTransactionsID"`
+	Trades            []Trade       `json:"trades"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
 func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade, TransactionID, error) {
@@ -278,7 +278,7 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade,
 	if err := decodeResponse(resp, &tradeListResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
-	return tradeListResp.Trades, tradeListResp.LastTransactionsID, nil
+	return tradeListResp.Trades, tradeListResp.LastTransactionID, nil
 }
 
 func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trade, TransactionID, error) {
@@ -291,5 +291,21 @@ func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trad
 	if err := decodeResponse(resp, &tradeListResp); err != nil {
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
-	return tradeListResp.Trades, tradeListResp.LastTransactionsID, nil
+	return tradeListResp.Trades, tradeListResp.LastTransactionID, nil
+}
+
+func (c *Client) TradeDetails(ctx context.Context, accountID AccountID, specifier TradeSpecifier) (*Trade, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", accountID, specifier)
+	resp, err := c.sendGetRequest(ctx, path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to send request: %w", err)
+	}
+	tradeResp := struct {
+		Trade             Trade         `json:"trade"`
+		LastTransactionID TransactionID `json:"lastTransactionID"`
+	}{}
+	if err := decodeResponse(resp, &tradeResp); err != nil {
+		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &tradeResp.Trade, tradeResp.LastTransactionID, nil
 }
