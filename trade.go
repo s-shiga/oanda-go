@@ -183,15 +183,24 @@ const (
 
 // Endpoints https://developer.oanda.com/rest-live-v20/trade-ep/
 
+// TradeListRequest represents a request to list Trades for an Account.
 type TradeListRequest struct {
-	AccountID  AccountID
-	IDs        []TradeID
-	State      *TradeStateFilter
+	// AccountID is the Account Identifier.
+	AccountID AccountID
+	// IDs is a list of Trade IDs to retrieve. If specified, only Trades with these IDs will
+	// be returned.
+	IDs []TradeID
+	// State filters Trades by their state. Default is OPEN.
+	State *TradeStateFilter
+	// Instrument filters Trades by the instrument they are for.
 	Instrument *InstrumentName
-	Count      *int
-	BeforeID   *TradeID
+	// Count is the maximum number of Trades to return. Maximum value is 500.
+	Count *int
+	// BeforeID returns only Trades that were opened before this Trade ID.
+	BeforeID *TradeID
 }
 
+// NewTradeListRequest creates a new TradeListRequest for the given account.
 func NewTradeListRequest(accountID AccountID) *TradeListRequest {
 	return &TradeListRequest{
 		AccountID: accountID,
@@ -199,31 +208,37 @@ func NewTradeListRequest(accountID AccountID) *TradeListRequest {
 	}
 }
 
+// AddIDs adds Trade IDs to filter the results.
 func (r *TradeListRequest) AddIDs(id ...TradeID) *TradeListRequest {
 	r.IDs = append(r.IDs, id...)
 	return r
 }
 
+// SetStateFilter sets the state filter for the Trades to return.
 func (r *TradeListRequest) SetStateFilter(filter TradeStateFilter) *TradeListRequest {
 	r.State = &filter
 	return r
 }
 
+// SetInstrument filters the Trades by the specified instrument.
 func (r *TradeListRequest) SetInstrument(instrument InstrumentName) *TradeListRequest {
 	r.Instrument = &instrument
 	return r
 }
 
+// SetCount sets the maximum number of Trades to return. Maximum value is 500.
 func (r *TradeListRequest) SetCount(count int) *TradeListRequest {
 	r.Count = &count
 	return r
 }
 
+// SetBeforeID returns only Trades that were opened before this Trade ID.
 func (r *TradeListRequest) SetBeforeID(beforeID TradeID) *TradeListRequest {
 	r.BeforeID = &beforeID
 	return r
 }
 
+// validate checks that the request parameters are valid.
 func (r *TradeListRequest) validate() error {
 	if r.Count != nil {
 		if *r.Count < 0 {
@@ -236,6 +251,7 @@ func (r *TradeListRequest) validate() error {
 	return nil
 }
 
+// values validates parameters and returns url.Values for the request.
 func (r *TradeListRequest) values() (url.Values, error) {
 	if err := r.validate(); err != nil {
 		return nil, err
@@ -259,11 +275,16 @@ func (r *TradeListRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+// TradeListResponse represents the response from a Trade list request.
 type TradeListResponse struct {
-	Trades            []Trade       `json:"trades"`
+	// Trades is the list of Trade details.
+	Trades []Trade `json:"trades"`
+	// LastTransactionID is the ID of the most recent Transaction created for the Account.
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+// TradeList retrieves a list of Trades for an Account.
+// See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades", req.AccountID)
 	v, err := req.values()
@@ -281,6 +302,8 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade,
 	return tradeListResp.Trades, tradeListResp.LastTransactionID, nil
 }
 
+// TradeListOpen retrieves a list of all currently open Trades for an Account.
+// See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trade, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/openTrades", accountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
@@ -294,6 +317,8 @@ func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trad
 	return tradeListResp.Trades, tradeListResp.LastTransactionID, nil
 }
 
+// TradeDetails retrieves the details of a specific Trade in an Account.
+// See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeDetails(ctx context.Context, accountID AccountID, specifier TradeSpecifier) (*Trade, TransactionID, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", accountID, specifier)
 	resp, err := c.sendGetRequest(ctx, path, nil)
