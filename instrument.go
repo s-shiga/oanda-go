@@ -126,20 +126,37 @@ type CandlestickResponse struct {
 
 // Endpoints https://developer.oanda.com/rest-live-v20/instrument-ep/
 
+// CandlesticksRequest represents a request for candlestick data for an instrument.
 type CandlesticksRequest struct {
-	Instrument        InstrumentName
-	Price             PricingComponent
-	Granularity       CandlestickGranularity
-	Count             *int
-	From              *time.Time
-	To                *time.Time
-	Smooth            bool
-	IncludeFirst      bool
-	DailyAlignment    *int
+	// Instrument is the name of the instrument to get candlestick data for.
+	Instrument InstrumentName
+	// Price is the price component(s) to get candlestick data for (M for mid, B for bid, A for ask).
+	Price PricingComponent
+	// Granularity is the granularity of the candlesticks to fetch.
+	Granularity CandlestickGranularity
+	// Count is the number of candlesticks to return. Cannot be specified with both From and To.
+	// Maximum value is 5000.
+	Count *int
+	// From is the start of the time range to fetch candlesticks for.
+	From *time.Time
+	// To is the end of the time range to fetch candlesticks for.
+	To *time.Time
+	// Smooth indicates whether the candlestick is "smoothed" by using the previous candle's close
+	// as the open price.
+	Smooth bool
+	// IncludeFirst indicates whether the candlestick that is covered by the from time should be
+	// included in the results.
+	IncludeFirst bool
+	// DailyAlignment is the hour of the day (0-23) used for granularities that have daily alignment.
+	DailyAlignment *int
+	// AlignmentTimezone is the timezone to use for the dailyAlignment parameter.
 	AlignmentTimezone *string
-	WeeklyAlignment   WeeklyAlignment
+	// WeeklyAlignment is the day of the week used for granularities that have weekly alignment.
+	WeeklyAlignment WeeklyAlignment
 }
 
+// NewCandlesticksRequest creates a new CandlesticksRequest with the given instrument and granularity.
+// Default values: IncludeFirst is true, WeeklyAlignment is Friday.
 func NewCandlesticksRequest(instrument InstrumentName, granularity CandlestickGranularity) *CandlesticksRequest {
 	return &CandlesticksRequest{
 		Instrument:      instrument,
@@ -151,6 +168,7 @@ func NewCandlesticksRequest(instrument InstrumentName, granularity CandlestickGr
 	}
 }
 
+// Mid adds midpoint-based candlestick data to the request.
 func (req *CandlesticksRequest) Mid() *CandlesticksRequest {
 	if !strings.Contains(req.Price, "M") {
 		req.Price += "M"
@@ -158,6 +176,7 @@ func (req *CandlesticksRequest) Mid() *CandlesticksRequest {
 	return req
 }
 
+// Bid adds bid-based candlestick data to the request.
 func (req *CandlesticksRequest) Bid() *CandlesticksRequest {
 	if !strings.Contains(req.Price, "B") {
 		req.Price += "B"
@@ -165,6 +184,7 @@ func (req *CandlesticksRequest) Bid() *CandlesticksRequest {
 	return req
 }
 
+// Ask adds ask-based candlestick data to the request.
 func (req *CandlesticksRequest) Ask() *CandlesticksRequest {
 	if !strings.Contains(req.Price, "A") {
 		req.Price += "A"
@@ -172,46 +192,55 @@ func (req *CandlesticksRequest) Ask() *CandlesticksRequest {
 	return req
 }
 
+// SetCount sets the number of candlesticks to return. Maximum value is 5000.
 func (req *CandlesticksRequest) SetCount(count int) *CandlesticksRequest {
 	req.Count = &count
 	return req
 }
 
+// SetFrom sets the start of the time range to fetch candlesticks for.
 func (req *CandlesticksRequest) SetFrom(from time.Time) *CandlesticksRequest {
 	req.From = &from
 	return req
 }
 
+// SetTo sets the end of the time range to fetch candlesticks for.
 func (req *CandlesticksRequest) SetTo(to time.Time) *CandlesticksRequest {
 	req.To = &to
 	return req
 }
 
+// SetSmooth enables smoothing, which uses the previous candle's close as the open price.
 func (req *CandlesticksRequest) SetSmooth() *CandlesticksRequest {
 	req.Smooth = true
 	return req
 }
 
+// SetExcludeFirst excludes the candlestick covered by the from time from the results.
 func (req *CandlesticksRequest) SetExcludeFirst() *CandlesticksRequest {
 	req.IncludeFirst = false
 	return req
 }
 
+// SetDailyAlignment sets the hour of the day (0-23) used for granularities that have daily alignment.
 func (req *CandlesticksRequest) SetDailyAlignment(dailyAlignment int) *CandlesticksRequest {
 	req.DailyAlignment = &dailyAlignment
 	return req
 }
 
+// SetAlignmentTimezone sets the timezone to use for the dailyAlignment parameter.
 func (req *CandlesticksRequest) SetAlignmentTimezone(alignmentTimezone string) *CandlesticksRequest {
 	req.AlignmentTimezone = &alignmentTimezone
 	return req
 }
 
+// SetWeeklyAlignment sets the day of the week used for granularities that have weekly alignment.
 func (req *CandlesticksRequest) SetWeeklyAlignment(weeklyAlignment WeeklyAlignment) *CandlesticksRequest {
 	req.WeeklyAlignment = weeklyAlignment
 	return req
 }
 
+// validate checks that the request parameters are valid.
 func (req *CandlesticksRequest) validate() error {
 	if req.Count != nil {
 		if req.From != nil && req.To != nil {
@@ -237,8 +266,8 @@ func (req *CandlesticksRequest) validate() error {
 	return nil
 }
 
-// values validates parameters and returns url.Values
-// Gives empty fields if set default
+// values validates parameters and returns url.Values for the request.
+// Fields with default values are omitted from the result.
 func (req *CandlesticksRequest) values() (url.Values, error) {
 	if err := req.validate(); err != nil {
 		return nil, err
@@ -277,6 +306,8 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+// Candlesticks fetches candlestick data for an instrument.
+// See: https://developer.oanda.com/rest-live-v20/instrument-ep/
 func (c *Client) Candlesticks(ctx context.Context, req *CandlesticksRequest) ([]Candlestick, error) {
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
