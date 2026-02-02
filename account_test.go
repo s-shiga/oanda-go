@@ -65,6 +65,17 @@ func TestClient_AccountInstruments(t *testing.T) {
 	t.Logf("lastTransactionID: %v", lastTransactionID)
 }
 
+func TestClient_AccountConfiguration(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	req := NewAccountConfigurationRequest().SetAlias("TestAlias")
+	resp, err := client.AccountConfiguration(t.Context(), accountID, req)
+	if err != nil {
+		t.Errorf("failed to set account configuration: %v", err)
+	}
+	t.Logf("%#v", resp)
+}
+
 func TestClient_AccountChanges(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)

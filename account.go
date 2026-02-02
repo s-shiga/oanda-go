@@ -1,7 +1,9 @@
 package oanda
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -486,6 +488,48 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
 	}
 	return accountsInstrumentsResp.Instruments, accountsInstrumentsResp.LastTransactionID, nil
+}
+
+type AccountConfigurationRequest struct {
+	Alias      string        `json:"alias"`
+	MarginRate DecimalNumber `json:"marginRate"`
+}
+
+func NewAccountConfigurationRequest() *AccountConfigurationRequest {
+	return &AccountConfigurationRequest{}
+}
+
+func (r *AccountConfigurationRequest) SetAlias(alias string) *AccountConfigurationRequest {
+	r.Alias = alias
+	return r
+}
+
+func (r *AccountConfigurationRequest) SetMarginRate(marginRate DecimalNumber) *AccountConfigurationRequest {
+	r.MarginRate = marginRate
+	return r
+}
+
+type AccountConfigurationResponse struct {
+	ClientConfigureTransaction ClientConfigureTransaction `json:"clientConfigureTransaction"`
+	LastTransactionID          TransactionID              `json:"lastTransactionID"`
+}
+
+func (c *Client) AccountConfiguration(ctx context.Context, accountID AccountID, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/configuration", accountID)
+	jsonReq, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+	reqBody := bytes.NewBuffer(jsonReq)
+	resp, err := c.sendPatchRequest(ctx, path, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
+	}
+	var accountConfigurationResp AccountConfigurationResponse
+	if err := decodeResponse(resp, &accountConfigurationResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response body: %w", err)
+	}
+	return &accountConfigurationResp, nil
 }
 
 // AccountChanges retrieves the changes to an Account's Orders, Trades, and Positions

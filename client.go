@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 )
 
 const (
@@ -51,18 +53,55 @@ func NewPracticeClient() (*Client, error) {
 	}, nil
 }
 
-func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+func (c *Client) getURL(path string, query url.Values) (string, error) {
 	u, err := url.Parse(c.URL)
+	if err != nil {
+		return "", err
+	}
+	u.Path = path
+	u.RawQuery = query.Encode()
+	return u.String(), nil
+}
+
+func (c *Client) setHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+	goVersion := runtime.Version()
+	osArch := runtime.GOOS + "/" + runtime.GOARCH
+	req.Header.Add("User-Agent", fmt.Sprintf("github.com/S-Shiga/oanda-go (%s; %s)", goVersion, osArch))
+	req.Header.Add("Authorization", "Bearer "+c.APIKey)
+}
+
+func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+	u, err := c.getURL(path, values)
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path
-	u.RawQuery = values.Encode()
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Add("Authorization", "Bearer "+c.APIKey)
+	c.setHeaders(req)
+	return c.HTTPClient.Do(req)
+}
+
+func (c *Client) sendPostRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+	return nil, nil
+}
+
+func (c *Client) sendPutRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+	return nil, nil
+}
+
+func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	u, err := c.getURL(path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, "PATCH", u, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	c.setHeaders(req)
 	return c.HTTPClient.Do(req)
 }
 
