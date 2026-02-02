@@ -1018,23 +1018,8 @@ func (r *StopOrderRequest) SetReduceOnly() *StopOrderRequest {
 	return r
 }
 
-func (r *StopOrderRequest) SetInverse() *StopOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionInverse
-	return r
-}
-
-func (r *StopOrderRequest) SetBid() *StopOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionBid
-	return r
-}
-
-func (r *StopOrderRequest) SetAsk() *StopOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionAsk
-	return r
-}
-
-func (r *StopOrderRequest) SetMid() *StopOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionMid
+func (r *StopOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *StopOrderRequest {
+	r.TriggerCondition = triggerCondition
 	return r
 }
 
@@ -1172,23 +1157,8 @@ func (r *MarketIfTouchedOrderRequest) SetReduceOnly() *MarketIfTouchedOrderReque
 	return r
 }
 
-func (r *MarketIfTouchedOrderRequest) SetInverse() *MarketIfTouchedOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionInverse
-	return r
-}
-
-func (r *MarketIfTouchedOrderRequest) SetBid() *MarketIfTouchedOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionBid
-	return r
-}
-
-func (r *MarketIfTouchedOrderRequest) SetAsk() *MarketIfTouchedOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionAsk
-	return r
-}
-
-func (r *MarketIfTouchedOrderRequest) SetMid() *MarketIfTouchedOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionMid
+func (r *MarketIfTouchedOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *MarketIfTouchedOrderRequest {
+	r.TriggerCondition = triggerCondition
 	return r
 }
 
@@ -1245,15 +1215,51 @@ type TakeProfitOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions"`
 }
 
-func (r TakeProfitOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *TakeProfitOrderRequest) Body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewTakeProfitOrderRequest(tradeID TradeID, price PriceValue) *TakeProfitOrderRequest {
+	return &TakeProfitOrderRequest{
+		Type:             OrderTypeTakeProfit,
+		TradeID:          tradeID,
+		Price:            price,
+		TimeInForce:      TimeInForceGTC,
+		TriggerCondition: OrderTriggerConditionDefault,
+	}
+}
+
+func (r *TakeProfitOrderRequest) SetClientTradeID(clientID ClientID) *TakeProfitOrderRequest {
+	r.ClientTradeID = clientID
+	return r
+}
+
+func (r *TakeProfitOrderRequest) SetGTD(date DateTime) *TakeProfitOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = date
+	return r
+}
+
+func (r *TakeProfitOrderRequest) SetGFD() *TakeProfitOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *TakeProfitOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *TakeProfitOrderRequest {
+	r.TriggerCondition = triggerCondition
+	return r
+}
+
+func (r *TakeProfitOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *TakeProfitOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
 }
 
 // StopLossOrderRequest is used to create a Stop Loss Order.
