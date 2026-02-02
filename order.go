@@ -791,7 +791,7 @@ type LimitOrderRequest struct {
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime *DateTime `json:"gtdTime,omitempty"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
@@ -842,7 +842,7 @@ func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price 
 
 func (r *LimitOrderRequest) SetGTD(date DateTime) *LimitOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = &date
+	r.GtdTime = date
 	return r
 }
 
@@ -931,7 +931,7 @@ type StopOrderRequest struct {
 	// PriceBound is the worst market price that may be used to fill this Stop Order. If the market
 	// gaps and crosses through both the price and the priceBound, the Stop Order will be cancelled
 	// instead of being filled.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
@@ -947,32 +947,125 @@ type StopOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions"`
 }
 
-func (r StopOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *StopOrderRequest) Body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewStopOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *StopOrderRequest {
+	return &StopOrderRequest{
+		Type:             OrderTypeStop,
+		Instrument:       instrument,
+		Units:            units,
+		Price:            price,
+		TimeInForce:      TimeInForceGTC,
+		PositionFill:     OrderPositionFillDefault,
+		TriggerCondition: OrderTriggerConditionDefault,
+	}
+}
+
+func (r *StopOrderRequest) SetPriceBound(priceBound PriceValue) *StopOrderRequest {
+	r.PriceBound = priceBound
+	return r
+}
+
+func (r *StopOrderRequest) SetGTD(date DateTime) *StopOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = date
+	return r
+}
+
+func (r *StopOrderRequest) SetGFD() *StopOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *StopOrderRequest) SetOpenOnly() *StopOrderRequest {
+	r.PositionFill = OrderPositionFillOpenOnly
+	return r
+}
+
+func (r *StopOrderRequest) SetReduceFirst() *StopOrderRequest {
+	r.PositionFill = OrderPositionFillReduceFirst
+	return r
+}
+
+func (r *StopOrderRequest) SetReduceOnly() *StopOrderRequest {
+	r.PositionFill = OrderPositionFillReduceOnly
+	return r
+}
+
+func (r *StopOrderRequest) SetInverse() *StopOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionInverse
+	return r
+}
+
+func (r *StopOrderRequest) SetBid() *StopOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionBid
+	return r
+}
+
+func (r *StopOrderRequest) SetAsk() *StopOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionAsk
+	return r
+}
+
+func (r *StopOrderRequest) SetMid() *StopOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionMid
+	return r
+}
+
+func (r *StopOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *StopOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
+}
+
+func (r *StopOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *StopOrderRequest {
+	r.TakeProfitOnFill = details
+	return r
+}
+
+func (r *StopOrderRequest) SetStopLossOnFill(details *StopLossDetails) *StopOrderRequest {
+	r.StopLossOnFill = details
+	return r
+}
+
+func (r *StopOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *StopOrderRequest {
+	r.GuaranteedStopLossOnFill = details
+	return r
+}
+
+func (r *StopOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *StopOrderRequest {
+	r.TrailingStopLossOnFill = details
+	return r
+}
+
+func (r *StopOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *StopOrderRequest {
+	r.TradeClientExtensions = clientExtensions
+	return r
 }
 
 // MarketIfTouchedOrderRequest is used to create a Market If Touched Order.
