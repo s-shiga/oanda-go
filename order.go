@@ -1297,15 +1297,51 @@ type StopLossOrderRequest struct {
 	Guaranteed bool `json:"guaranteed"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions"`
 }
 
-func (r StopLossOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *StopLossOrderRequest) Body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewStopLossOrderRequest(tradeID TradeID, price PriceValue) *StopLossOrderRequest {
+	return &StopLossOrderRequest{
+		Type:             OrderTypeStopLoss,
+		TradeID:          tradeID,
+		Price:            price,
+		TimeInForce:      TimeInForceGTC,
+		TriggerCondition: OrderTriggerConditionDefault,
+	}
+}
+
+func (r *StopLossOrderRequest) SetClientTradeID(clientID ClientID) *StopLossOrderRequest {
+	r.ClientTradeID = clientID
+	return r
+}
+
+func (r *StopLossOrderRequest) SetGTD(date DateTime) *StopLossOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = date
+	return r
+}
+
+func (r *StopLossOrderRequest) SetGFD() *StopLossOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *StopLossOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *StopLossOrderRequest {
+	r.TriggerCondition = triggerCondition
+	return r
+}
+
+func (r *StopLossOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *StopLossOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
 }
 
 // GuaranteedStopLossOrderRequest is used to create a Guaranteed Stop Loss Order.
