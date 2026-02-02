@@ -690,7 +690,7 @@ type MarketOrderRequest struct {
 	PriceBound PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
+	PositionFill OrderPositionFill `json:"positionFill"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -723,10 +723,11 @@ func (r *MarketOrderRequest) Body() (*bytes.Buffer, error) {
 
 func NewMarketOrderRequest(instrument InstrumentName, units DecimalNumber) *MarketOrderRequest {
 	return &MarketOrderRequest{
-		Type:        OrderTypeMarket,
-		Instrument:  instrument,
-		Units:       units,
-		TimeInForce: TimeInForceFOK,
+		Type:         OrderTypeMarket,
+		Instrument:   instrument,
+		Units:        units,
+		TimeInForce:  TimeInForceFOK,
+		PositionFill: OrderPositionFillDefault,
 	}
 }
 
@@ -794,12 +795,12 @@ type LimitOrderRequest struct {
 	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
+	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -832,11 +833,13 @@ func (r *LimitOrderRequest) Body() (*bytes.Buffer, error) {
 
 func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *LimitOrderRequest {
 	return &LimitOrderRequest{
-		Type:        OrderTypeLimit,
-		Instrument:  instrument,
-		Units:       units,
-		Price:       price,
-		TimeInForce: TimeInForceGTC,
+		Type:             OrderTypeLimit,
+		Instrument:       instrument,
+		Units:            units,
+		Price:            price,
+		TimeInForce:      TimeInForceGTC,
+		PositionFill:     OrderPositionFillDefault,
+		TriggerCondition: OrderTriggerConditionDefault,
 	}
 }
 
@@ -851,38 +854,13 @@ func (r *LimitOrderRequest) SetGFD() *LimitOrderRequest {
 	return r
 }
 
-func (r *LimitOrderRequest) SetOpenOnly() *LimitOrderRequest {
-	r.PositionFill = OrderPositionFillOpenOnly
+func (r *LimitOrderRequest) SetPositionFill(positionFill OrderPositionFill) *LimitOrderRequest {
+	r.PositionFill = positionFill
 	return r
 }
 
-func (r *LimitOrderRequest) SetReduceFirst() *LimitOrderRequest {
-	r.PositionFill = OrderPositionFillReduceFirst
-	return r
-}
-
-func (r *LimitOrderRequest) SetReduceOnly() *LimitOrderRequest {
-	r.PositionFill = OrderPositionFillReduceOnly
-	return r
-}
-
-func (r *LimitOrderRequest) SetInverse() *LimitOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionInverse
-	return r
-}
-
-func (r *LimitOrderRequest) SetBid() *LimitOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionBid
-	return r
-}
-
-func (r *LimitOrderRequest) SetAsk() *LimitOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionAsk
-	return r
-}
-
-func (r *LimitOrderRequest) SetMid() *LimitOrderRequest {
-	r.TriggerCondition = OrderTriggerConditionMid
+func (r *LimitOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *LimitOrderRequest {
+	r.TriggerCondition = triggerCondition
 	return r
 }
 
@@ -936,7 +914,7 @@ type StopOrderRequest struct {
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -947,24 +925,24 @@ type StopOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill *StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
 func (r *StopOrderRequest) Body() (*bytes.Buffer, error) {
@@ -1003,18 +981,8 @@ func (r *StopOrderRequest) SetGFD() *StopOrderRequest {
 	return r
 }
 
-func (r *StopOrderRequest) SetOpenOnly() *StopOrderRequest {
-	r.PositionFill = OrderPositionFillOpenOnly
-	return r
-}
-
-func (r *StopOrderRequest) SetReduceFirst() *StopOrderRequest {
-	r.PositionFill = OrderPositionFillReduceFirst
-	return r
-}
-
-func (r *StopOrderRequest) SetReduceOnly() *StopOrderRequest {
-	r.PositionFill = OrderPositionFillReduceOnly
+func (r *StopOrderRequest) SetPositionFill(positionFill OrderPositionFill) *StopOrderRequest {
+	r.PositionFill = positionFill
 	return r
 }
 
@@ -1070,12 +1038,12 @@ type MarketIfTouchedOrderRequest struct {
 	// Limit or a Stop Order.
 	Price PriceValue `json:"price"`
 	// PriceBound is the worst market price that may be used to fill this Market If Touched Order.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -1086,24 +1054,24 @@ type MarketIfTouchedOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill *StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
 func (r *MarketIfTouchedOrderRequest) Body() (*bytes.Buffer, error) {
@@ -1199,7 +1167,7 @@ type TakeProfitOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Take Profit Order. The associated Trade will be
 	// closed by a market price that is equal to or better than this threshold.
 	Price PriceValue `json:"price"`
@@ -1207,7 +1175,7 @@ type TakeProfitOrderRequest struct {
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1215,7 +1183,7 @@ type TakeProfitOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r *TakeProfitOrderRequest) Body() (*bytes.Buffer, error) {
@@ -1269,35 +1237,29 @@ type StopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Stop Loss Order. The associated Trade will be
 	// closed by a market price that is equal to or worse than this threshold. Either price or distance
 	// may be specified, but not both.
-	Price PriceValue `json:"price"`
+	Price PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Account's current price to use as
 	// the Stop Loss Order price. If the Trade is long the Order's price will be the bid price minus
 	// the distance. If the Trade is short the Order's price will be the ask price plus the distance.
 	// Either price or distance may be specified, but not both.
-	Distance DecimalNumber `json:"distance"`
+	Distance DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// Guaranteed is a deprecated field. Indicates if the Stop Loss Order is guaranteed. The default
-	// value depends on the GuaranteedStopLossOrderMode of the account. If true, the Stop Loss Order
-	// is guaranteed and the Order's guaranteed execution premium will be charged if the Order is filled.
-	// If false, the Stop Loss Order is not guaranteed and the Order's guaranteed execution premium
-	// will not be charged if the Order is filled.
-	Guaranteed bool `json:"guaranteed"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r *StopLossOrderRequest) Body() (*bytes.Buffer, error) {
@@ -1352,20 +1314,20 @@ type GuaranteedStopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order. The associated Trade
 	// will be closed at this price. Either price or distance may be specified, but not both.
-	Price PriceValue `json:"price"`
+	Price PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Account's current price to use as
 	// the Guaranteed Stop Loss Order price. If the Trade is long the Order's price will be the bid
 	// price minus the distance. If the Trade is short the Order's price will be the ask price plus
 	// the distance. Either price or distance may be specified, but not both.
-	Distance DecimalNumber `json:"distance"`
+	Distance DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1373,7 +1335,7 @@ type GuaranteedStopLossOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r *GuaranteedStopLossOrderRequest) Body() (*bytes.Buffer, error) {
