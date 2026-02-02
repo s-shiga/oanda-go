@@ -1,6 +1,14 @@
 package oanda
 
-import "time"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
 
 // Definitions https://developer.oanda.com/rest-live-v20/transaction-df/
 
@@ -1745,6 +1753,98 @@ type TransactionListRequest struct {
 	AccountID AccountID
 	From      *time.Time
 	To        *time.Time
-	PageSize  int
+	PageSize  *int
 	Type      []TransactionType
+}
+
+func NewTransactionListRequest(accountID AccountID) *TransactionListRequest {
+	return &TransactionListRequest{
+		AccountID: accountID,
+	}
+}
+
+func (req *TransactionListRequest) SetFrom(from time.Time) *TransactionListRequest {
+	req.From = &from
+	return req
+}
+
+func (req *TransactionListRequest) SetTo(to time.Time) *TransactionListRequest {
+	req.To = &to
+	return req
+}
+
+func (req *TransactionListRequest) SetPageSize(pageSize int) *TransactionListRequest {
+	req.PageSize = &pageSize
+	return req
+}
+
+func (req *TransactionListRequest) AddType(transactionType TransactionType) *TransactionListRequest {
+	req.Type = append(req.Type, transactionType)
+	return req
+}
+
+func (req *TransactionListRequest) validate() error {
+	if req.AccountID == "" {
+		return errors.New("account ID is required")
+	}
+	if req.PageSize != nil {
+		if *req.PageSize < 1 {
+			return errors.New("page size must be greater than zero")
+		}
+		if *req.PageSize > 1000 {
+			return errors.New("page size must be equal or less than 1000")
+		}
+	}
+	return nil
+}
+
+func (req *TransactionListRequest) values() (url.Values, error) {
+	if err := req.validate(); err != nil {
+		return nil, err
+	}
+	v := url.Values{}
+	if req.From != nil {
+		v.Set("from", req.From.Format(time.RFC3339))
+	}
+	if req.To != nil {
+		v.Set("to", req.To.Format(time.RFC3339))
+	}
+	if req.PageSize != nil {
+		v.Set("page_size", strconv.Itoa(*req.PageSize))
+	}
+	if len(req.Type) > 0 {
+		var s []string
+		for _, t := range req.Type {
+			s = append(s, string(t))
+		}
+		v.Set("type", strings.Join(s, ","))
+	}
+	return v, nil
+}
+
+type TransactionListResponse struct {
+	From              DateTime          `json:"from"`
+	To                DateTime          `json:"to"`
+	PageSize          int               `json:"pageSize"`
+	Type              []TransactionType `json:"type"`
+	Count             int               `json:"count"`
+	Pages             []string          `json:"pages"`
+	LastTransactionID TransactionID     `json:"lastTransactionID"`
+}
+
+func (c *Client) TransactionList(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/transactions", req.AccountID)
+	v, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.sendGetRequest(ctx, path, v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	var transactionListResp TransactionListResponse
+	if err := decodeResponse(resp, &transactionListResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &transactionListResp, nil
 }
