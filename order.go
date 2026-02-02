@@ -1428,14 +1428,14 @@ type TrailingStopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
 	// Distance is the price distance (in price units) specified for the Trailing Stop Loss Order.
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1443,15 +1443,51 @@ type TrailingStopLossOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func (r TrailingStopLossOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *TrailingStopLossOrderRequest) Body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewTrailingStopLossOrderRequest(tradeID TradeID, distance DecimalNumber) *TrailingStopLossOrderRequest {
+	return &TrailingStopLossOrderRequest{
+		Type:             OrderTypeTrailingStopLoss,
+		TradeID:          tradeID,
+		Distance:         distance,
+		TimeInForce:      TimeInForceGTC,
+		TriggerCondition: OrderTriggerConditionDefault,
+	}
+}
+
+func (r *TrailingStopLossOrderRequest) SetClientTradeID(clientID ClientID) *TrailingStopLossOrderRequest {
+	r.ClientTradeID = clientID
+	return r
+}
+
+func (r *TrailingStopLossOrderRequest) SetGTD(date DateTime) *TrailingStopLossOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = date
+	return r
+}
+
+func (r *TrailingStopLossOrderRequest) SetGFD() *TrailingStopLossOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *TrailingStopLossOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *TrailingStopLossOrderRequest {
+	r.TriggerCondition = triggerCondition
+	return r
+}
+
+func (r *TrailingStopLossOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *TrailingStopLossOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
 }
 
 // Order-related Definitions
