@@ -1101,32 +1101,125 @@ type MarketIfTouchedOrderRequest struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions"`
 }
 
-func (r MarketIfTouchedOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *MarketIfTouchedOrderRequest) Body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
 	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewMarketIfTouchedOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *MarketIfTouchedOrderRequest {
+	return &MarketIfTouchedOrderRequest{
+		Type:             OrderTypeMarketIfTouched,
+		Instrument:       instrument,
+		Units:            units,
+		Price:            price,
+		TimeInForce:      TimeInForceGTC,
+		PositionFill:     OrderPositionFillDefault,
+		TriggerCondition: OrderTriggerConditionDefault,
+	}
+}
+
+func (r *MarketIfTouchedOrderRequest) SetPriceBound(priceBound PriceValue) *MarketIfTouchedOrderRequest {
+	r.PriceBound = priceBound
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetGTD(date DateTime) *MarketIfTouchedOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = date
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetGFD() *MarketIfTouchedOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetOpenOnly() *MarketIfTouchedOrderRequest {
+	r.PositionFill = OrderPositionFillOpenOnly
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetReduceFirst() *MarketIfTouchedOrderRequest {
+	r.PositionFill = OrderPositionFillReduceFirst
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetReduceOnly() *MarketIfTouchedOrderRequest {
+	r.PositionFill = OrderPositionFillReduceOnly
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetInverse() *MarketIfTouchedOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionInverse
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetBid() *MarketIfTouchedOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionBid
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetAsk() *MarketIfTouchedOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionAsk
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetMid() *MarketIfTouchedOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionMid
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *MarketIfTouchedOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *MarketIfTouchedOrderRequest {
+	r.TakeProfitOnFill = details
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetStopLossOnFill(details *StopLossDetails) *MarketIfTouchedOrderRequest {
+	r.StopLossOnFill = details
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *MarketIfTouchedOrderRequest {
+	r.GuaranteedStopLossOnFill = details
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *MarketIfTouchedOrderRequest {
+	r.TrailingStopLossOnFill = details
+	return r
+}
+
+func (r *MarketIfTouchedOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *MarketIfTouchedOrderRequest {
+	r.TradeClientExtensions = clientExtensions
+	return r
 }
 
 // TakeProfitOrderRequest is used to create a Take Profit Order.
