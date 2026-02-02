@@ -1252,6 +1252,14 @@ type ClientExtensions struct {
 	Comment ClientComment `json:"comment"`
 }
 
+func NewClientExtensions(id ClientID, tag ClientTag, comment ClientComment) *ClientExtensions {
+	return &ClientExtensions{
+		ID:      id,
+		Tag:     tag,
+		Comment: comment,
+	}
+}
+
 // TakeProfitDetails specifies the details of a Take Profit Order to be created on behalf of a
 // client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
 type TakeProfitDetails struct {
@@ -1260,11 +1268,34 @@ type TakeProfitDetails struct {
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Take Profit Order should remain pending before being
 	// automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Take Profit Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Take Profit Order when created.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions ClientExtensions `json:"clientExtensions,omitempty"`
+}
+
+func NewTakeProfitDetails(price PriceValue) TakeProfitDetails {
+	return TakeProfitDetails{
+		Price:       price,
+		TimeInForce: TimeInForceGTC,
+	}
+}
+
+func (d *TakeProfitDetails) SetGTD(date DateTime) *TakeProfitDetails {
+	d.TimeInForce = TimeInForceGTD
+	d.GtdTime = date
+	return d
+}
+
+func (d *TakeProfitDetails) SetGFD() *TakeProfitDetails {
+	d.TimeInForce = TimeInForceGFD
+	return d
+}
+
+func (d *TakeProfitDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TakeProfitDetails {
+	d.ClientExtensions = *clientExtensions
+	return d
 }
 
 // StopLossDetails specifies the details of a Stop Loss Order to be created on behalf of a client.
@@ -1289,6 +1320,38 @@ type StopLossDetails struct {
 	Guaranteed bool `json:"guaranteed"`
 }
 
+func NewStopLossDetails() *StopLossDetails {
+	return &StopLossDetails{
+		TimeInForce: TimeInForceGTC,
+	}
+}
+
+func (d *StopLossDetails) SetPrice(price PriceValue) *StopLossDetails {
+	d.Price = price
+	return d
+}
+
+func (d *StopLossDetails) SetDistance(distance DecimalNumber) *StopLossDetails {
+	d.Distance = distance
+	return d
+}
+
+func (d *StopLossDetails) SetGTD(date DateTime) *StopLossDetails {
+	d.TimeInForce = TimeInForceGTD
+	d.GtdTime = date
+	return d
+}
+
+func (d *StopLossDetails) SetGFD() *StopLossDetails {
+	d.TimeInForce = TimeInForceGFD
+	return d
+}
+
+func (d *StopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *StopLossDetails {
+	d.ClientExtensions = *clientExtensions
+	return d
+}
+
 // GuaranteedStopLossDetails specifies the details of a Guaranteed Stop Loss Order to be created on
 // behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 // Guaranteed Stop Loss.
@@ -1310,6 +1373,38 @@ type GuaranteedStopLossDetails struct {
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
 }
 
+func NewGuaranteedStopLossDetails() *GuaranteedStopLossDetails {
+	return &GuaranteedStopLossDetails{
+		TimeInForce: TimeInForceGTC,
+	}
+}
+
+func (d *GuaranteedStopLossDetails) SetPrice(price PriceValue) *GuaranteedStopLossDetails {
+	d.Price = price
+	return d
+}
+
+func (d *GuaranteedStopLossDetails) SetDistance(distance DecimalNumber) *GuaranteedStopLossDetails {
+	d.Distance = distance
+	return d
+}
+
+func (d *GuaranteedStopLossDetails) SetGTD(date DateTime) *GuaranteedStopLossDetails {
+	d.TimeInForce = TimeInForceGTD
+	d.GtdTime = date
+	return d
+}
+
+func (d *GuaranteedStopLossDetails) SetGFD() *GuaranteedStopLossDetails {
+	d.TimeInForce = TimeInForceGFD
+	return d
+}
+
+func (d *GuaranteedStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *GuaranteedStopLossDetails {
+	d.ClientExtensions = *clientExtensions
+	return d
+}
+
 // TrailingStopLossDetails specifies the details of a Trailing Stop Loss Order to be created on
 // behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 // Trailing Stop Loss.
@@ -1324,6 +1419,29 @@ type TrailingStopLossDetails struct {
 	GtdTime DateTime `json:"gtdTime"`
 	// ClientExtensions are the client extensions to add to the Trailing Stop Loss Order when created.
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
+}
+
+func NewTrailingStopLossDetails(distance DecimalNumber) *TrailingStopLossDetails {
+	return &TrailingStopLossDetails{
+		Distance:    distance,
+		TimeInForce: TimeInForceGTC,
+	}
+}
+
+func (d *TrailingStopLossDetails) SetGTD(date DateTime) *TrailingStopLossDetails {
+	d.TimeInForce = TimeInForceGTD
+	d.GtdTime = date
+	return d
+}
+
+func (d *TrailingStopLossDetails) SetGFD() *TrailingStopLossDetails {
+	d.TimeInForce = TimeInForceGFD
+	return d
+}
+
+func (d *TrailingStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TrailingStopLossDetails {
+	d.ClientExtensions = *clientExtensions
+	return d
 }
 
 // TradeOpen contains the details of a Trade opened by an OrderFillTransaction.
