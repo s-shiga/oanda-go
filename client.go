@@ -59,7 +59,9 @@ func (c *Client) getURL(path string, query url.Values) (string, error) {
 		return "", err
 	}
 	u.Path = path
-	u.RawQuery = query.Encode()
+	if query != nil && len(query) > 0 {
+		u.RawQuery = query.Encode()
+	}
 	return u.String(), nil
 }
 
@@ -84,8 +86,17 @@ func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Val
 	return c.HTTPClient.Do(req)
 }
 
-func (c *Client) sendPostRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
-	return nil, nil
+func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	u, err := c.getURL(path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", u, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	c.setHeaders(req)
+	return c.HTTPClient.Do(req)
 }
 
 func (c *Client) sendPutRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {

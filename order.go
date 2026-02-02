@@ -1561,7 +1561,32 @@ const (
 
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
 
-func (c *Client) OrderCreate(ctx context.Context, req *OrderRequest) {}
+type OrderCreateResponse struct {
+	OrderCreateTransaction        Transaction            `json:"orderCreateTransaction"`
+	OrderFillTransaction          OrderFillTransaction   `json:"orderFillTransaction"`
+	OrderCancelTransaction        OrderCancelTransaction `json:"orderCancelTransaction"`
+	OrderReissueTransaction       Transaction            `json:"orderReissueTransaction"`
+	OrderReissueRejectTransaction Transaction            `json:"orderReissueRejectTransaction"`
+	RelatedTransactionIDs         []TransactionID        `json:"relatedTransactionIDs"`
+	LastTransactionID             TransactionID          `json:"lastTransactionID"`
+}
+
+func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req OrderRequest) (*OrderCreateResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders", accountID)
+	body, err := req.Body()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal body: %w", err)
+	}
+	resp, err := c.sendPostRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	var orderCreateResponse OrderCreateResponse
+	if err := decodeResponse(resp, &orderCreateResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &orderCreateResponse, nil
+}
 
 // OrderListRequest contains the parameters for retrieving a list of Orders for an Account.
 // Use NewOrderListRequest to create a new request and the builder methods to configure options.
