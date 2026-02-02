@@ -39,9 +39,9 @@ func NewClient() (*Client, error) {
 }
 
 func NewPracticeClient() (*Client, error) {
-	apiKey, ok := os.LookupEnv("OANDA_API_KEY")
+	apiKey, ok := os.LookupEnv("OANDA_API_KEY_DEMO")
 	if !ok {
-		return nil, errors.New("OANDA_API_KEY not set")
+		return nil, errors.New("OANDA_API_KEY_DEMO not set")
 	}
 	return &Client{
 		URL:          fxTradePracticeURL,

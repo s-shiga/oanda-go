@@ -6,7 +6,7 @@ import (
 )
 
 func setupClient(t *testing.T) *Client {
-	client, err := NewClient()
+	client, err := NewPracticeClient()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -14,9 +14,9 @@ func setupClient(t *testing.T) *Client {
 }
 
 func setupAccountID(t *testing.T) AccountID {
-	accountID, ok := os.LookupEnv("OANDA_ACCOUNT_ID")
+	accountID, ok := os.LookupEnv("OANDA_ACCOUNT_ID_DEMO")
 	if !ok {
-		t.Fatal("OANDA_ACCOUNT_ID not set")
+		t.Fatal("OANDA_ACCOUNT_ID_DEMO not set")
 	}
 	return AccountID(accountID)
 }
@@ -68,7 +68,7 @@ func TestClient_AccountInstruments(t *testing.T) {
 func TestClient_AccountChanges(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
-	transactionID := "15741"
+	transactionID := "421"
 	accountChanges, accountChangesState, lastTransactionID, err := client.AccountChanges(t.Context(), accountID, transactionID)
 	if err != nil {
 		t.Errorf("failed to get account changes: %v", err)
