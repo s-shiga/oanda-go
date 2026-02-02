@@ -1,7 +1,9 @@
 package oanda
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -667,6 +669,10 @@ type TrailingStopLossOrder struct {
 
 // Order Requests
 
+type OrderRequest interface {
+	Body() (*bytes.Buffer, error)
+}
+
 // MarketOrderRequest is used to create a Market Order.
 type MarketOrderRequest struct {
 	// Type is the type of the Order to Create. Must be set to "MARKET" when creating a Market Order.
@@ -681,30 +687,92 @@ type MarketOrderRequest struct {
 	// Default is FOK.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
+}
+
+func (r *MarketOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewMarketOrderRequest(instrument InstrumentName, units DecimalNumber) *MarketOrderRequest {
+	return &MarketOrderRequest{
+		Type:        OrderTypeMarket,
+		Instrument:  instrument,
+		Units:       units,
+		TimeInForce: TimeInForceFOK,
+	}
+}
+
+func (r *MarketOrderRequest) SetIOC() *MarketOrderRequest {
+	r.TimeInForce = TimeInForceIOC
+	return r
+}
+
+func (r *MarketOrderRequest) SetPriceBound(priceBound PriceValue) *MarketOrderRequest {
+	r.PriceBound = priceBound
+	return r
+}
+
+func (r *MarketOrderRequest) SetPositionFill(positionFill OrderPositionFill) *MarketOrderRequest {
+	r.PositionFill = positionFill
+	return r
+}
+
+func (r *MarketOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *MarketOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
+}
+
+func (r *MarketOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *MarketOrderRequest {
+	r.TakeProfitOnFill = details
+	return r
+}
+
+func (r *MarketOrderRequest) SetStopLossOnFill(details *StopLossDetails) *MarketOrderRequest {
+	r.StopLossOnFill = details
+	return r
+}
+
+func (r *MarketOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *MarketOrderRequest {
+	r.GuaranteedStopLossOnFill = details
+	return r
+}
+
+func (r *MarketOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *MarketOrderRequest {
+	r.TrailingStopLossOnFill = details
+	return r
+}
+
+func (r *MarketOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *MarketOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
 }
 
 // LimitOrderRequest is used to create a Limit Order.
@@ -723,35 +791,129 @@ type LimitOrderRequest struct {
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
 	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
 	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
 	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
 	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
 	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
 	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
+}
+
+func (r *LimitOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *LimitOrderRequest {
+	return &LimitOrderRequest{
+		Type:        OrderTypeLimit,
+		Instrument:  instrument,
+		Units:       units,
+		Price:       price,
+		TimeInForce: TimeInForceGTC,
+	}
+}
+
+func (r *LimitOrderRequest) SetGTD(date DateTime) *LimitOrderRequest {
+	r.TimeInForce = TimeInForceGTD
+	r.GtdTime = &date
+	return r
+}
+
+func (r *LimitOrderRequest) SetGFD() *LimitOrderRequest {
+	r.TimeInForce = TimeInForceGFD
+	return r
+}
+
+func (r *LimitOrderRequest) SetOpenOnly() *LimitOrderRequest {
+	r.PositionFill = OrderPositionFillOpenOnly
+	return r
+}
+
+func (r *LimitOrderRequest) SetReduceFirst() *LimitOrderRequest {
+	r.PositionFill = OrderPositionFillReduceFirst
+	return r
+}
+
+func (r *LimitOrderRequest) SetReduceOnly() *LimitOrderRequest {
+	r.PositionFill = OrderPositionFillReduceOnly
+	return r
+}
+
+func (r *LimitOrderRequest) SetInverse() *LimitOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionInverse
+	return r
+}
+
+func (r *LimitOrderRequest) SetBid() *LimitOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionBid
+	return r
+}
+
+func (r *LimitOrderRequest) SetAsk() *LimitOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionAsk
+	return r
+}
+
+func (r *LimitOrderRequest) SetMid() *LimitOrderRequest {
+	r.TriggerCondition = OrderTriggerConditionMid
+	return r
+}
+
+func (r *LimitOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *LimitOrderRequest {
+	r.ClientExtensions = clientExtensions
+	return r
+}
+
+func (r *LimitOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *LimitOrderRequest {
+	r.TakeProfitOnFill = details
+	return r
+}
+
+func (r *LimitOrderRequest) SetStopLossOnFill(details *StopLossDetails) *LimitOrderRequest {
+	r.StopLossOnFill = details
+	return r
+}
+
+func (r *LimitOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *LimitOrderRequest {
+	r.GuaranteedStopLossOnFill = details
+	return r
+}
+
+func (r *LimitOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *LimitOrderRequest {
+	r.TrailingStopLossOnFill = details
+	return r
+}
+
+func (r *LimitOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *LimitOrderRequest {
+	r.TradeClientExtensions = clientExtensions
+	return r
 }
 
 // StopOrderRequest is used to create a Stop Order.
@@ -803,6 +965,14 @@ type StopOrderRequest struct {
 	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
 	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
 	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+}
+
+func (r StopOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
 }
 
 // MarketIfTouchedOrderRequest is used to create a Market If Touched Order.
@@ -858,6 +1028,14 @@ type MarketIfTouchedOrderRequest struct {
 	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
 }
 
+func (r MarketIfTouchedOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
 // TakeProfitOrderRequest is used to create a Take Profit Order.
 type TakeProfitOrderRequest struct {
 	// Type is the type of the Order to Create. Must be set to "TAKE_PROFIT" when creating a Take Profit Order.
@@ -882,6 +1060,14 @@ type TakeProfitOrderRequest struct {
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
+}
+
+func (r TakeProfitOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
 }
 
 // StopLossOrderRequest is used to create a Stop Loss Order.
@@ -922,6 +1108,14 @@ type StopLossOrderRequest struct {
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
 }
 
+func (r StopLossOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
 // GuaranteedStopLossOrderRequest is used to create a Guaranteed Stop Loss Order.
 type GuaranteedStopLossOrderRequest struct {
 	// Type is the type of the Order to Create. Must be set to "GUARANTEED_STOP_LOSS" when creating
@@ -954,6 +1148,14 @@ type GuaranteedStopLossOrderRequest struct {
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
 }
 
+func (r GuaranteedStopLossOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
 // TrailingStopLossOrderRequest is used to create a Trailing Stop Loss Order.
 type TrailingStopLossOrderRequest struct {
 	// Type is the type of the Order to Create. Must be set to "TRAILING_STOP_LOSS" when creating a
@@ -978,6 +1180,14 @@ type TrailingStopLossOrderRequest struct {
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
+}
+
+func (r TrailingStopLossOrderRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
 }
 
 // Order-related Definitions
@@ -1088,6 +1298,8 @@ const (
 )
 
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
+
+func (c *Client) OrderCreate(ctx context.Context, req *OrderRequest) {}
 
 // OrderListRequest contains the parameters for retrieving a list of Orders for an Account.
 // Use NewOrderListRequest to create a new request and the builder methods to configure options.
