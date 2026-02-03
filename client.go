@@ -75,7 +75,7 @@ func (c *Client) setHeaders(req *http.Request) {
 }
 
 type Request interface {
-	Body() (*bytes.Buffer, error)
+	body() (*bytes.Buffer, error)
 }
 
 func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
@@ -133,7 +133,7 @@ func doPut[R any](c *Client, ctx context.Context, path string, req Request) (*R,
 	var body *bytes.Buffer
 	var err error
 	if req != nil {
-		body, err = req.Body()
+		body, err = req.body()
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshall request body: %w", err)
 		}
@@ -142,11 +142,11 @@ func doPut[R any](c *Client, ctx context.Context, path string, req Request) (*R,
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}
-	var resp *R
-	if err := json.NewDecoder(httpResp.Body).Decode(resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	var resp R
+	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+		return nil, err
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
@@ -160,6 +160,26 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 	}
 	c.setHeaders(req)
 	return c.HTTPClient.Do(req)
+}
+
+func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
+	var body *bytes.Buffer
+	var err error
+	if req != nil {
+		body, err = req.body()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshall request body: %w", err)
+		}
+	}
+	httpResp, err := c.sendPatchRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
+	}
+	var resp R
+	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
 func closeBody(resp *http.Response) {
