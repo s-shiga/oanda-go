@@ -364,6 +364,10 @@ const (
 
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 
+type AccountListResponse struct {
+	Accounts []AccountProperties `json:"accounts"`
+}
+
 // AccountList retrieves the list of accounts authorized for the provided token.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts
@@ -373,18 +377,21 @@ const (
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_1
-func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
-	resp, err := c.sendGetRequest(ctx, "/v3/accounts", nil)
+func (c *Client) AccountList(ctx context.Context) (*AccountListResponse, error) {
+	httpResp, err := c.sendGetRequest(ctx, "/v3/accounts", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	accountsResp := struct {
-		Accounts []AccountProperties `json:"accounts"`
-	}{}
-	if err := decodeResponse(resp, &accountsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	var resp AccountListResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	return accountsResp.Accounts, nil
+	return &resp, nil
+}
+
+type AccountDetailsResponse struct {
+	Account           Account       `json:"account"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
 // AccountDetails retrieves the full details for a single Account.
@@ -401,20 +408,22 @@ func (c *Client) AccountList(ctx context.Context) ([]AccountProperties, error) {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
-func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, TransactionID, error) {
+func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*AccountDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v", id)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	accountsDetailsResp := struct {
-		Account           Account       `json:"account"`
-		LastTransactionID TransactionID `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &accountsDetailsResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	var resp AccountDetailsResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	return &accountsDetailsResp.Account, accountsDetailsResp.LastTransactionID, nil
+	return &resp, nil
+}
+
+type AccountSummaryResponse struct {
+	Account           AccountSummary `json:"account"`
+	LastTransactionID TransactionID  `json:"lastTransactionID"`
 }
 
 // AccountSummary retrieves a summary for a single Account.
@@ -435,20 +444,22 @@ func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*Account, Tr
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
-func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummary, TransactionID, error) {
+func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummaryResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/summary", id)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	accountsSummaryResp := struct {
-		Account           AccountSummary `json:"account"`
-		LastTransactionID TransactionID  `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &accountsSummaryResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	var resp AccountSummaryResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	return &accountsSummaryResp.Account, accountsSummaryResp.LastTransactionID, nil
+	return &resp, nil
+}
+
+type AccountInstrumentsResponse struct {
+	Instruments       []Instrument  `json:"instruments"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
 // AccountInstruments retrieves the list of tradeable instruments for the given Account.
@@ -470,24 +481,21 @@ func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSumm
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
-func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) ([]Instrument, TransactionID, error) {
+func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) (*AccountInstrumentsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/instruments", id)
 	v := url.Values{}
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
 	}
-	resp, err := c.sendGetRequest(ctx, path, v)
+	httpResp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	accountsInstrumentsResp := struct {
-		Instruments       []Instrument  `json:"instruments"`
-		LastTransactionID TransactionID `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &accountsInstrumentsResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	var resp AccountInstrumentsResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	return accountsInstrumentsResp.Instruments, accountsInstrumentsResp.LastTransactionID, nil
+	return &resp, nil
 }
 
 type AccountConfigurationRequest struct {
@@ -527,9 +535,15 @@ func (c *Client) AccountConfiguration(ctx context.Context, accountID AccountID, 
 	}
 	var accountConfigurationResp AccountConfigurationResponse
 	if err := decodeResponse(resp, &accountConfigurationResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response body: %w", err)
+		return nil, err
 	}
 	return &accountConfigurationResp, nil
+}
+
+type AccountChangesResponse struct {
+	Changes           AccountChanges      `json:"changes"`
+	State             AccountChangesState `json:"state"`
+	LastTransactionID TransactionID       `json:"lastTransactionID"`
 }
 
 // AccountChanges retrieves the changes to an Account's Orders, Trades, and Positions
@@ -554,21 +568,17 @@ func (c *Client) AccountConfiguration(ctx context.Context, accountID AccountID, 
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
-func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChanges, *AccountChangesState, TransactionID, error) {
+func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChangesResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/changes", id)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
-	resp, err := c.sendGetRequest(ctx, path, v)
+	httpResp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	accountsChangesResp := struct {
-		Changes           AccountChanges      `json:"changes"`
-		State             AccountChangesState `json:"state"`
-		LastTransactionID TransactionID       `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &accountsChangesResp); err != nil {
-		return nil, nil, "", fmt.Errorf("failed to decode response body: %w", err)
+	var resp AccountChangesResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	return &accountsChangesResp.Changes, &accountsChangesResp.State, accountsChangesResp.LastTransactionID, nil
+	return &resp, nil
 }
