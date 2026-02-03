@@ -435,7 +435,7 @@ func (s TrailingStopLossOrder) getType() OrderType {
 // Order Requests
 
 type OrderRequest interface {
-	Body() (*bytes.Buffer, error)
+	body() (*bytes.Buffer, error)
 }
 
 // MarketOrderRequest is used to create a Market Order.
@@ -478,7 +478,7 @@ type MarketOrderRequest struct {
 	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
-func (r *MarketOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *MarketOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -588,7 +588,7 @@ type LimitOrderRequest struct {
 	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
-func (r *LimitOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *LimitOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -710,7 +710,7 @@ type StopOrderRequest struct {
 	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
-func (r *StopOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *StopOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -839,7 +839,7 @@ type MarketIfTouchedOrderRequest struct {
 	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
-func (r *MarketIfTouchedOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *MarketIfTouchedOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -951,7 +951,7 @@ type TakeProfitOrderRequest struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func (r *TakeProfitOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *TakeProfitOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -1027,7 +1027,7 @@ type StopLossOrderRequest struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func (r *StopLossOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *StopLossOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -1103,7 +1103,7 @@ type GuaranteedStopLossOrderRequest struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func (r *GuaranteedStopLossOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *GuaranteedStopLossOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -1173,7 +1173,7 @@ type TrailingStopLossOrderRequest struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func (r *TrailingStopLossOrderRequest) Body() (*bytes.Buffer, error) {
+func (r *TrailingStopLossOrderRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -1702,7 +1702,7 @@ type OrderUpdateClientExtensionsRequest struct {
 	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
-func (r *OrderUpdateClientExtensionsRequest) Body() (*bytes.Buffer, error) {
+func (r *OrderUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
