@@ -357,6 +357,61 @@ type AccountChanges struct {
 	Transactions []Transaction `json:"transactions"`
 }
 
+func (c *AccountChanges) UnmarshalJSON(data []byte) error {
+	type Alias AccountChanges
+	aux := &struct {
+		*Alias
+		OrdersCreated   []json.RawMessage `json:"ordersCreated"`
+		OrdersCancelled []json.RawMessage `json:"ordersCancelled"`
+		OrdersFilled    []json.RawMessage `json:"ordersFilled"`
+		OrdersTriggered []json.RawMessage `json:"ordersTriggered"`
+	}{
+		Alias: (*Alias)(c),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	c.OrdersCreated = make([]Order, 0, len(aux.OrdersCreated))
+	for _, rawOrder := range aux.OrdersCreated {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		c.OrdersCreated = append(c.OrdersCreated, order)
+	}
+
+	c.OrdersCancelled = make([]Order, 0, len(aux.OrdersCancelled))
+	for _, rawOrder := range aux.OrdersCancelled {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		c.OrdersCancelled = append(c.OrdersCancelled, order)
+	}
+
+	c.OrdersFilled = make([]Order, 0, len(aux.OrdersFilled))
+	for _, rawOrder := range aux.OrdersFilled {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		c.OrdersFilled = append(c.OrdersFilled, order)
+	}
+
+	c.OrdersTriggered = make([]Order, 0, len(aux.OrdersTriggered))
+	for _, rawOrder := range aux.OrdersTriggered {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		c.OrdersTriggered = append(c.OrdersTriggered, order)
+	}
+
+	return nil
+}
+
 // AccountFinancingMode describes the financing mode of an Account.
 type AccountFinancingMode string
 
@@ -404,15 +459,7 @@ type AccountListResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_1
 func (c *Client) AccountList(ctx context.Context) (*AccountListResponse, error) {
-	httpResp, err := c.sendGetRequest(ctx, "/v3/accounts", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp AccountListResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[AccountListResponse](c, ctx, "/v3/accounts", nil)
 }
 
 type AccountDetailsResponse struct {
@@ -436,15 +483,7 @@ type AccountDetailsResponse struct {
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
 func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*AccountDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v", id)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp AccountDetailsResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[AccountDetailsResponse](c, ctx, path, nil)
 }
 
 type AccountSummaryResponse struct {
@@ -472,15 +511,7 @@ type AccountSummaryResponse struct {
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
 func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummaryResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/summary", id)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp AccountSummaryResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[AccountSummaryResponse](c, ctx, path, nil)
 }
 
 type AccountInstrumentsResponse struct {
@@ -513,20 +544,20 @@ func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instrumen
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
 	}
-	httpResp, err := c.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp AccountInstrumentsResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[AccountInstrumentsResponse](c, ctx, path, v)
 }
 
 type AccountConfigurationRequest struct {
 	Alias      string        `json:"alias"`
 	MarginRate DecimalNumber `json:"marginRate"`
+}
+
+func (r *AccountConfigurationRequest) body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
 }
 
 func NewAccountConfigurationRequest() *AccountConfigurationRequest {
@@ -550,20 +581,7 @@ type AccountConfigurationResponse struct {
 
 func (c *Client) AccountConfiguration(ctx context.Context, accountID AccountID, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/configuration", accountID)
-	jsonReq, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-	reqBody := bytes.NewBuffer(jsonReq)
-	resp, err := c.sendPatchRequest(ctx, path, reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
-	}
-	var accountConfigurationResp AccountConfigurationResponse
-	if err := decodeResponse(resp, &accountConfigurationResp); err != nil {
-		return nil, err
-	}
-	return &accountConfigurationResp, nil
+	return doPatch[AccountConfigurationResponse](c, ctx, path, req)
 }
 
 type AccountChangesResponse struct {
@@ -598,13 +616,5 @@ func (c *Client) AccountChanges(ctx context.Context, id AccountID, since Transac
 	path := fmt.Sprintf("/v3/accounts/%v/changes", id)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
-	httpResp, err := c.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp AccountChangesResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[AccountChangesResponse](c, ctx, path, v)
 }
