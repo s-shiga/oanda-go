@@ -1813,3 +1813,22 @@ func (c *Client) OrderReplace(ctx context.Context, accountID AccountID, specifie
 	}
 	return &orderReplaceResp, nil
 }
+
+type OrderCancelResponse struct {
+	OrderCancelTransaction OrderCancelTransaction `json:"orderCancelTransaction"`
+	RelatedTransactionIDs  []TransactionID        `json:"relatedTransactionIDs"`
+	LastTransactionID      TransactionID          `json:"lastTransactionID"`
+}
+
+func (c *Client) OrderCancel(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*OrderCancelResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", accountID, specifier)
+	resp, err := c.sendPutRequest(ctx, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	var orderCancelResp OrderCancelResponse
+	if err := decodeResponse(resp, &orderCancelResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &orderCancelResp, nil
+}
