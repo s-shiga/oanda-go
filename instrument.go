@@ -306,31 +306,27 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+type CandlesticksResponse struct {
+	Instrument  InstrumentName         `json:"instrument"`
+	Granularity CandlestickGranularity `json:"granularity"`
+	Candles     []Candlestick          `json:"candles"`
+}
+
 // Candlesticks fetches candlestick data for an instrument.
 // See: https://developer.oanda.com/rest-live-v20/instrument-ep/
-func (c *Client) Candlesticks(ctx context.Context, req *CandlesticksRequest) ([]Candlestick, error) {
+func (c *Client) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlesticksResponse, error) {
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.sendGetRequest(ctx, path, v)
+	httpResp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	candlesticksResp := struct {
-		Instrument  InstrumentName         `json:"instrument"`
-		Granularity CandlestickGranularity `json:"granularity"`
-		Candles     []Candlestick          `json:"candles"`
-	}{}
-	if err := decodeResponse(resp, &candlesticksResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response body: %w", err)
+	var resp CandlesticksResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, err
 	}
-	if candlesticksResp.Instrument != req.Instrument {
-		return nil, fmt.Errorf("expected instrument %q but got %q", req.Instrument, candlesticksResp.Instrument)
-	}
-	if candlesticksResp.Granularity != req.Granularity {
-		return nil, fmt.Errorf("expected granularity %q but got %q", req.Granularity, candlesticksResp.Granularity)
-	}
-	return candlesticksResp.Candles, nil
+	return &resp, nil
 }
