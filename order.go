@@ -11,25 +11,18 @@ import (
 	"strings"
 )
 
+//
 // Definitions https://developer.oanda.com/rest-live-v20/order-df/
+//
 
 // Orders
 
-// Order is the base specification of an Order as referred to by clients.
-type Order struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
+type Order interface {
+	getType() OrderType
 }
 
-// MarketOrder is an order that is filled immediately upon creation using the current market price.
-type MarketOrder struct {
+// OrderBase is the base specification of an Order as referred to by clients.
+type OrderBase struct {
 	// ID is the Order's identifier, unique within the Order's Account.
 	ID OrderID `json:"id"`
 	// CreateTime is the time when the Order was created.
@@ -38,23 +31,50 @@ type MarketOrder struct {
 	State OrderState `json:"state"`
 	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "MARKET" for Market Orders.
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
+	// Type is the type of the Order.
 	Type OrderType `json:"type"`
-	// Instrument is the Market Order's Instrument.
-	Instrument InstrumentName `json:"instrument"`
-	// Units is the quantity requested to be filled by the Market Order. A positive number of units
-	// results in a long Order, and a negative number of units results in a short Order.
-	Units DecimalNumber `json:"units"`
-	// TimeInForce specifies how long the Order should remain pending before being automatically
-	// cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
-	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
-	PriceBound PriceValue `json:"priceBound"`
-	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
-	PositionFill OrderPositionFill `json:"positionFill"`
-	// TradeClose details the Trade ID and the client Trade ID of the Trade to be closed when the
-	// Order is filled.
+}
+
+type TradeClosingDetails struct {
+	// TradeID is the ID of the Trade to close when the price threshold is breached.
+	TradeID TradeID `json:"tradeID"`
+	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
+	ClientTradeID ClientID `json:"clientTradeID"`
+}
+
+type OrdersOnFill struct {
+	// TakeProfitOnFill specifies the details of a Take Profit Order to be
+	// created on behalf of a client. This may happen when an Order is filled
+	// that opens a Trade requiring a Take Profit, or when a Trade’s dependent
+	// Take Profit Order is modified directly through the Trade.
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
+	// StopLossOnFill specifies the details of a Stop Loss Order to be created
+	// on behalf of a client. This may happen when an Order is filled that opens
+	// a Trade requiring a Stop Loss, or when a Trade’s dependent Stop Loss
+	// Order is modified directly through the Trade.
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
+	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss
+	// Order to be created on behalf of a client. This may happen when an Order
+	// is filled that opens a Trade requiring a Guaranteed Stop Loss, or when a
+	// Trade’s dependent Guaranteed Stop Loss Order is modified directly through
+	// the Trade.
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
+	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss
+	// Order to be created on behalf of a client. This may happen when an Order
+	// is filled that opens a Trade requiring a Trailing Stop Loss, or when a
+	// Trade’s dependent Trailing Stop Loss Order is modified directly through
+	// the Trade.
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
+	// TradeClientExtensions to add to the Trade created when the Order is filled
+	// (if such a Trade is created). Do not set, modify, or delete
+	// tradeClientExtensions if your account is associated with MT4.
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
+}
+
+type PositionClosingDetails struct {
+	// TradeClose is details of the Trade requested to be closed, only provided when the
+	// MarketOrder is being used to explicitly close a Trade.
 	TradeClose MarketOrderTradeClose `json:"tradeClose"`
 	// LongPositionCloseout details the long Position to closeout when the Order is filled and
 	// whether the long Position should be fully closed or only partially closed.
@@ -66,207 +86,140 @@ type MarketOrder struct {
 	MarginCloseout MarketOrderMarginCloseout `json:"marginCloseout"`
 	// DelayedTradeClose details the delayed Trade close that this Market Order was created for.
 	DelayedTradeClose MarketOrderDelayedTradeClose `json:"delayedTradeClose"`
-	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
-	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
-	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
-	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
-	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
-	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
-	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
-	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
-	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
-	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
-	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
-	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+}
+
+type FillingDetails struct {
 	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
 	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
+	FillingTransactionID *TransactionID `json:"fillingTransactionID,omitempty"`
 	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was opened as a result of the fill).
-	TradeOpenedID TradeID `json:"tradeOpenedID"`
-	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was reduced as a result of the fill).
-	TradeReducedID TradeID `json:"tradeReducedID"`
-	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
-	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
-	TradeClosedIDs []TradeID `json:"tradeClosedIDs"`
+	FilledTime *DateTime `json:"filledTime,omitempty"`
+}
+
+type CancellingDetails struct {
 	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
 	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
 	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
+	CancelledTime *DateTime `json:"cancelledTime,omitempty"`
+}
+
+type RelatedTradeIDs struct {
+	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
+	// Order's state is FILLED and a Trade was opened as a result of the fill).
+	TradeOpenedID *TradeID `json:"tradeOpenedID,omitempty"`
+	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
+	// Order's state is FILLED and a Trade was reduced as a result of the fill).
+	TradeReducedID *TradeID `json:"tradeReducedID,omitempty"`
+	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
+	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
+	TradeClosedIDs []TradeID `json:"tradeClosedIDs,omitempty"`
+}
+
+type ReplaceDetails struct {
+	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
+	// Order was created as part of a cancel/replace).
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
+	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
+	// was cancelled as part of a cancel/replace).
+	ReplacedByOrderID *OrderID `json:"replacedByOrderID,omitempty"`
+}
+
+// MarketOrder is an order that is filled immediately upon creation using the current market price.
+type MarketOrder struct {
+	OrderBase
+	// Instrument is the name of the instrument of the Order.
+	Instrument InstrumentName `json:"instrument"`
+	// Units is the quantity requested to be filled by the Order. A positive
+	// number of units results in a long Order, and a negative number of units
+	// results in a short Order.
+	Units DecimalNumber `json:"units"`
+	// The TimeInForce requested for the Market Order. Restricted to FOK or
+	// IOC for a MarketOrder
+	TimeInForce TimeInForce `json:"timeInForce"`
+	// PriceBound is the worst price that the client is willing to have the MarketOrder filled at.
+	PriceBound PriceValue `json:"priceBound"`
+	PositionClosingDetails
+	OrdersOnFill
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+}
+
+func (m MarketOrder) getType() OrderType {
+	return m.Type
 }
 
 // FixedPriceOrder is an order that is filled immediately upon creation using a fixed price.
 type FixedPriceOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "FIXED_PRICE" for Fixed Price Orders.
-	Type OrderType `json:"type"`
-	// Instrument is the Fixed Price Order's Instrument.
+	OrderBase
+	// Instrument is the name of the instrument of the Order.
 	Instrument InstrumentName `json:"instrument"`
-	// Units is the quantity requested to be filled by the Fixed Price Order. A positive number of
-	// units results in a long Order, and a negative number of units results in a short Order.
+	// Units is the quantity requested to be filled by the Order. A positive
+	// number of units results in a long Order, and a negative number of units
+	// results in a short Order.
 	Units DecimalNumber `json:"units"`
-	// Price is the price specified for the Fixed Price Order. This price is the exact price that
-	// the Fixed Price Order will be filled at.
+	// Price specified for the Fixed Price Order. This price is the exact
+	// price that the Fixed Price Order will be filled at.
 	Price PriceValue `json:"price"`
-	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
+	// PositionFill is specification of how Positions in the Account are modified when the Order
+	// is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TradeState is the state that the trade resulting from the Fixed Price Order should be set to.
 	TradeState string `json:"tradeState"`
-	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
-	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
-	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
-	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
-	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
-	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
-	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
-	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
-	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
-	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
-	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
-	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was opened as a result of the fill).
-	TradeOpenedID TradeID `json:"tradeOpenedID"`
-	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was reduced as a result of the fill).
-	TradeReducedID TradeID `json:"tradeReducedID"`
-	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
-	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
-	TradeClosedIDs []TradeID `json:"tradeClosedIDs"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
+	OrdersOnFill
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+}
+
+func (m FixedPriceOrder) getType() OrderType {
+	return m.Type
 }
 
 // LimitOrder is an order that is created with a price threshold, and will only be filled by a price
 // that is equal to or better than the threshold.
 type LimitOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "LIMIT" for Limit Orders.
-	Type OrderType `json:"type"`
-	// Instrument is the Limit Order's Instrument.
+	OrderBase
+	// Instrument is the name of the instrument of the Order.
 	Instrument InstrumentName `json:"instrument"`
-	// Units is the quantity requested to be filled by the Limit Order. A positive number of units
-	// results in a long Order, and a negative number of units results in a short Order.
+	// Units is the quantity requested to be filled by the Order. A positive
+	// number of units results in a long Order, and a negative number of units
+	// results in a short Order.
 	Units DecimalNumber `json:"units"`
-	// Price is the price threshold specified for the Limit Order. The Limit Order will only be
-	// filled by a market price that is equal to or better than this price.
+	// The Price threshold specified for the Limit Order. The Limit Order will
+	// only be filled by a market price that is equal to or better than this Price.
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
-	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
+	// PositionFill is specification of how Positions in the Account are modified when the Order
+	// is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
-	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
-	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
-	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
-	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
-	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
-	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
-	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
-	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
-	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
-	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
-	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was opened as a result of the fill).
-	TradeOpenedID TradeID `json:"tradeOpenedID"`
-	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was reduced as a result of the fill).
-	TradeReducedID TradeID `json:"tradeReducedID"`
-	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
-	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
-	TradeClosedIDs []TradeID `json:"tradeClosedIDs"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	OrdersOnFill
+	FillingDetails
+	RelatedTradeIDs
+	ReplaceDetails
+}
+
+func (m LimitOrder) getType() OrderType {
+	return m.Type
 }
 
 // StopOrder is an order that is created with a price threshold, and will only be filled by a price
 // that is equal to or worse than the threshold.
 type StopOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "STOP" for Stop Orders.
-	Type OrderType `json:"type"`
-	// Instrument is the Stop Order's Instrument.
+	OrderBase
+	// Instrument is the name of the instrument of the Order.
 	Instrument InstrumentName `json:"instrument"`
-	// Units is the quantity requested to be filled by the Stop Order. A positive number of units
-	// results in a long Order, and a negative number of units results in a short Order.
-	Units DecimalNumber `json:"units"`
 	// Price is the price threshold specified for the Stop Order. The Stop Order will only be filled
 	// by a market price that is equal to or worse than this price.
 	Price PriceValue `json:"price"`
@@ -278,7 +231,7 @@ type StopOrder struct {
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
@@ -286,65 +239,21 @@ type StopOrder struct {
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
-	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
-	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
-	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
-	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
-	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
-	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
-	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
-	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
-	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
-	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
-	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was opened as a result of the fill).
-	TradeOpenedID TradeID `json:"tradeOpenedID"`
-	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was reduced as a result of the fill).
-	TradeReducedID TradeID `json:"tradeReducedID"`
-	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
-	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
-	TradeClosedIDs []TradeID `json:"tradeClosedIDs"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	OrdersOnFill
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (m StopOrder) getType() OrderType {
+	return m.Type
 }
 
 // MarketIfTouchedOrder is an order that is created with a price threshold, and will only be filled
 // by a market price that touches or crosses the threshold.
 type MarketIfTouchedOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "MARKET_IF_TOUCHED" for Market If Touched Orders.
-	Type OrderType `json:"type"`
+	OrderBase
 	// Instrument is the Market If Touched Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Market If Touched Order. A positive number
@@ -362,7 +271,7 @@ type MarketIfTouchedOrder struct {
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
@@ -372,70 +281,23 @@ type MarketIfTouchedOrder struct {
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// InitialMarketPrice is the Market price at the time when the MarketIfTouched Order was created.
 	InitialMarketPrice PriceValue `json:"initialMarketPrice"`
-	// TakeProfitOnFill specifies the details of a Take Profit Order to be created on behalf of a
-	// client. This may happen when an Order is filled that opens a Trade requiring a Take Profit.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
-	// StopLossOnFill specifies the details of a Stop Loss Order to be created on behalf of a client.
-	// This may happen when an Order is filled that opens a Trade requiring a Stop Loss.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
-	// GuaranteedStopLossOnFill specifies the details of a Guaranteed Stop Loss Order to be created
-	// on behalf of a client. This may happen when an Order is filled that opens a Trade requiring
-	// a Guaranteed Stop Loss.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
-	// TrailingStopLossOnFill specifies the details of a Trailing Stop Loss Order to be created on
-	// behalf of a client. This may happen when an Order is filled that opens a Trade requiring a
-	// Trailing Stop Loss.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
-	// TradeClientExtensions are the client extensions to add to the Trade created when the Order is filled.
-	// Do not set, modify, or delete tradeClientExtensions if your account is associated with MT4.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was opened as a result of the fill).
-	TradeOpenedID TradeID `json:"tradeOpenedID"`
-	// TradeReducedID is the ID of the Trade reduced when the Order was filled (only provided when the
-	// Order's state is FILLED and a Trade was reduced as a result of the fill).
-	TradeReducedID TradeID `json:"tradeReducedID"`
-	// TradeClosedIDs are the IDs of the Trades closed when the Order was filled (only provided when
-	// the Order's state is FILLED and one or more Trades were closed as a result of the fill).
-	TradeClosedIDs []TradeID `json:"tradeClosedIDs"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	OrdersOnFill
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (m MarketIfTouchedOrder) getType() OrderType {
+	return m.Type
 }
 
 // TakeProfitOrder is an order that is linked to an open Trade and created with a price threshold.
 // The Order will be filled (closing the Trade) by the first price that is equal to or better than
 // the threshold. A Take Profit Order cannot be used to open a new Position.
 type TakeProfitOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "TAKE_PROFIT" for Take Profit Orders.
-	Type OrderType `json:"type"`
-	// TradeID is the ID of the Trade to close when the price threshold is breached.
-	TradeID TradeID `json:"tradeID"`
-	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	OrderBase
+	TradeClosingDetails
 	// Price is the price threshold specified for the Take Profit Order. The associated Trade will be
 	// closed by a market price that is equal to or better than this threshold.
 	Price PriceValue `json:"price"`
@@ -443,53 +305,28 @@ type TakeProfitOrder struct {
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeClosedID is the ID of the Trade that was closed when the Order was filled (only provided
-	// when the Order's state is FILLED and a Trade was closed as a result of the fill).
-	TradeClosedID TradeID `json:"tradeClosedID"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (t TakeProfitOrder) getType() OrderType {
+	return t.Type
 }
 
 // StopLossOrder is an order that is linked to an open Trade and created with a price threshold.
 // The Order will be filled (closing the Trade) by the first price that is equal to or worse than
 // the threshold. A Stop Loss Order cannot be used to open a new Position.
 type StopLossOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "STOP_LOSS" for Stop Loss Orders.
-	Type OrderType `json:"type"`
-	// TradeID is the ID of the Trade to close when the price threshold is breached.
-	TradeID TradeID `json:"tradeID"`
-	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	OrderBase
+	TradeClosingDetails
 	// Price is the price threshold specified for the Stop Loss Order. The associated Trade will be
 	// closed by a market price that is equal to or worse than this threshold.
 	Price PriceValue `json:"price"`
@@ -501,42 +338,20 @@ type StopLossOrder struct {
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// Guaranteed is a deprecated field. Indicates if the Stop Loss Order is guaranteed. The default
-	// value depends on the GuaranteedStopLossOrderMode of the account. If true, the Stop Loss Order
-	// is guaranteed and the Order's guaranteed execution premium will be charged if the Order is filled.
-	// If false, the Stop Loss Order is not guaranteed and the Order's guaranteed execution premium
-	// will not be charged if the Order is filled.
-	Guaranteed bool `json:"guaranteed"`
-	// GuaranteedExecutionPremium is the premium that will be charged if the Stop Loss Order is
-	// guaranteed and the Order is filled at the guaranteed price. The value is determined at Order
-	// creation time. It is in price units and is charged for each unit of the Trade.
-	GuaranteedExecutionPremium DecimalNumber `json:"guaranteedExecutionPremium"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeClosedID is the ID of the Trade that was closed when the Order was filled (only provided
-	// when the Order's state is FILLED and a Trade was closed as a result of the fill).
-	TradeClosedID TradeID `json:"tradeClosedID"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (s StopLossOrder) getType() OrderType {
+	return s.Type
 }
 
 // GuaranteedStopLossOrder is an order that is linked to an open Trade and created with a price threshold
@@ -546,21 +361,11 @@ type StopLossOrder struct {
 // distance (in price units) away from the entry price for the traded instrument. A Guaranteed Stop Loss
 // Order cannot be used to open new Positions.
 type GuaranteedStopLossOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "GUARANTEED_STOP_LOSS" for Guaranteed Stop Loss Orders.
-	Type OrderType `json:"type"`
-	// TradeID is the ID of the Trade to close when the price threshold is breached.
-	TradeID TradeID `json:"tradeID"`
-	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	OrderBase
+	// GuaranteedExecutionPremium is the premium that will be charged if the Guaranteed Stop Loss Order
+	// is filled at the guaranteed price. It is in price units and is charged for each unit of the Trade.
+	GuaranteedExecutionPremium DecimalNumber `json:"guaranteedExecutionPremium"`
+	TradeClosingDetails
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order. The associated Trade
 	// will be closed at this price.
 	Price PriceValue `json:"price"`
@@ -573,7 +378,7 @@ type GuaranteedStopLossOrder struct {
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -581,29 +386,14 @@ type GuaranteedStopLossOrder struct {
 	// is restricted to "DEFAULT" for long Trades (BID price used), and "INVERSE" for short Trades
 	// (ASK price used).
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// GuaranteedExecutionPremium is the premium that will be charged if the Guaranteed Stop Loss Order
-	// is filled at the guaranteed price. It is in price units and is charged for each unit of the Trade.
-	GuaranteedExecutionPremium DecimalNumber `json:"guaranteedExecutionPremium"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeClosedID is the ID of the Trade that was closed when the Order was filled (only provided
-	// when the Order's state is FILLED and a Trade was closed as a result of the fill).
-	TradeClosedID TradeID `json:"tradeClosedID"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (s GuaranteedStopLossOrder) getType() OrderType {
+	return s.Type
 }
 
 // TrailingStopLossOrder is an order that is linked to an open Trade and created with a price distance.
@@ -613,28 +403,15 @@ type GuaranteedStopLossOrder struct {
 // the Trade) by the first price that is equal to or worse than the trailing stop value. A Trailing
 // Stop Loss Order cannot be used to open new Positions.
 type TrailingStopLossOrder struct {
-	// ID is the Order's identifier, unique within the Order's Account.
-	ID OrderID `json:"id"`
-	// CreateTime is the time when the Order was created.
-	CreateTime DateTime `json:"createTime"`
-	// State is the current state of the Order.
-	State OrderState `json:"state"`
-	// ClientExtensions are the client extensions for the Order. Do not set, modify, or delete
-	// clientExtensions if your account is associated with MT4.
-	ClientExtensions `json:"clientExtensions"`
-	// Type is the type of the Order. Always set to "TRAILING_STOP_LOSS" for Trailing Stop Loss Orders.
-	Type OrderType `json:"type"`
-	// TradeID is the ID of the Trade to close when the price threshold is breached.
-	TradeID TradeID `json:"tradeID"`
-	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	OrderBase
+	TradeClosingDetails
 	// Distance is the price distance (in price units) specified for the Trailing Stop Loss Order.
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -645,26 +422,14 @@ type TrailingStopLossOrder struct {
 	// price moves in the winning direction. If the market price moves to a level that is equal to or
 	// worse than the trailing stop value, the order will be filled and the Trade will be closed.
 	TrailingStopValue PriceValue `json:"trailingStopValue"`
-	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
-	// the Order's state is FILLED).
-	FillingTransactionID TransactionID `json:"fillingTransactionID"`
-	// FilledTime is the date/time when the Order was filled (only provided when the Order's state is FILLED).
-	FilledTime DateTime `json:"filledTime"`
-	// TradeClosedID is the ID of the Trade that was closed when the Order was filled (only provided
-	// when the Order's state is FILLED and a Trade was closed as a result of the fill).
-	TradeClosedID TradeID `json:"tradeClosedID"`
-	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
-	// when the Order's state is CANCELLED).
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
-	// CancelledTime is the date/time when the Order was cancelled (only provided when the Order's
-	// state is CANCELLED).
-	CancelledTime DateTime `json:"cancelledTime"`
-	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
-	// Order was created as part of a cancel/replace).
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
-	// ReplacedByOrderID is the ID of the Order that replaced this Order (only provided if this Order
-	// was cancelled as part of a cancel/replace).
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	FillingDetails
+	RelatedTradeIDs
+	CancellingDetails
+	ReplaceDetails
+}
+
+func (s TrailingStopLossOrder) getType() OrderType {
+	return s.Type
 }
 
 // Order Requests
@@ -792,7 +557,7 @@ type LimitOrderRequest struct {
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -845,7 +610,7 @@ func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price 
 
 func (r *LimitOrderRequest) SetGTD(date DateTime) *LimitOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1559,7 +1324,9 @@ const (
 	OrderTriggerConditionMid OrderTriggerCondition = "MID"
 )
 
+//
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
+//
 
 type OrderCreateResponse struct {
 	OrderCreateTransaction        Transaction            `json:"orderCreateTransaction"`
@@ -1571,9 +1338,20 @@ type OrderCreateResponse struct {
 	LastTransactionID             TransactionID          `json:"lastTransactionID"`
 }
 
+func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
+	request := struct {
+		Order OrderRequest `json:"order"`
+	}{Order: req}
+	body, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(body), nil
+}
+
 func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req OrderRequest) (*OrderCreateResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", accountID)
-	body, err := req.Body()
+	body, err := orderRequestWrapper(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal body: %w", err)
 	}
@@ -1583,7 +1361,7 @@ func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req Order
 	}
 	var orderCreateResponse OrderCreateResponse
 	if err := decodeResponse(resp, &orderCreateResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, err
 	}
 	return &orderCreateResponse, nil
 }
@@ -1681,6 +1459,96 @@ type OrderListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
+	var typeOnly struct {
+		Type OrderType `json:"type"`
+	}
+	if err := json.Unmarshal(rawOrder, &typeOnly); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal order type: %w", err)
+	}
+
+	var order Order
+	switch typeOnly.Type {
+	case OrderTypeMarket:
+		var marketOrder MarketOrder
+		if err := json.Unmarshal(rawOrder, &marketOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market order: %w", err)
+		}
+		order = marketOrder
+	case OrderTypeFixedPrice:
+		var fixedPriceOrder FixedPriceOrder
+		if err := json.Unmarshal(rawOrder, &fixedPriceOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal fixed price order: %w", err)
+		}
+		order = fixedPriceOrder
+	case OrderTypeLimit:
+		var limitOrder LimitOrder
+		if err := json.Unmarshal(rawOrder, &limitOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal limit order: %w", err)
+		}
+		order = limitOrder
+	case OrderTypeStop:
+		var stopOrder StopOrder
+		if err := json.Unmarshal(rawOrder, &stopOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop order: %w", err)
+		}
+		order = stopOrder
+	case OrderTypeMarketIfTouched:
+		var marketIfTouchedOrder MarketIfTouchedOrder
+		if err := json.Unmarshal(rawOrder, &marketIfTouchedOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market if touched order: %w", err)
+		}
+		order = marketIfTouchedOrder
+	case OrderTypeTakeProfit:
+		var takeProfitOrder TakeProfitOrder
+		if err := json.Unmarshal(rawOrder, &takeProfitOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal take profit order: %w", err)
+		}
+		order = takeProfitOrder
+	case OrderTypeStopLoss:
+		var stopLossOrder StopLossOrder
+		if err := json.Unmarshal(rawOrder, &stopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop loss order: %w", err)
+		}
+		order = stopLossOrder
+	case OrderTypeGuaranteedStopLoss:
+		var guaranteedStopLossOrder GuaranteedStopLossOrder
+		if err := json.Unmarshal(rawOrder, &guaranteedStopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order: %w", err)
+		}
+		order = guaranteedStopLossOrder
+	case OrderTypeTrailingStopLoss:
+		var trailingStopLossOrder TrailingStopLossOrder
+		if err := json.Unmarshal(rawOrder, &trailingStopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order: %w", err)
+		}
+		order = trailingStopLossOrder
+	}
+	return order, nil
+}
+
+func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
+	var raw struct {
+		Orders            []json.RawMessage `json:"orders"`
+		LastTransactionID TransactionID     `json:"lastTransactionID"`
+	}
+	if err := json.Unmarshal(bytes, &raw); err != nil {
+		return err
+	}
+
+	r.Orders = make([]Order, 0, len(raw.Orders))
+
+	for _, rawOrder := range raw.Orders {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		r.Orders = append(r.Orders, order)
+	}
+	raw.LastTransactionID = r.LastTransactionID
+	return nil
+}
+
 // OrderList retrieves a list of Orders for an Account based on the specified request parameters.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders
@@ -1707,21 +1575,21 @@ type OrderListResponse struct {
 //	orders, lastTxID, err := client.OrderList(ctx, req)
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
-func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order, TransactionID, error) {
+func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", req.AccountID)
 	v, err := req.values()
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	resp, err := c.sendGetRequest(ctx, path, v)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	var orderListResp OrderListResponse
 	if err := decodeResponse(resp, &orderListResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return orderListResp.Orders, orderListResp.LastTransactionID, nil
+	return &orderListResp, nil
 }
 
 // OrderListPending retrieves all pending Orders in an Account.
@@ -1741,17 +1609,40 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) ([]Order,
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
-func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]Order, TransactionID, error) {
+func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) (*OrderListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", accountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	var orderListResp OrderListResponse
 	if err := decodeResponse(resp, &orderListResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return orderListResp.Orders, orderListResp.LastTransactionID, nil
+	return &orderListResp, nil
+}
+
+type OrderDetailsResponse struct {
+	Order             Order         `json:"order"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
+func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Order             json.RawMessage `json:"order"`
+		LastTransactionID TransactionID   `json:"lastTransactionID"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	order, err := unmarshalOrder(raw.Order)
+	if err != nil {
+		return err
+	}
+	r.Order = order
+	r.LastTransactionID = raw.LastTransactionID
+	return nil
 }
 
 // OrderDetails retrieves the details of a single Order in an Account.
@@ -1770,20 +1661,9 @@ func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) ([]O
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
-func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*Order, TransactionID, error) {
+func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
-	resp, err := c.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
-	}
-	orderDetailsResponse := struct {
-		Order             Order         `json:"order"`
-		LastTransactionID TransactionID `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &orderDetailsResponse); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderDetailsResponse.Order, orderDetailsResponse.LastTransactionID, nil
+	return doGet[OrderDetailsResponse](c, ctx, path, nil)
 }
 
 type OrderReplaceResponse struct {
@@ -1797,21 +1677,11 @@ type OrderReplaceResponse struct {
 	LastTransactionID               TransactionID          `json:"lastTransactionID"`
 }
 
-func (c *Client) OrderReplace(ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
+func (c *Client) OrderReplace(
+	ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderRequest,
+) (*OrderReplaceResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
-	body, err := req.Body()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request body: %w", err)
-	}
-	resp, err := c.sendPutRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderReplaceResp OrderReplaceResponse
-	if err := decodeResponse(resp, &orderReplaceResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderReplaceResp, nil
+	return doPut[OrderReplaceResponse](c, ctx, path, req)
 }
 
 type OrderCancelResponse struct {
@@ -1820,17 +1690,11 @@ type OrderCancelResponse struct {
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
-func (c *Client) OrderCancel(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*OrderCancelResponse, error) {
+func (c *Client) OrderCancel(
+	ctx context.Context, accountID AccountID, specifier OrderSpecifier,
+) (*OrderCancelResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", accountID, specifier)
-	resp, err := c.sendPutRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderCancelResp OrderCancelResponse
-	if err := decodeResponse(resp, &orderCancelResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderCancelResp, nil
+	return doPut[OrderCancelResponse](c, ctx, path, nil)
 }
 
 type OrderUpdateClientExtensionsRequest struct {
@@ -1849,19 +1713,12 @@ func (r *OrderUpdateClientExtensionsRequest) Body() (*bytes.Buffer, error) {
 type OrderUpdateClientExtensionsResponse struct {
 }
 
-func (c *Client) OrderUpdateClientExtensions(ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderUpdateClientExtensionsRequest) (*OrderUpdateClientExtensionsResponse, error) {
+func (c *Client) OrderUpdateClientExtensions(
+	ctx context.Context,
+	accountID AccountID,
+	specifier OrderSpecifier,
+	req OrderUpdateClientExtensionsRequest,
+) (*OrderUpdateClientExtensionsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", accountID, specifier)
-	body, err := req.Body()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request body: %w", err)
-	}
-	resp, err := c.sendPutRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderUpdateClientExtensionsResp OrderUpdateClientExtensionsResponse
-	if err := decodeResponse(resp, &orderUpdateClientExtensionsResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderUpdateClientExtensionsResp, nil
+	return doPut[OrderUpdateClientExtensionsResponse](c, ctx, path, &req)
 }

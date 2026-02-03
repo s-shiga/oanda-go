@@ -17,28 +17,31 @@ func TestClient_OrderList(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
 	req := NewOrderListRequest(accountID).SetInstrument("USD_JPY")
-	orders, lastTransactionID, err := client.OrderList(t.Context(), req)
+	resp, err := client.OrderList(t.Context(), req)
 	if err != nil {
 		t.Errorf("failed to list orders: %v", err)
 	}
-	t.Logf("orders: %#v", orders)
-	if len(orders) > 0 {
-		for _, order := range orders {
+	t.Logf("response: %#v", resp)
+	if len(resp.Orders) > 0 {
+		for _, order := range resp.Orders {
 			t.Logf("order: %#v", order)
 		}
 	}
-	t.Logf("lastTransactionID: %v", lastTransactionID)
 }
 
 func TestClient_OrderListPending(t *testing.T) {
 	client := setupClient(t)
 	accountID := setupAccountID(t)
-	orders, lastTransactionID, err := client.OrderListPending(t.Context(), accountID)
+	resp, err := client.OrderListPending(t.Context(), accountID)
 	if err != nil {
 		t.Errorf("failed to list pending orders: %v", err)
 	}
-	t.Logf("orders: %#v", orders)
-	t.Logf("lastTransactionID: %v", lastTransactionID)
+	t.Logf("response: %#v", resp)
+	if len(resp.Orders) > 0 {
+		for _, order := range resp.Orders {
+			t.Logf("order: %#v", order)
+		}
+	}
 }
 
 func TestClient_OrderDetails(t *testing.T) {
