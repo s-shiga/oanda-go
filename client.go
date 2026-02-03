@@ -1,6 +1,7 @@
 package oanda
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -73,6 +74,10 @@ func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Add("Authorization", "Bearer "+c.APIKey)
 }
 
+type Request interface {
+	Body() (*bytes.Buffer, error)
+}
+
 func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
 	u, err := c.getURL(path, values)
 	if err != nil {
@@ -84,6 +89,18 @@ func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Val
 	}
 	c.setHeaders(req)
 	return c.HTTPClient.Do(req)
+}
+
+func doGet[R any](c *Client, ctx context.Context, path string, query url.Values) (*R, error) {
+	httpResp, err := c.sendGetRequest(ctx, path, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send GET request: %w", err)
+	}
+	var resp R
+	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
 func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
@@ -112,6 +129,26 @@ func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader
 	return c.HTTPClient.Do(req)
 }
 
+func doPut[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
+	var body *bytes.Buffer
+	var err error
+	if req != nil {
+		body, err = req.Body()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshall request body: %w", err)
+		}
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	var resp *R
+	if err := json.NewDecoder(httpResp.Body).Decode(resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return resp, nil
+}
+
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
 	u, err := c.getURL(path, nil)
 	if err != nil {
@@ -133,11 +170,15 @@ func closeBody(resp *http.Response) {
 
 func decodeResponse(resp *http.Response, v any) error {
 	defer closeBody(resp)
-	if resp.StatusCode != http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return err
+		}
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusMethodNotAllowed:
 		return decodeErrorResponse(resp)
-	}
-	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
-		return err
+	default:
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return nil
 }
