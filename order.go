@@ -1832,3 +1832,36 @@ func (c *Client) OrderCancel(ctx context.Context, accountID AccountID, specifier
 	}
 	return &orderCancelResp, nil
 }
+
+type OrderUpdateClientExtensionsRequest struct {
+	ClientExtensions      ClientExtensions `json:"clientExtensions,omitempty"`
+	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions,omitempty"`
+}
+
+func (r *OrderUpdateClientExtensionsRequest) Body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+type OrderUpdateClientExtensionsResponse struct {
+}
+
+func (c *Client) OrderUpdateClientExtensions(ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderUpdateClientExtensionsRequest) (*OrderUpdateClientExtensionsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", accountID, specifier)
+	body, err := req.Body()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	resp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	var orderUpdateClientExtensionsResp OrderUpdateClientExtensionsResponse
+	if err := decodeResponse(resp, &orderUpdateClientExtensionsResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &orderUpdateClientExtensionsResp, nil
+}
