@@ -1388,67 +1388,67 @@ func NewOrderListRequest(accountID AccountID) *OrderListRequest {
 }
 
 // AddIDs adds Order IDs to filter the results. Only Orders with matching IDs will be returned.
-func (req *OrderListRequest) AddIDs(ids ...OrderID) *OrderListRequest {
-	req.IDs = append(req.IDs, ids...)
-	return req
+func (r *OrderListRequest) AddIDs(ids ...OrderID) *OrderListRequest {
+	r.IDs = append(r.IDs, ids...)
+	return r
 }
 
 // SetState filters Orders by their state (PENDING, FILLED, TRIGGERED, CANCELLED).
-func (req *OrderListRequest) SetState(state OrderState) *OrderListRequest {
-	req.State = &state
-	return req
+func (r *OrderListRequest) SetState(state OrderState) *OrderListRequest {
+	r.State = &state
+	return r
 }
 
 // SetInstrument filters Orders by the specified instrument.
-func (req *OrderListRequest) SetInstrument(instrument InstrumentName) *OrderListRequest {
-	req.Instrument = &instrument
-	return req
+func (r *OrderListRequest) SetInstrument(instrument InstrumentName) *OrderListRequest {
+	r.Instrument = &instrument
+	return r
 }
 
 // SetCount sets the maximum number of Orders to return. Must be between 1 and 500.
-func (req *OrderListRequest) SetCount(count int) *OrderListRequest {
-	req.Count = &count
-	return req
+func (r *OrderListRequest) SetCount(count int) *OrderListRequest {
+	r.Count = &count
+	return r
 }
 
 // SetBeforeID filters to return only Orders with an ID less than the specified ID.
 // Used for pagination to retrieve older Orders.
-func (req *OrderListRequest) SetBeforeID(beforeID OrderID) *OrderListRequest {
-	req.BeforeID = &beforeID
-	return req
+func (r *OrderListRequest) SetBeforeID(beforeID OrderID) *OrderListRequest {
+	r.BeforeID = &beforeID
+	return r
 }
 
-func (req *OrderListRequest) validate() error {
-	if req.Count != nil {
-		if *req.Count <= 0 {
+func (r *OrderListRequest) validate() error {
+	if r.Count != nil {
+		if *r.Count <= 0 {
 			return errors.New("count must be greater than zero")
 		}
-		if *req.Count > 500 {
+		if *r.Count > 500 {
 			return errors.New("count must be less than or equal to 500")
 		}
 	}
 	return nil
 }
 
-func (req *OrderListRequest) values() (url.Values, error) {
-	if err := req.validate(); err != nil {
+func (r *OrderListRequest) values() (url.Values, error) {
+	if err := r.validate(); err != nil {
 		return nil, err
 	}
 	v := url.Values{}
-	if len(req.IDs) > 0 {
-		v.Set("ids", strings.Join(req.IDs, ","))
+	if len(r.IDs) > 0 {
+		v.Set("ids", strings.Join(r.IDs, ","))
 	}
-	if req.State != nil {
-		v.Set("state", string(*req.State))
+	if r.State != nil {
+		v.Set("state", string(*r.State))
 	}
-	if req.Instrument != nil {
-		v.Set("instrument", *req.Instrument)
+	if r.Instrument != nil {
+		v.Set("instrument", *r.Instrument)
 	}
-	if req.Count != nil {
-		v.Set("count", strconv.Itoa(*req.Count))
+	if r.Count != nil {
+		v.Set("count", strconv.Itoa(*r.Count))
 	}
-	if req.BeforeID != nil {
-		v.Set("beforeID", *req.BeforeID)
+	if r.BeforeID != nil {
+		v.Set("beforeID", *r.BeforeID)
 	}
 	return v, nil
 }
