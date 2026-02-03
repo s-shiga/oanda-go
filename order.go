@@ -1785,3 +1785,31 @@ func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifie
 	}
 	return &orderDetailsResponse.Order, orderDetailsResponse.LastTransactionID, nil
 }
+
+type OrderReplaceResponse struct {
+	OrderCancelTransaction          OrderCancelTransaction `json:"orderCancelTransaction"`
+	OrderCreateTransaction          Transaction            `json:"orderCreateTransaction"`
+	OrderFillTransaction            OrderFillTransaction   `json:"orderFillTransaction"`
+	OrderReissueTransaction         Transaction            `json:"orderReissueTransaction"`
+	OrderReissueRejectTransaction   Transaction            `json:"orderReissueRejectTransaction"`
+	ReplacingOrderCancelTransaction OrderCancelTransaction `json:"replacingOrderCancelTransaction"`
+	RelatedTransactionIDs           []TransactionID        `json:"relatedTransactionIDs"`
+	LastTransactionID               TransactionID          `json:"lastTransactionID"`
+}
+
+func (c *Client) OrderReplace(ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
+	body, err := req.Body()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	resp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	var orderReplaceResp OrderReplaceResponse
+	if err := decodeResponse(resp, &orderReplaceResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	return &orderReplaceResp, nil
+}

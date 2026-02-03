@@ -99,8 +99,17 @@ func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reade
 	return c.HTTPClient.Do(req)
 }
 
-func (c *Client) sendPutRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
-	return nil, nil
+func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	u, err := c.getURL(path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, "PUT", u, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	c.setHeaders(req)
+	return c.HTTPClient.Do(req)
 }
 
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
