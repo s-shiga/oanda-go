@@ -107,7 +107,7 @@ type Account struct {
 	// Positions is the details of the Positions currently open in the Account.
 	Positions []Position `json:"positions"`
 	// Orders is the details of the Orders currently pending in the Account.
-	Orders []Order `json:"orders"` // TODO
+	Orders []Order `json:"orders"`
 }
 
 func (a *Account) UnmarshalJSON(b []byte) error {
