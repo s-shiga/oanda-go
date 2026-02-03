@@ -107,7 +107,33 @@ type Account struct {
 	// Positions is the details of the Positions currently open in the Account.
 	Positions []Position `json:"positions"`
 	// Orders is the details of the Orders currently pending in the Account.
-	Orders []Order `json:"orders"`
+	Orders []Order `json:"orders"` // TODO
+}
+
+func (a *Account) UnmarshalJSON(b []byte) error {
+	type Alias Account
+
+	aux := &struct {
+		*Alias
+		Orders []json.RawMessage `json:"orders"`
+	}{
+		Alias: (*Alias)(a),
+	}
+
+	if err := json.Unmarshal(b, aux); err != nil {
+		return err
+	}
+
+	a.Orders = make([]Order, 0, len(a.Orders))
+
+	for _, rawOrder := range aux.Orders {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return err
+		}
+		a.Orders = append(a.Orders, order)
+	}
+	return nil
 }
 
 // AccountProperties contains properties related to an Account.
