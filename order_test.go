@@ -1,6 +1,10 @@
 package oanda
 
-import "testing"
+import (
+	"fmt"
+	"log/slog"
+	"testing"
+)
 
 func TestClient_OrderCreate(t *testing.T) {
 	client := setupClient(t)
@@ -10,7 +14,7 @@ func TestClient_OrderCreate(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to create order: %v", err)
 	}
-	t.Logf("resp: %#v", resp)
+	slog.Debug("OrderCreate:", "resp", fmt.Sprintf("%#v", resp))
 }
 
 func TestClient_OrderList(t *testing.T) {
@@ -21,12 +25,10 @@ func TestClient_OrderList(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to list orders: %v", err)
 	}
-	t.Logf("response: %#v", resp)
-	if len(resp.Orders) > 0 {
-		for _, order := range resp.Orders {
-			t.Logf("order: %#v", order)
-		}
+	for _, order := range resp.Orders {
+		slog.Debug("OrderList:", "Order", fmt.Sprintf("%#v", order))
 	}
+	slog.Debug("OrderList:", "LastTransactionID", resp.LastTransactionID)
 }
 
 func TestClient_OrderListPending(t *testing.T) {
@@ -36,12 +38,10 @@ func TestClient_OrderListPending(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to list pending orders: %v", err)
 	}
-	t.Logf("response: %#v", resp)
-	if len(resp.Orders) > 0 {
-		for _, order := range resp.Orders {
-			t.Logf("order: %#v", order)
-		}
+	for _, order := range resp.Orders {
+		slog.Debug("OrderListPending:", "Order", fmt.Sprintf("%#v", order))
 	}
+	slog.Debug("OrderListPending:", "LastTransactionID", resp.LastTransactionID)
 }
 
 func TestClient_OrderDetails(t *testing.T) {
@@ -52,5 +52,6 @@ func TestClient_OrderDetails(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get order details: %v", err)
 	}
-	t.Logf("response: %#v", resp)
+	slog.Debug("OrderDetails:", "Order", fmt.Sprintf("%#v", resp.Order))
+	slog.Debug("OrderDetails:", "LastTransactionID", resp.LastTransactionID)
 }
