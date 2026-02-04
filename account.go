@@ -373,41 +373,26 @@ func (c *AccountChanges) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	c.OrdersCreated = make([]Order, 0, len(aux.OrdersCreated))
-	for _, rawOrder := range aux.OrdersCreated {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return err
-		}
-		c.OrdersCreated = append(c.OrdersCreated, order)
+	ordersCreated, err := unmarshalOrders(aux.OrdersCreated)
+	if err != nil {
+		return err
 	}
-
-	c.OrdersCancelled = make([]Order, 0, len(aux.OrdersCancelled))
-	for _, rawOrder := range aux.OrdersCancelled {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return err
-		}
-		c.OrdersCancelled = append(c.OrdersCancelled, order)
+	c.OrdersCreated = ordersCreated
+	ordersCancelled, err := unmarshalOrders(aux.OrdersCancelled)
+	if err != nil {
+		return err
 	}
-
-	c.OrdersFilled = make([]Order, 0, len(aux.OrdersFilled))
-	for _, rawOrder := range aux.OrdersFilled {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return err
-		}
-		c.OrdersFilled = append(c.OrdersFilled, order)
+	c.OrdersCancelled = ordersCancelled
+	ordersFilled, err := unmarshalOrders(aux.OrdersFilled)
+	if err != nil {
+		return err
 	}
-
-	c.OrdersTriggered = make([]Order, 0, len(aux.OrdersTriggered))
-	for _, rawOrder := range aux.OrdersTriggered {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return err
-		}
-		c.OrdersTriggered = append(c.OrdersTriggered, order)
+	c.OrdersFilled = ordersFilled
+	ordersTriggered, err := unmarshalOrders(aux.OrdersTriggered)
+	if err != nil {
+		return err
 	}
+	c.OrdersTriggered = ordersTriggered
 
 	return nil
 }

@@ -1527,6 +1527,18 @@ func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
 	return order, nil
 }
 
+func unmarshalOrders(src []json.RawMessage) ([]Order, error) {
+	dest := make([]Order, 0, len(src))
+	for _, rawOrder := range src {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return nil, err
+		}
+		dest = append(dest, order)
+	}
+	return dest, nil
+}
+
 func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 	var raw struct {
 		Orders            []json.RawMessage `json:"orders"`
@@ -1536,16 +1548,12 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 
-	r.Orders = make([]Order, 0, len(raw.Orders))
-
-	for _, rawOrder := range raw.Orders {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return err
-		}
-		r.Orders = append(r.Orders, order)
+	orders, err := unmarshalOrders(raw.Orders)
+	if err != nil {
+		return err
 	}
-	raw.LastTransactionID = r.LastTransactionID
+	r.Orders = orders
+	r.LastTransactionID = raw.LastTransactionID
 	return nil
 }
 
