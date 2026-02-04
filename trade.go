@@ -417,13 +417,78 @@ func (c *Client) TradeClose(ctx context.Context, accountID AccountID, specifier 
 		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: resp.ErrorMessage, Err: resp}}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
 	case http.StatusNotFound:
 		var resp TradeCloseNotFoundResponse
 		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
-		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: resp.ErrorMessage, Err: resp}}
+		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
+}
+
+type TradeUpdateClientExtensionsRequest struct {
+	ClientExtensions ClientExtensions `json:"clientExtensions"`
+}
+
+func (r TradeUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r.ClientExtensions)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+type TradeUpdateClientExtensionsResponse struct {
+	TradeClientExtensionsModifyTransaction TradeClientExtensionsModifyTransaction `json:"tradeClientExtensionsModifyTransaction"`
+	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
+	LastTransactionID                      TransactionID                          `json:"lastTransactionID"`
+}
+
+type TradeUpdateClientExtensionsErrorResponse struct {
+	TradeClientExtensionsModifyRejectTransaction TradeClientExtensionsModifyRejectTransaction `json:"tradeClientExtensionsModifyRejectTransaction"`
+	LastTransactionID                            TransactionID                                `json:"lastTransactionID"`
+	RelatedTransactionIDs                        []TransactionID                              `json:"relatedTransactionIDs"`
+	ErrorCode                                    string                                       `json:"errorCode"`
+	ErrorMessage                                 string                                       `json:"errorMessage"`
+}
+
+func (r TradeUpdateClientExtensionsErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
+func (c *Client) TradeUpdateClientExtensions(ctx context.Context, accountID AccountID, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", accountID, specifier)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp TradeUpdateClientExtensionsResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp TradeUpdateClientExtensionsErrorResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+	case http.StatusNotFound:
+		var resp TradeUpdateClientExtensionsErrorResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
