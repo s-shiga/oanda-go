@@ -97,8 +97,11 @@ func doGet[R any](c *Client, ctx context.Context, path string, query url.Values)
 		return nil, fmt.Errorf("failed to send GET request: %w", err)
 	}
 	var resp R
-	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-		return nil, err
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, decodeErrorResponse(httpResp)
+	}
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	return &resp, nil
 }
@@ -116,18 +119,6 @@ func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reade
 	return c.HTTPClient.Do(req)
 }
 
-func doPost[R any](c *Client, ctx context.Context, path string, body io.Reader) (*R, error) {
-	httpResp, err := c.sendPostRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send POST request: %w", err)
-	}
-	var resp R
-	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-		return nil, err
-	}
-	return &resp, err
-}
-
 func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
 	u, err := c.getURL(path, nil)
 	if err != nil {
@@ -139,18 +130,6 @@ func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader
 	}
 	c.setHeaders(req)
 	return c.HTTPClient.Do(req)
-}
-
-func doPut[R any](c *Client, ctx context.Context, path string, body *bytes.Buffer) (*R, error) {
-	httpResp, err := c.sendPutRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send PUT request: %w", err)
-	}
-	var resp R
-	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
 }
 
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
@@ -166,7 +145,15 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 	return c.HTTPClient.Do(req)
 }
 
-func doPatch[R any](c *Client, ctx context.Context, path string, body *bytes.Buffer) (*R, error) {
+func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
+	var body io.Reader
+	var err error
+	if req != nil {
+		body, err = req.body()
+		if err != nil {
+			return nil, err
+		}
+	}
 	httpResp, err := c.sendPatchRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
