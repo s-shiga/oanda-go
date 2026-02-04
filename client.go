@@ -116,6 +116,18 @@ func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reade
 	return c.HTTPClient.Do(req)
 }
 
+func doPost[R any](c *Client, ctx context.Context, path string, body io.Reader) (*R, error) {
+	httpResp, err := c.sendPostRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send POST request: %w", err)
+	}
+	var resp R
+	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+		return nil, err
+	}
+	return &resp, err
+}
+
 func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
 	u, err := c.getURL(path, nil)
 	if err != nil {
@@ -129,15 +141,7 @@ func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader
 	return c.HTTPClient.Do(req)
 }
 
-func doPut[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
-	var body *bytes.Buffer
-	var err error
-	if req != nil {
-		body, err = req.body()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshall request body: %w", err)
-		}
-	}
+func doPut[R any](c *Client, ctx context.Context, path string, body *bytes.Buffer) (*R, error) {
 	httpResp, err := c.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
@@ -162,15 +166,7 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 	return c.HTTPClient.Do(req)
 }
 
-func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
-	var body *bytes.Buffer
-	var err error
-	if req != nil {
-		body, err = req.body()
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshall request body: %w", err)
-		}
-	}
+func doPatch[R any](c *Client, ctx context.Context, path string, body *bytes.Buffer) (*R, error) {
 	httpResp, err := c.sendPatchRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
