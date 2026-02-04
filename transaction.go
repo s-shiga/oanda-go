@@ -1245,11 +1245,11 @@ type ClientComment string
 type ClientExtensions struct {
 	// ID is a client-provided identifier, used by clients to refer to their Orders or Trades
 	// with an identifier that they have provided.
-	ID ClientID `json:"id"`
+	ID ClientID `json:"id,omitempty"`
 	// Tag is a client-provided tag that can be associated with an Order or Trade.
-	Tag ClientTag `json:"tag"`
+	Tag ClientTag `json:"tag,omitempty"`
 	// Comment is a client-provided comment that can be associated with an Order or Trade.
-	Comment ClientComment `json:"comment"`
+	Comment ClientComment `json:"comment,omitempty"`
 }
 
 func NewClientExtensions(id ClientID, tag ClientTag, comment ClientComment) *ClientExtensions {
