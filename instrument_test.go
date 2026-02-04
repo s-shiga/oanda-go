@@ -1,6 +1,7 @@
 package oanda
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 )
@@ -14,8 +15,10 @@ func TestClient_Candlesticks(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get candlesticks: %v", err)
 	}
-	t.Logf("response: %#v", resp)
 	if len(resp.Candles) == 0 {
 		t.Errorf("got no candlesticks")
 	}
+	slog.Debug("Candlesticks:", "Instrument", resp.Instrument)
+	slog.Debug("Candlesticks:", "Granularity", resp.Granularity)
+	slog.Debug("Candlesticks:", "Candles", resp.Candles)
 }
