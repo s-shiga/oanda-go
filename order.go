@@ -19,7 +19,11 @@ import (
 // Orders
 
 type Order interface {
-	getType() OrderType
+	GetID() OrderID
+	GetCreateTime() DateTime
+	GetState() OrderState
+	GetClientExtensions() *ClientExtensions
+	GetType() OrderType
 }
 
 func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
@@ -228,8 +232,24 @@ type MarketOrder struct {
 	CancellingDetails
 }
 
-func (m MarketOrder) getType() OrderType {
-	return m.Type
+func (o MarketOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o MarketOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o MarketOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o MarketOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o MarketOrder) GetType() OrderType {
+	return o.Type
 }
 
 // FixedPriceOrder is an order that is filled immediately upon creation using a fixed price.
@@ -255,8 +275,24 @@ type FixedPriceOrder struct {
 	CancellingDetails
 }
 
-func (m FixedPriceOrder) getType() OrderType {
-	return m.Type
+func (o FixedPriceOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o FixedPriceOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o FixedPriceOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o FixedPriceOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o FixedPriceOrder) GetType() OrderType {
+	return o.Type
 }
 
 // LimitOrder is an order that is created with a price threshold, and will only be filled by a price
@@ -291,8 +327,24 @@ type LimitOrder struct {
 	ReplaceDetails
 }
 
-func (m LimitOrder) getType() OrderType {
-	return m.Type
+func (o LimitOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o LimitOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o LimitOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o LimitOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o LimitOrder) GetType() OrderType {
+	return o.Type
 }
 
 // StopOrder is an order that is created with a price threshold, and will only be filled by a price
@@ -327,8 +379,24 @@ type StopOrder struct {
 	ReplaceDetails
 }
 
-func (m StopOrder) getType() OrderType {
-	return m.Type
+func (o StopOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o StopOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o StopOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o StopOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o StopOrder) GetType() OrderType {
+	return o.Type
 }
 
 // MarketIfTouchedOrder is an order that is created with a price threshold, and will only be filled
@@ -369,8 +437,24 @@ type MarketIfTouchedOrder struct {
 	ReplaceDetails
 }
 
-func (m MarketIfTouchedOrder) getType() OrderType {
-	return m.Type
+func (o MarketIfTouchedOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o MarketIfTouchedOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o MarketIfTouchedOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o MarketIfTouchedOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o MarketIfTouchedOrder) GetType() OrderType {
+	return o.Type
 }
 
 // TakeProfitOrder is an order that is linked to an open Trade and created with a price threshold.
@@ -398,8 +482,24 @@ type TakeProfitOrder struct {
 	ReplaceDetails
 }
 
-func (t TakeProfitOrder) getType() OrderType {
-	return t.Type
+func (o TakeProfitOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o TakeProfitOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o TakeProfitOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o TakeProfitOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o TakeProfitOrder) GetType() OrderType {
+	return o.Type
 }
 
 // StopLossOrder is an order that is linked to an open Trade and created with a price threshold.
@@ -431,8 +531,24 @@ type StopLossOrder struct {
 	ReplaceDetails
 }
 
-func (s StopLossOrder) getType() OrderType {
-	return s.Type
+func (o StopLossOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o StopLossOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o StopLossOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o StopLossOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o StopLossOrder) GetType() OrderType {
+	return o.Type
 }
 
 // GuaranteedStopLossOrder is an order that is linked to an open Trade and created with a price threshold
@@ -473,8 +589,24 @@ type GuaranteedStopLossOrder struct {
 	ReplaceDetails
 }
 
-func (s GuaranteedStopLossOrder) getType() OrderType {
-	return s.Type
+func (o GuaranteedStopLossOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o GuaranteedStopLossOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o GuaranteedStopLossOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o GuaranteedStopLossOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o GuaranteedStopLossOrder) GetType() OrderType {
+	return o.Type
 }
 
 // TrailingStopLossOrder is an order that is linked to an open Trade and created with a price distance.
@@ -509,8 +641,24 @@ type TrailingStopLossOrder struct {
 	ReplaceDetails
 }
 
-func (s TrailingStopLossOrder) getType() OrderType {
-	return s.Type
+func (o TrailingStopLossOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o TrailingStopLossOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o TrailingStopLossOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o TrailingStopLossOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o TrailingStopLossOrder) GetType() OrderType {
+	return o.Type
 }
 
 // Order Requests
