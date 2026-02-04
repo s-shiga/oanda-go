@@ -1,3 +1,3 @@
-module github.com/S-Shiga/oanda-go
+module github.com/s-shiga/oanda-go
 
 go 1.24.2
