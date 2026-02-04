@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -479,11 +480,7 @@ type MarketOrderRequest struct {
 }
 
 func (r *MarketOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewMarketOrderRequest(instrument InstrumentName, units DecimalNumber) *MarketOrderRequest {
@@ -589,11 +586,7 @@ type LimitOrderRequest struct {
 }
 
 func (r *LimitOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *LimitOrderRequest {
@@ -711,11 +704,7 @@ type StopOrderRequest struct {
 }
 
 func (r *StopOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewStopOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *StopOrderRequest {
@@ -840,11 +829,7 @@ type MarketIfTouchedOrderRequest struct {
 }
 
 func (r *MarketIfTouchedOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewMarketIfTouchedOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *MarketIfTouchedOrderRequest {
@@ -952,11 +937,7 @@ type TakeProfitOrderRequest struct {
 }
 
 func (r *TakeProfitOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewTakeProfitOrderRequest(tradeID TradeID, price PriceValue) *TakeProfitOrderRequest {
@@ -1028,11 +1009,7 @@ type StopLossOrderRequest struct {
 }
 
 func (r *StopLossOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewStopLossOrderRequest(tradeID TradeID, price PriceValue) *StopLossOrderRequest {
@@ -1104,11 +1081,7 @@ type GuaranteedStopLossOrderRequest struct {
 }
 
 func (r *GuaranteedStopLossOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *GuaranteedStopLossOrderRequest {
@@ -1174,11 +1147,7 @@ type TrailingStopLossOrderRequest struct {
 }
 
 func (r *TrailingStopLossOrderRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(jsonBody), nil
+	return orderRequestWrapper(r)
 }
 
 func NewTrailingStopLossOrderRequest(tradeID TradeID, distance DecimalNumber) *TrailingStopLossOrderRequest {
@@ -1338,6 +1307,18 @@ type OrderCreateResponse struct {
 	LastTransactionID             TransactionID          `json:"lastTransactionID"`
 }
 
+type OrderCreateErrorResponse struct {
+	OrderRejectTransaction Transaction     `json:"orderRejectTransaction"`
+	RelatedTransactionIDs  []TransactionID `json:"relatedTransactionIDs"`
+	LastTransactionID      TransactionID   `json:"lastTransactionID"`
+	ErrorCode              string          `json:"errorCode"`
+	ErrorMessage           string          `json:"errorMessage"`
+}
+
+func (e OrderCreateErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", e.ErrorCode, e.ErrorMessage)
+}
+
 func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 	request := struct {
 		Order OrderRequest `json:"order"`
@@ -1351,19 +1332,37 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 
 func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req OrderRequest) (*OrderCreateResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", accountID)
-	body, err := orderRequestWrapper(req)
+	body, err := req.body()
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal body: %w", err)
-	}
-	resp, err := c.sendPostRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderCreateResponse OrderCreateResponse
-	if err := decodeResponse(resp, &orderCreateResponse); err != nil {
 		return nil, err
 	}
-	return &orderCreateResponse, nil
+	httpResp, err := c.sendPostRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send POST request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusCreated:
+		var resp OrderCreateResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp OrderCreateErrorResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", resp}}
+	case http.StatusNotFound:
+		var resp OrderCreateErrorResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
 
 // OrderListRequest contains the parameters for retrieving a list of Orders for an Account.
