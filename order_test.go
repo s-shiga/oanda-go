@@ -55,3 +55,21 @@ func TestClient_OrderDetails(t *testing.T) {
 	slog.Debug("OrderDetails:", "Order", fmt.Sprintf("%#v", resp.Order))
 	slog.Debug("OrderDetails:", "LastTransactionID", resp.LastTransactionID)
 }
+
+func TestClient_OrderReplace(t *testing.T) {
+	client := setupClient(t)
+	accountID := setupAccountID(t)
+	orderID := "427"
+	req := NewLimitOrderRequest("USD_JPY", "10000", "110.00")
+	resp, err := client.OrderReplace(t.Context(), accountID, orderID, req)
+	if err != nil {
+		t.Errorf("failed to replace order: %v", err)
+	}
+	slog.Debug("OrderReplace:", "OrderCancelTransaction", fmt.Sprintf("%#v", resp.OrderCancelTransaction))
+	slog.Debug("OrderReplace:", "OrderCreateTransaction", fmt.Sprintf("%#v", resp.OrderCreateTransaction))
+	slog.Debug("OrderReplace:", "OrderFillTransaction", fmt.Sprintf("%#v", resp.OrderFillTransaction))
+	slog.Debug("OrderReplace:", "OrderReissueTransaction", fmt.Sprintf("%#v", resp.OrderReissueTransaction))
+	slog.Debug("OrderReplace:", "OrderReissueRejectTransaction", fmt.Sprintf("%#v", resp.OrderReissueRejectTransaction))
+	slog.Debug("OrderReplace:", "RelatedTransactionIDs", resp.RelatedTransactionIDs)
+	slog.Debug("OrderReplace:", "LastTransactionID", resp.LastTransactionID)
+}
