@@ -1,9 +1,12 @@
 package oanda
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -333,4 +336,95 @@ func (c *Client) TradeDetails(ctx context.Context, accountID AccountID, specifie
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
 	return &tradeResp.Trade, tradeResp.LastTransactionID, nil
+}
+
+type TradeCloseRequest struct {
+	// Units is indication of how much of the Trade to close. Either the string “ALL”
+	// (indicating that all of the Trade should be closed), or a DecimalNumber
+	// representing the number of units of the open Trade to Close using a
+	// TradeClose MarketOrder. The units specified must always be positive, and
+	// the magnitude of the value cannot exceed the magnitude of the Trade’s
+	// open units.
+	Units DecimalNumber `json:"units"`
+}
+
+func (r TradeCloseRequest) body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+func NewTradeCloseRequest(units DecimalNumber) TradeCloseRequest {
+	return TradeCloseRequest{Units: units}
+}
+
+func NewTradeCloseALLRequest() TradeCloseRequest {
+	return TradeCloseRequest{Units: "ALL"}
+}
+
+type TradeCloseResponse struct {
+	OrderCreateTransaction MarketOrderTransaction `json:"orderCreateTransaction"`
+	OrderFillTransaction   OrderFillTransaction   `json:"orderFillTransaction"`
+	OrderCancelTransaction OrderCancelTransaction `json:"orderCancelTransaction"`
+	RelatedTransactionIDs  []TransactionID        `json:"relatedTransactionIDs"`
+	LastTransactionID      TransactionID          `json:"lastTransactionID"`
+}
+
+type TradeCloseBadRequestResponse struct {
+	OrderRejectTransaction MarketOrderRejectTransaction `json:"orderRejectTransaction"`
+	ErrorCode              string                       `json:"errorCode"`
+	ErrorMessage           string                       `json:"errorMessage"`
+}
+
+func (r TradeCloseBadRequestResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
+type TradeCloseNotFoundResponse struct {
+	OrderRejectTransaction MarketOrderRejectTransaction `json:"orderRejectTransaction"`
+	LastTransactionID      TransactionID                `json:"lastTransactionID"`
+	RelatedTransactionIDs  []TransactionID              `json:"relatedTransactionIDs"`
+	ErrorCode              string                       `json:"errorCode"`
+	ErrorMessage           string                       `json:"errorMessage"`
+}
+
+func (r TradeCloseNotFoundResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
+func (c *Client) TradeClose(ctx context.Context, accountID AccountID, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", accountID, specifier)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp TradeCloseResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp TradeCloseBadRequestResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: resp.ErrorMessage, Err: resp}}
+	case http.StatusNotFound:
+		var resp TradeCloseNotFoundResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: resp.ErrorMessage, Err: resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
