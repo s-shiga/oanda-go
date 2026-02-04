@@ -22,6 +22,86 @@ type Order interface {
 	getType() OrderType
 }
 
+func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
+	var typeOnly struct {
+		Type OrderType `json:"type"`
+	}
+	if err := json.Unmarshal(rawOrder, &typeOnly); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal order type: %w", err)
+	}
+
+	var order Order
+	switch typeOnly.Type {
+	case OrderTypeMarket:
+		var marketOrder MarketOrder
+		if err := json.Unmarshal(rawOrder, &marketOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market order: %w", err)
+		}
+		order = marketOrder
+	case OrderTypeFixedPrice:
+		var fixedPriceOrder FixedPriceOrder
+		if err := json.Unmarshal(rawOrder, &fixedPriceOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal fixed price order: %w", err)
+		}
+		order = fixedPriceOrder
+	case OrderTypeLimit:
+		var limitOrder LimitOrder
+		if err := json.Unmarshal(rawOrder, &limitOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal limit order: %w", err)
+		}
+		order = limitOrder
+	case OrderTypeStop:
+		var stopOrder StopOrder
+		if err := json.Unmarshal(rawOrder, &stopOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop order: %w", err)
+		}
+		order = stopOrder
+	case OrderTypeMarketIfTouched:
+		var marketIfTouchedOrder MarketIfTouchedOrder
+		if err := json.Unmarshal(rawOrder, &marketIfTouchedOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market if touched order: %w", err)
+		}
+		order = marketIfTouchedOrder
+	case OrderTypeTakeProfit:
+		var takeProfitOrder TakeProfitOrder
+		if err := json.Unmarshal(rawOrder, &takeProfitOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal take profit order: %w", err)
+		}
+		order = takeProfitOrder
+	case OrderTypeStopLoss:
+		var stopLossOrder StopLossOrder
+		if err := json.Unmarshal(rawOrder, &stopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop loss order: %w", err)
+		}
+		order = stopLossOrder
+	case OrderTypeGuaranteedStopLoss:
+		var guaranteedStopLossOrder GuaranteedStopLossOrder
+		if err := json.Unmarshal(rawOrder, &guaranteedStopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order: %w", err)
+		}
+		order = guaranteedStopLossOrder
+	case OrderTypeTrailingStopLoss:
+		var trailingStopLossOrder TrailingStopLossOrder
+		if err := json.Unmarshal(rawOrder, &trailingStopLossOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order: %w", err)
+		}
+		order = trailingStopLossOrder
+	}
+	return order, nil
+}
+
+func unmarshalOrders(src []json.RawMessage) ([]Order, error) {
+	dest := make([]Order, 0, len(src))
+	for _, rawOrder := range src {
+		order, err := unmarshalOrder(rawOrder)
+		if err != nil {
+			return nil, err
+		}
+		dest = append(dest, order)
+	}
+	return dest, nil
+}
+
 // OrderBase is the base specification of an Order as referred to by clients.
 type OrderBase struct {
 	// ID is the Order's identifier, unique within the Order's Account.
@@ -1307,7 +1387,7 @@ type OrderCreateResponse struct {
 	LastTransactionID             TransactionID          `json:"lastTransactionID"`
 }
 
-type OrderCreateErrorResponse struct {
+type OrderErrorResponse struct {
 	OrderRejectTransaction Transaction     `json:"orderRejectTransaction"`
 	RelatedTransactionIDs  []TransactionID `json:"relatedTransactionIDs"`
 	LastTransactionID      TransactionID   `json:"lastTransactionID"`
@@ -1315,8 +1395,16 @@ type OrderCreateErrorResponse struct {
 	ErrorMessage           string          `json:"errorMessage"`
 }
 
-func (e OrderCreateErrorResponse) Error() string {
+func (e OrderErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", e.ErrorCode, e.ErrorMessage)
+}
+
+func unmarshalOrderErrorResponse(resp *http.Response) (*OrderErrorResponse, error) {
+	var r OrderErrorResponse
+	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal OrderErrorResponse: %w", err)
+	}
+	return &r, nil
 }
 
 func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
@@ -1349,17 +1437,17 @@ func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req Order
 		}
 		return &resp, nil
 	case http.StatusBadRequest:
-		var resp OrderCreateErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
 		}
-		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", resp}}
+		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
 	case http.StatusNotFound:
-		var resp OrderCreateErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
 		}
-		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", resp}}
+		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -1456,86 +1544,6 @@ func (r *OrderListRequest) values() (url.Values, error) {
 type OrderListResponse struct {
 	Orders            []Order       `json:"orders"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
-}
-
-func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
-	var typeOnly struct {
-		Type OrderType `json:"type"`
-	}
-	if err := json.Unmarshal(rawOrder, &typeOnly); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal order type: %w", err)
-	}
-
-	var order Order
-	switch typeOnly.Type {
-	case OrderTypeMarket:
-		var marketOrder MarketOrder
-		if err := json.Unmarshal(rawOrder, &marketOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal market order: %w", err)
-		}
-		order = marketOrder
-	case OrderTypeFixedPrice:
-		var fixedPriceOrder FixedPriceOrder
-		if err := json.Unmarshal(rawOrder, &fixedPriceOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal fixed price order: %w", err)
-		}
-		order = fixedPriceOrder
-	case OrderTypeLimit:
-		var limitOrder LimitOrder
-		if err := json.Unmarshal(rawOrder, &limitOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal limit order: %w", err)
-		}
-		order = limitOrder
-	case OrderTypeStop:
-		var stopOrder StopOrder
-		if err := json.Unmarshal(rawOrder, &stopOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal stop order: %w", err)
-		}
-		order = stopOrder
-	case OrderTypeMarketIfTouched:
-		var marketIfTouchedOrder MarketIfTouchedOrder
-		if err := json.Unmarshal(rawOrder, &marketIfTouchedOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal market if touched order: %w", err)
-		}
-		order = marketIfTouchedOrder
-	case OrderTypeTakeProfit:
-		var takeProfitOrder TakeProfitOrder
-		if err := json.Unmarshal(rawOrder, &takeProfitOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal take profit order: %w", err)
-		}
-		order = takeProfitOrder
-	case OrderTypeStopLoss:
-		var stopLossOrder StopLossOrder
-		if err := json.Unmarshal(rawOrder, &stopLossOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal stop loss order: %w", err)
-		}
-		order = stopLossOrder
-	case OrderTypeGuaranteedStopLoss:
-		var guaranteedStopLossOrder GuaranteedStopLossOrder
-		if err := json.Unmarshal(rawOrder, &guaranteedStopLossOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order: %w", err)
-		}
-		order = guaranteedStopLossOrder
-	case OrderTypeTrailingStopLoss:
-		var trailingStopLossOrder TrailingStopLossOrder
-		if err := json.Unmarshal(rawOrder, &trailingStopLossOrder); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order: %w", err)
-		}
-		order = trailingStopLossOrder
-	}
-	return order, nil
-}
-
-func unmarshalOrders(src []json.RawMessage) ([]Order, error) {
-	dest := make([]Order, 0, len(src))
-	for _, rawOrder := range src {
-		order, err := unmarshalOrder(rawOrder)
-		if err != nil {
-			return nil, err
-		}
-		dest = append(dest, order)
-	}
-	return dest, nil
 }
 
 func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
@@ -1688,7 +1696,37 @@ func (c *Client) OrderReplace(
 	ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderRequest,
 ) (*OrderReplaceResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
-	return doPut[OrderReplaceResponse](c, ctx, path, req)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusCreated:
+		var resp OrderReplaceResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
+		}
+		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
+	case http.StatusNotFound:
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
+		}
+		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
 
 type OrderCancelResponse struct {
@@ -1701,7 +1739,27 @@ func (c *Client) OrderCancel(
 	ctx context.Context, accountID AccountID, specifier OrderSpecifier,
 ) (*OrderCancelResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", accountID, specifier)
-	return doPut[OrderCancelResponse](c, ctx, path, nil)
+	httpResp, err := c.sendPutRequest(ctx, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp OrderCancelResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusNotFound:
+		resp, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
+		}
+		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
 
 type OrderUpdateClientExtensionsRequest struct {
@@ -1718,6 +1776,9 @@ func (r *OrderUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
 }
 
 type OrderUpdateClientExtensionsResponse struct {
+	OrderClientExtensionsModifyTransaction OrderClientExtensionsModifyTransaction `json:"orderClientExtensionsModifyTransaction"`
+	LastTransactionID                      TransactionID                          `json:"lastTransactionID"`
+	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 }
 
 func (c *Client) OrderUpdateClientExtensions(
@@ -1727,5 +1788,35 @@ func (c *Client) OrderUpdateClientExtensions(
 	req OrderUpdateClientExtensionsRequest,
 ) (*OrderUpdateClientExtensionsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", accountID, specifier)
-	return doPut[OrderUpdateClientExtensionsResponse](c, ctx, path, &req)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp OrderUpdateClientExtensionsResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
+		}
+		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
+	case http.StatusNotFound:
+		r, err := unmarshalOrderErrorResponse(httpResp)
+		if err != nil {
+			return nil, err
+		}
+		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
