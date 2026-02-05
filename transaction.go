@@ -1268,15 +1268,15 @@ type TakeProfitDetails struct {
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Take Profit Order should remain pending before being
 	// automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
+	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Take Profit Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Take Profit Order when created.
-	ClientExtensions ClientExtensions `json:"clientExtensions,omitempty"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
-func NewTakeProfitDetails(price PriceValue) TakeProfitDetails {
-	return TakeProfitDetails{
+func NewTakeProfitDetails(price PriceValue) *TakeProfitDetails {
+	return &TakeProfitDetails{
 		Price:       price,
 		TimeInForce: TimeInForceGTC,
 	}
@@ -1284,7 +1284,7 @@ func NewTakeProfitDetails(price PriceValue) TakeProfitDetails {
 
 func (d *TakeProfitDetails) SetGTD(date DateTime) *TakeProfitDetails {
 	d.TimeInForce = TimeInForceGTD
-	d.GtdTime = date
+	d.GtdTime = &date
 	return d
 }
 
@@ -1294,7 +1294,7 @@ func (d *TakeProfitDetails) SetGFD() *TakeProfitDetails {
 }
 
 func (d *TakeProfitDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TakeProfitDetails {
-	d.ClientExtensions = *clientExtensions
+	d.ClientExtensions = clientExtensions
 	return d
 }
 
@@ -1303,18 +1303,18 @@ func (d *TakeProfitDetails) SetClientExtensions(clientExtensions *ClientExtensio
 type StopLossDetails struct {
 	// Price is the price threshold specified for the Stop Loss Order. The associated Trade will be
 	// closed by a market price that is equal to or worse than this threshold.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Trade's open price to use as the
 	// Stop Loss Order price. If the Trade is long, the Stop Loss price will be the open price minus
 	// the distance. If the Trade is short, the Stop Loss price will be the open price plus the distance.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Stop Loss Order should remain pending before being
 	// automatically cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Stop Loss Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Stop Loss Order when created.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// Guaranteed is deprecated. Flag indicating that the Stop Loss Order is guaranteed. The default
 	// value depends on the GuaranteedStopLossOrderMode of the account.
 	Guaranteed bool `json:"guaranteed"`
@@ -1327,18 +1327,18 @@ func NewStopLossDetails() *StopLossDetails {
 }
 
 func (d *StopLossDetails) SetPrice(price PriceValue) *StopLossDetails {
-	d.Price = price
+	d.Price = &price
 	return d
 }
 
 func (d *StopLossDetails) SetDistance(distance DecimalNumber) *StopLossDetails {
-	d.Distance = distance
+	d.Distance = &distance
 	return d
 }
 
 func (d *StopLossDetails) SetGTD(date DateTime) *StopLossDetails {
 	d.TimeInForce = TimeInForceGTD
-	d.GtdTime = date
+	d.GtdTime = &date
 	return d
 }
 
@@ -1348,7 +1348,7 @@ func (d *StopLossDetails) SetGFD() *StopLossDetails {
 }
 
 func (d *StopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *StopLossDetails {
-	d.ClientExtensions = *clientExtensions
+	d.ClientExtensions = clientExtensions
 	return d
 }
 
@@ -1358,19 +1358,19 @@ func (d *StopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions
 type GuaranteedStopLossDetails struct {
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order. The associated Trade
 	// will be closed at this price.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Trade's open price to use as the
 	// Guaranteed Stop Loss Order price. If the Trade is long, the order price will be the open price
 	// minus the distance. If the Trade is short, the order price will be the open price plus the distance.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Guaranteed Stop Loss Order should remain pending before
 	// being automatically cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Guaranteed Stop Loss Order will be cancelled if its
 	// timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Guaranteed Stop Loss Order when created.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func NewGuaranteedStopLossDetails() *GuaranteedStopLossDetails {
@@ -1380,18 +1380,18 @@ func NewGuaranteedStopLossDetails() *GuaranteedStopLossDetails {
 }
 
 func (d *GuaranteedStopLossDetails) SetPrice(price PriceValue) *GuaranteedStopLossDetails {
-	d.Price = price
+	d.Price = &price
 	return d
 }
 
 func (d *GuaranteedStopLossDetails) SetDistance(distance DecimalNumber) *GuaranteedStopLossDetails {
-	d.Distance = distance
+	d.Distance = &distance
 	return d
 }
 
 func (d *GuaranteedStopLossDetails) SetGTD(date DateTime) *GuaranteedStopLossDetails {
 	d.TimeInForce = TimeInForceGTD
-	d.GtdTime = date
+	d.GtdTime = &date
 	return d
 }
 
@@ -1401,7 +1401,7 @@ func (d *GuaranteedStopLossDetails) SetGFD() *GuaranteedStopLossDetails {
 }
 
 func (d *GuaranteedStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *GuaranteedStopLossDetails {
-	d.ClientExtensions = *clientExtensions
+	d.ClientExtensions = clientExtensions
 	return d
 }
 
@@ -1416,9 +1416,9 @@ type TrailingStopLossDetails struct {
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Trailing Stop Loss Order will be cancelled if its
 	// timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Trailing Stop Loss Order when created.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func NewTrailingStopLossDetails(distance DecimalNumber) *TrailingStopLossDetails {
@@ -1430,7 +1430,7 @@ func NewTrailingStopLossDetails(distance DecimalNumber) *TrailingStopLossDetails
 
 func (d *TrailingStopLossDetails) SetGTD(date DateTime) *TrailingStopLossDetails {
 	d.TimeInForce = TimeInForceGTD
-	d.GtdTime = date
+	d.GtdTime = &date
 	return d
 }
 
@@ -1440,7 +1440,7 @@ func (d *TrailingStopLossDetails) SetGFD() *TrailingStopLossDetails {
 }
 
 func (d *TrailingStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TrailingStopLossDetails {
-	d.ClientExtensions = *clientExtensions
+	d.ClientExtensions = clientExtensions
 	return d
 }
 
