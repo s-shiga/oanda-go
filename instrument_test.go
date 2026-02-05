@@ -7,7 +7,7 @@ import (
 )
 
 func TestClient_Candlesticks(t *testing.T) {
-	client := setupClient(t)
+	client := setupClientWithoutAccountID(t)
 	from := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
 	req := NewCandlesticksRequest("USD_JPY", M1).SetFrom(from).SetTo(to)

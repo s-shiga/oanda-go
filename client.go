@@ -25,10 +25,11 @@ type Client struct {
 	URL          string
 	StreamingURL string
 	APIKey       string
+	AccountID    AccountID
 	HTTPClient   *http.Client
 }
 
-func NewClient() (*Client, error) {
+func NewClientWithoutAccountID() (*Client, error) {
 	apiKey, ok := os.LookupEnv("OANDA_API_KEY")
 	if !ok {
 		return nil, errors.New("OANDA_API_KEY not set")
@@ -41,7 +42,16 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
-func NewPracticeClient() (*Client, error) {
+func NewClient(accountID AccountID) (*Client, error) {
+	client, err := NewClientWithoutAccountID()
+	if err != nil {
+		return nil, err
+	}
+	client.AccountID = accountID
+	return client, nil
+}
+
+func NewPracticeClientWithoutAccountID() (*Client, error) {
 	apiKey, ok := os.LookupEnv("OANDA_API_KEY_DEMO")
 	if !ok {
 		return nil, errors.New("OANDA_API_KEY_DEMO not set")
@@ -52,6 +62,25 @@ func NewPracticeClient() (*Client, error) {
 		APIKey:       apiKey,
 		HTTPClient:   &http.Client{},
 	}, nil
+}
+
+func NewPracticeClient(accountID AccountID) (*Client, error) {
+	client, err := NewPracticeClientWithoutAccountID()
+	if err != nil {
+		return nil, err
+	}
+	client.AccountID = accountID
+	return client, nil
+}
+
+func (c *Client) WithAccountID(accountID AccountID) *Client {
+	return &Client{
+		URL:          c.URL,
+		StreamingURL: c.StreamingURL,
+		APIKey:       c.APIKey,
+		HTTPClient:   c.HTTPClient,
+		AccountID:    accountID,
+	}
 }
 
 func (c *Client) getURL(path string, query url.Values) (string, error) {

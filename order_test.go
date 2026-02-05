@@ -8,12 +8,11 @@ import (
 
 func TestClient_Order(t *testing.T) {
 	client := setupClient(t)
-	accountID := setupAccountID(t)
 	var orderID OrderID
 
 	t.Run("create", func(t *testing.T) {
 		req := NewLimitOrderRequest("USD_JPY", "10000", "100.00")
-		resp, err := client.OrderCreate(t.Context(), accountID, req)
+		resp, err := client.OrderCreate(t.Context(), req)
 		if err != nil {
 			t.Fatalf("failed to create order: %v", err)
 		}
@@ -28,7 +27,7 @@ func TestClient_Order(t *testing.T) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		req := NewOrderListRequest(accountID).SetInstrument("USD_JPY")
+		req := NewOrderListRequest().SetInstrument("USD_JPY")
 		resp, err := client.OrderList(t.Context(), req)
 		if err != nil {
 			t.Errorf("failed to list orders: %v", err)
@@ -47,7 +46,7 @@ func TestClient_Order(t *testing.T) {
 	})
 
 	t.Run("list pending", func(t *testing.T) {
-		resp, err := client.OrderListPending(t.Context(), accountID)
+		resp, err := client.OrderListPending(t.Context())
 		if err != nil {
 			t.Errorf("failed to list pending orders: %v", err)
 		}
@@ -65,7 +64,7 @@ func TestClient_Order(t *testing.T) {
 	})
 
 	t.Run("details", func(t *testing.T) {
-		resp, err := client.OrderDetails(t.Context(), accountID, orderID)
+		resp, err := client.OrderDetails(t.Context(), orderID)
 		if err != nil {
 			t.Errorf("failed to get order details: %v", err)
 		}
@@ -75,7 +74,7 @@ func TestClient_Order(t *testing.T) {
 
 	t.Run("replace", func(t *testing.T) {
 		req := NewLimitOrderRequest("USD_JPY", "10000", "110.00")
-		resp, err := client.OrderReplace(t.Context(), accountID, orderID, req)
+		resp, err := client.OrderReplace(t.Context(), orderID, req)
 		if err != nil {
 			t.Errorf("failed to replace order: %v", err)
 		}
@@ -102,7 +101,7 @@ func TestClient_Order(t *testing.T) {
 				Comment: "test comment",
 			},
 		}
-		resp, err := client.OrderUpdateClientExtensions(t.Context(), accountID, orderID, req)
+		resp, err := client.OrderUpdateClientExtensions(t.Context(), orderID, req)
 		if err != nil {
 			t.Errorf("failed to update client extensions: %v", err)
 		}
@@ -112,7 +111,7 @@ func TestClient_Order(t *testing.T) {
 	})
 
 	t.Run("cancel", func(t *testing.T) {
-		resp, err := client.OrderCancel(t.Context(), accountID, orderID)
+		resp, err := client.OrderCancel(t.Context(), orderID)
 		if err != nil {
 			t.Errorf("failed to cancel order: %v", err)
 		}

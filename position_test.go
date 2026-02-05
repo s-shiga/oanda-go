@@ -4,8 +4,7 @@ import "testing"
 
 func TestClient_PositionList(t *testing.T) {
 	client := setupClient(t)
-	accountID := setupAccountID(t)
-	positions, transactionID, err := client.PositionList(t.Context(), accountID)
+	positions, transactionID, err := client.PositionList(t.Context())
 	if err != nil {
 		t.Errorf("failed to list positions: %v", err)
 	}
@@ -15,8 +14,7 @@ func TestClient_PositionList(t *testing.T) {
 
 func TestClient_PositionListOpen(t *testing.T) {
 	client := setupClient(t)
-	accountID := setupAccountID(t)
-	positions, transactionID, err := client.PositionListOpen(t.Context(), accountID)
+	positions, transactionID, err := client.PositionListOpen(t.Context())
 	if err != nil {
 		t.Errorf("failed to list positions: %v", err)
 	}
@@ -26,8 +24,7 @@ func TestClient_PositionListOpen(t *testing.T) {
 
 func TestClient_PositionListInstrument(t *testing.T) {
 	client := setupClient(t)
-	accountID := setupAccountID(t)
-	position, transactionID, err := client.PositionListInstrument(t.Context(), accountID, "USD_JPY")
+	position, transactionID, err := client.PositionListInstrument(t.Context(), "USD_JPY")
 	if err != nil {
 		t.Errorf("failed to list positions: %v", err)
 	}

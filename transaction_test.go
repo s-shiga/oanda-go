@@ -4,8 +4,7 @@ import "testing"
 
 func TestClient_TransactionList(t *testing.T) {
 	client := setupClient(t)
-	accountID := setupAccountID(t)
-	req := NewTransactionListRequest(accountID)
+	req := NewTransactionListRequest()
 	resp, err := client.TransactionList(t.Context(), req)
 	if err != nil {
 		t.Errorf("failed to list transactions: %v", err)

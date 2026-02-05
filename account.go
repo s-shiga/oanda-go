@@ -9,10 +9,12 @@ import (
 	"strings"
 )
 
+//
 // Definitions https://developer.oanda.com/rest-live-v20/account-df/
+//
 
 // AccountID is the string representation of an Account Identifier.
-type AccountID string
+type AccountID = string
 
 // Account is the full representation of a client's Account. This includes full open Trade,
 // open Position and pending Order representation.
@@ -428,7 +430,9 @@ const (
 	PositionAggregationModeNetSum PositionAggregationMode = "NET_SUM"
 )
 
+//
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
+//
 
 type AccountListResponse struct {
 	Accounts []AccountProperties `json:"accounts"`
@@ -466,8 +470,8 @@ type AccountDetailsResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
-func (c *Client) AccountDetails(ctx context.Context, id AccountID) (*AccountDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v", id)
+func (c *Client) AccountDetails(ctx context.Context) (*AccountDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v", c.AccountID)
 	return doGet[AccountDetailsResponse](c, ctx, path, nil)
 }
 
@@ -494,8 +498,8 @@ type AccountSummaryResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
-func (c *Client) AccountSummary(ctx context.Context, id AccountID) (*AccountSummaryResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/summary", id)
+func (c *Client) AccountSummary(ctx context.Context) (*AccountSummaryResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/summary", c.AccountID)
 	return doGet[AccountSummaryResponse](c, ctx, path, nil)
 }
 
@@ -523,8 +527,8 @@ type AccountInstrumentsResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
-func (c *Client) AccountInstruments(ctx context.Context, id AccountID, instruments ...InstrumentName) (*AccountInstrumentsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/instruments", id)
+func (c *Client) AccountInstruments(ctx context.Context, instruments ...InstrumentName) (*AccountInstrumentsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/instruments", c.AccountID)
 	v := url.Values{}
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
@@ -564,8 +568,8 @@ type AccountConfigurationResponse struct {
 	LastTransactionID          TransactionID              `json:"lastTransactionID"`
 }
 
-func (c *Client) AccountConfiguration(ctx context.Context, accountID AccountID, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/configuration", accountID)
+func (c *Client) AccountConfiguration(ctx context.Context, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/configuration", c.AccountID)
 	return doPatch[AccountConfigurationResponse](c, ctx, path, req)
 }
 
@@ -597,8 +601,8 @@ type AccountChangesResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
-func (c *Client) AccountChanges(ctx context.Context, id AccountID, since TransactionID) (*AccountChangesResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/changes", id)
+func (c *Client) AccountChanges(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/changes", c.AccountID)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
 	return doGet[AccountChangesResponse](c, ctx, path, v)

@@ -1566,8 +1566,8 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 	return bytes.NewBuffer(body), nil
 }
 
-func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req OrderRequest) (*OrderCreateResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", accountID)
+func (c *Client) OrderCreate(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders", c.AccountID)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -1604,7 +1604,6 @@ func (c *Client) OrderCreate(ctx context.Context, accountID AccountID, req Order
 // OrderListRequest contains the parameters for retrieving a list of Orders for an Account.
 // Use NewOrderListRequest to create a new request and the builder methods to configure options.
 type OrderListRequest struct {
-	AccountID  AccountID
 	IDs        []OrderID
 	State      *OrderState
 	Instrument *InstrumentName
@@ -1615,10 +1614,9 @@ type OrderListRequest struct {
 // NewOrderListRequest creates a new OrderListRequest for the specified account.
 // Use the builder methods (AddIDs, SetState, SetInstrument, SetCount, SetBeforeID)
 // to configure optional filtering parameters.
-func NewOrderListRequest(accountID AccountID) *OrderListRequest {
+func NewOrderListRequest() *OrderListRequest {
 	return &OrderListRequest{
-		AccountID: accountID,
-		IDs:       make([]OrderID, 0),
+		IDs: make([]OrderID, 0),
 	}
 }
 
@@ -1739,7 +1737,7 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
 func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", req.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/orders", c.AccountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -1772,8 +1770,8 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderLi
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
-func (c *Client) OrderListPending(ctx context.Context, accountID AccountID) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", accountID)
+func (c *Client) OrderListPending(ctx context.Context) (*OrderListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", c.AccountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -1824,8 +1822,8 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
-func (c *Client) OrderDetails(ctx context.Context, accountID AccountID, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
+func (c *Client) OrderDetails(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.AccountID, specifier)
 	return doGet[OrderDetailsResponse](c, ctx, path, nil)
 }
 
@@ -1840,10 +1838,8 @@ type OrderReplaceResponse struct {
 	LastTransactionID               TransactionID          `json:"lastTransactionID"`
 }
 
-func (c *Client) OrderReplace(
-	ctx context.Context, accountID AccountID, specifier OrderSpecifier, req OrderRequest,
-) (*OrderReplaceResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", accountID, specifier)
+func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.AccountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -1883,10 +1879,8 @@ type OrderCancelResponse struct {
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
-func (c *Client) OrderCancel(
-	ctx context.Context, accountID AccountID, specifier OrderSpecifier,
-) (*OrderCancelResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", accountID, specifier)
+func (c *Client) OrderCancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", c.AccountID, specifier)
 	httpResp, err := c.sendPutRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
@@ -1931,11 +1925,10 @@ type OrderUpdateClientExtensionsResponse struct {
 
 func (c *Client) OrderUpdateClientExtensions(
 	ctx context.Context,
-	accountID AccountID,
 	specifier OrderSpecifier,
 	req OrderUpdateClientExtensionsRequest,
 ) (*OrderUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", accountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", c.AccountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err

@@ -85,8 +85,8 @@ type PositionListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionId"`
 }
 
-func (c *Client) PositionList(ctx context.Context, accountID AccountID) ([]Position, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions", accountID)
+func (c *Client) PositionList(ctx context.Context) ([]Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions", c.AccountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
@@ -98,8 +98,8 @@ func (c *Client) PositionList(ctx context.Context, accountID AccountID) ([]Posit
 	return positionListResp.Positions, positionListResp.LastTransactionID, nil
 }
 
-func (c *Client) PositionListOpen(ctx context.Context, accountID AccountID) ([]Position, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/openPositions", accountID)
+func (c *Client) PositionListOpen(ctx context.Context) ([]Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/openPositions", c.AccountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
@@ -111,8 +111,8 @@ func (c *Client) PositionListOpen(ctx context.Context, accountID AccountID) ([]P
 	return positionListResp.Positions, positionListResp.LastTransactionID, nil
 }
 
-func (c *Client) PositionListInstrument(ctx context.Context, accountID AccountID, instrument InstrumentName) (*Position, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", accountID, instrument)
+func (c *Client) PositionListInstrument(ctx context.Context, instrument InstrumentName) (*Position, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", c.AccountID, instrument)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)

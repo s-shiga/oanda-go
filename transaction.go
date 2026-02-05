@@ -1868,17 +1868,14 @@ type TransactionHeartbeat struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/transaction-ep/
 
 type TransactionListRequest struct {
-	AccountID AccountID
-	From      *time.Time
-	To        *time.Time
-	PageSize  *int
-	Type      []TransactionType
+	From     *time.Time
+	To       *time.Time
+	PageSize *int
+	Type     []TransactionType
 }
 
-func NewTransactionListRequest(accountID AccountID) *TransactionListRequest {
-	return &TransactionListRequest{
-		AccountID: accountID,
-	}
+func NewTransactionListRequest() *TransactionListRequest {
+	return &TransactionListRequest{}
 }
 
 func (req *TransactionListRequest) SetFrom(from time.Time) *TransactionListRequest {
@@ -1902,9 +1899,6 @@ func (req *TransactionListRequest) AddType(transactionType TransactionType) *Tra
 }
 
 func (req *TransactionListRequest) validate() error {
-	if req.AccountID == "" {
-		return errors.New("account ID is required")
-	}
 	if req.PageSize != nil {
 		if *req.PageSize < 1 {
 			return errors.New("page size must be greater than zero")
@@ -1951,7 +1945,7 @@ type TransactionListResponse struct {
 }
 
 func (c *Client) TransactionList(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/transactions", req.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/transactions", c.AccountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err

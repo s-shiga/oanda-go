@@ -188,8 +188,6 @@ const (
 
 // TradeListRequest represents a request to list Trades for an Account.
 type TradeListRequest struct {
-	// AccountID is the Account Identifier.
-	AccountID AccountID
 	// IDs is a list of Trade IDs to retrieve. If specified, only Trades with these IDs will
 	// be returned.
 	IDs []TradeID
@@ -204,10 +202,9 @@ type TradeListRequest struct {
 }
 
 // NewTradeListRequest creates a new TradeListRequest for the given account.
-func NewTradeListRequest(accountID AccountID) *TradeListRequest {
+func NewTradeListRequest() *TradeListRequest {
 	return &TradeListRequest{
-		AccountID: accountID,
-		IDs:       make([]TradeID, 0),
+		IDs: make([]TradeID, 0),
 	}
 }
 
@@ -289,7 +286,7 @@ type TradeListResponse struct {
 // TradeList retrieves a list of Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades", req.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%s/trades", c.AccountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, "", err
@@ -307,8 +304,8 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) ([]Trade,
 
 // TradeListOpen retrieves a list of all currently open Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
-func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trade, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/openTrades", accountID)
+func (c *Client) TradeListOpen(ctx context.Context) ([]Trade, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/openTrades", c.AccountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
@@ -322,8 +319,8 @@ func (c *Client) TradeListOpen(ctx context.Context, accountID AccountID) ([]Trad
 
 // TradeDetails retrieves the details of a specific Trade in an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
-func (c *Client) TradeDetails(ctx context.Context, accountID AccountID, specifier TradeSpecifier) (*Trade, TransactionID, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", accountID, specifier)
+func (c *Client) TradeDetails(ctx context.Context, specifier TradeSpecifier) (*Trade, TransactionID, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", c.AccountID, specifier)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to send request: %w", err)
