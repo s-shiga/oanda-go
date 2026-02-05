@@ -10,81 +10,84 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 	"runtime"
 )
 
 const (
-	fxTradeURL                  = "https://api-fxtrade.oanda.com"
-	fxTradePracticeURL          = "https://api-fxpractice.oanda.com"
-	fxTradeStreamingURL         = "https://stream-fxtrade.oanda.com"
-	fxTradeStreamingPracticeURL = "https://stream-fxpractice.oanda.com"
+	FXTradeURL                  = "https://api-fxtrade.oanda.com"
+	FXTradePracticeURL          = "https://api-fxpractice.oanda.com"
+	FXTradeStreamingURL         = "https://stream-fxtrade.oanda.com"
+	FXTradeStreamingPracticeURL = "https://stream-fxpractice.oanda.com"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type Client struct {
-	URL          string
-	StreamingURL string
-	APIKey       string
-	AccountID    AccountID
-	HTTPClient   *http.Client
+	baseURL          string
+	baseStreamingURL string
+	apiKey           string
+	accountID        AccountID
+	httpClient       HTTPClient
 }
 
-func NewClientWithoutAccountID() (*Client, error) {
-	apiKey, ok := os.LookupEnv("OANDA_API_KEY")
-	if !ok {
-		return nil, errors.New("OANDA_API_KEY not set")
+type Option func(*Client)
+
+func WithBaseURL(baseURL string) Option {
+	return func(c *Client) {
+		c.baseURL = baseURL
 	}
-	return &Client{
-		URL:          fxTradeURL,
-		StreamingURL: fxTradeStreamingURL,
-		APIKey:       apiKey,
-		HTTPClient:   &http.Client{},
-	}, nil
 }
 
-func NewClient(accountID AccountID) (*Client, error) {
-	client, err := NewClientWithoutAccountID()
-	if err != nil {
-		return nil, err
+func WithBaseStreamingURL(baseStreamingURL string) Option {
+	return func(c *Client) {
+		c.baseStreamingURL = baseStreamingURL
 	}
-	client.AccountID = accountID
-	return client, nil
 }
 
-func NewPracticeClientWithoutAccountID() (*Client, error) {
-	apiKey, ok := os.LookupEnv("OANDA_API_KEY_DEMO")
-	if !ok {
-		return nil, errors.New("OANDA_API_KEY_DEMO not set")
+func WithAccountID(id AccountID) Option {
+	return func(c *Client) {
+		c.accountID = id
 	}
-	return &Client{
-		URL:          fxTradePracticeURL,
-		StreamingURL: fxTradeStreamingPracticeURL,
-		APIKey:       apiKey,
-		HTTPClient:   &http.Client{},
-	}, nil
 }
 
-func NewPracticeClient(accountID AccountID) (*Client, error) {
-	client, err := NewPracticeClientWithoutAccountID()
-	if err != nil {
-		return nil, err
+func WithHTTPClient(client *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = client
 	}
-	client.AccountID = accountID
-	return client, nil
 }
 
-func (c *Client) WithAccountID(accountID AccountID) *Client {
-	return &Client{
-		URL:          c.URL,
-		StreamingURL: c.StreamingURL,
-		APIKey:       c.APIKey,
-		HTTPClient:   c.HTTPClient,
-		AccountID:    accountID,
+func NewClient(apiKey string, opts ...Option) *Client {
+	client := &Client{
+		baseURL:          FXTradeURL,
+		baseStreamingURL: FXTradeStreamingURL,
+		apiKey:           apiKey,
+		accountID:        "",
+		httpClient:       http.DefaultClient,
 	}
+	for _, opt := range opts {
+		opt(client)
+	}
+	return client
+}
+
+func NewDemoClient(apiKey string, opts ...Option) *Client {
+	client := &Client{
+		baseURL:          FXTradePracticeURL,
+		baseStreamingURL: FXTradeStreamingPracticeURL,
+		apiKey:           apiKey,
+		accountID:        "",
+		httpClient:       http.DefaultClient,
+	}
+	for _, opt := range opts {
+		opt(client)
+	}
+	return client
 }
 
 func (c *Client) getURL(path string, query url.Values) (string, error) {
-	u, err := url.Parse(c.URL)
+	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +103,7 @@ func (c *Client) setHeaders(req *http.Request) {
 	goVersion := runtime.Version()
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	req.Header.Add("User-Agent", fmt.Sprintf("github.com/S-Shiga/oanda-go (%s; %s)", goVersion, osArch))
-	req.Header.Add("Authorization", "Bearer "+c.APIKey)
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
 type Request interface {
@@ -117,7 +120,7 @@ func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Val
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	c.setHeaders(req)
-	return c.HTTPClient.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func doGet[R any](c *Client, ctx context.Context, path string, query url.Values) (*R, error) {
@@ -145,7 +148,7 @@ func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reade
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	c.setHeaders(req)
-	return c.HTTPClient.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
@@ -158,7 +161,7 @@ func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	c.setHeaders(req)
-	return c.HTTPClient.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
@@ -171,7 +174,7 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	c.setHeaders(req)
-	return c.HTTPClient.Do(req)
+	return c.httpClient.Do(req)
 }
 
 func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
