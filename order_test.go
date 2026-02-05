@@ -1,8 +1,6 @@
 package oanda
 
 import (
-	"fmt"
-	"log/slog"
 	"testing"
 )
 
@@ -17,13 +15,7 @@ func TestClient_Order(t *testing.T) {
 			t.Fatalf("failed to create order: %v", err)
 		}
 		orderID = resp.OrderCreateTransaction.ID
-		slog.Debug("OrderCreate:", "OrderCreateTransaction", fmt.Sprintf("%#v", resp.OrderCreateTransaction))
-		slog.Debug("OrderCreate:", "OrderFillTransaction", fmt.Sprintf("%#v", resp.OrderFillTransaction))
-		slog.Debug("OrderCreate:", "OrderCancelTransaction", fmt.Sprintf("%#v", resp.OrderCancelTransaction))
-		slog.Debug("OrderCreate:", "OrderReissueTransaction", fmt.Sprintf("%#v", resp.OrderReissueTransaction))
-		slog.Debug("OrderCreate:", "OrderReissueRejectTransaction", fmt.Sprintf("%#v", resp.OrderReissueRejectTransaction))
-		slog.Debug("OrderCreate:", "RelatedTransactionIDs", resp.RelatedTransactionIDs)
-		slog.Debug("OrderCreate:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 
 	t.Run("list", func(t *testing.T) {
@@ -34,7 +26,6 @@ func TestClient_Order(t *testing.T) {
 		}
 		found := false
 		for _, order := range resp.Orders {
-			slog.Debug("OrderList:", "Order", fmt.Sprintf("%#v", order))
 			if order.GetID() == orderID {
 				found = true
 			}
@@ -42,7 +33,7 @@ func TestClient_Order(t *testing.T) {
 		if !found {
 			t.Errorf("did not find order with ID %v in OrderList", orderID)
 		}
-		slog.Debug("OrderList:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 
 	t.Run("list pending", func(t *testing.T) {
@@ -52,7 +43,6 @@ func TestClient_Order(t *testing.T) {
 		}
 		found := false
 		for _, order := range resp.Orders {
-			slog.Debug("OrderListPending:", "Order", fmt.Sprintf("%#v", order))
 			if order.GetID() == orderID {
 				found = true
 			}
@@ -60,7 +50,7 @@ func TestClient_Order(t *testing.T) {
 		if !found {
 			t.Errorf("did not find order with ID %v in OrderListPending", orderID)
 		}
-		slog.Debug("OrderListPending:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 
 	t.Run("details", func(t *testing.T) {
@@ -68,8 +58,7 @@ func TestClient_Order(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to get order details: %v", err)
 		}
-		slog.Debug("OrderDetails:", "Order", fmt.Sprintf("%#v", resp.Order))
-		slog.Debug("OrderDetails:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 
 	t.Run("replace", func(t *testing.T) {
@@ -79,13 +68,7 @@ func TestClient_Order(t *testing.T) {
 			t.Errorf("failed to replace order: %v", err)
 		}
 		orderID = resp.OrderCreateTransaction.ID
-		slog.Debug("OrderReplace:", "OrderCancelTransaction", fmt.Sprintf("%#v", resp.OrderCancelTransaction))
-		slog.Debug("OrderReplace:", "OrderCreateTransaction", fmt.Sprintf("%#v", resp.OrderCreateTransaction))
-		slog.Debug("OrderReplace:", "OrderFillTransaction", fmt.Sprintf("%#v", resp.OrderFillTransaction))
-		slog.Debug("OrderReplace:", "OrderReissueTransaction", fmt.Sprintf("%#v", resp.OrderReissueTransaction))
-		slog.Debug("OrderReplace:", "OrderReissueRejectTransaction", fmt.Sprintf("%#v", resp.OrderReissueRejectTransaction))
-		slog.Debug("OrderReplace:", "RelatedTransactionIDs", resp.RelatedTransactionIDs)
-		slog.Debug("OrderReplace:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 
 	t.Run("update client extensions", func(t *testing.T) {
@@ -105,9 +88,7 @@ func TestClient_Order(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to update client extensions: %v", err)
 		}
-		slog.Debug("OrderUpdateClientExtensions:", "OrderClientExtensionsModifyTransaction", fmt.Sprintf("%#v", resp.OrderClientExtensionsModifyTransaction))
-		slog.Debug("OrderUpdateClientExtensions:", "LastTransactionID", resp.LastTransactionID)
-		slog.Debug("OrderUpdateClientExtensions:", "RelatedTransactionIDs", resp.RelatedTransactionIDs)
+		debugResponse(resp)
 	})
 
 	t.Run("cancel", func(t *testing.T) {
@@ -115,8 +96,6 @@ func TestClient_Order(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to cancel order: %v", err)
 		}
-		slog.Debug("OrderCancel:", "OrderCancelTransaction", fmt.Sprintf("%#v", resp.OrderCancelTransaction))
-		slog.Debug("OrderCancel:", "RelatedTransactionIDs", resp.RelatedTransactionIDs)
-		slog.Debug("OrderCancel:", "LastTransactionID", resp.LastTransactionID)
+		debugResponse(resp)
 	})
 }

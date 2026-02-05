@@ -9,5 +9,5 @@ func TestClient_TransactionList(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to list transactions: %v", err)
 	}
-	t.Logf("Response: %#v", resp)
+	debugResponse(resp)
 }

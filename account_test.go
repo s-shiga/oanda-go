@@ -1,7 +1,7 @@
 package oanda
 
 import (
-	"fmt"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"testing"
@@ -31,15 +31,18 @@ func setupClient(t *testing.T) *Client {
 	return client
 }
 
+func debugResponse(resp any) {
+	b, _ := json.MarshalIndent(resp, "", "  ")
+	slog.Debug(string(b))
+}
+
 func TestClient_AccountsList(t *testing.T) {
 	client := setupClientWithoutAccountID(t)
 	resp, err := client.AccountList(t.Context())
 	if err != nil {
 		t.Errorf("failed to list accounts: %v", err)
 	}
-	for _, account := range resp.Accounts {
-		slog.Debug("AccountList:", "Account", account)
-	}
+	debugResponse(resp)
 }
 
 func TestClient_AccountDetails(t *testing.T) {
@@ -48,8 +51,7 @@ func TestClient_AccountDetails(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get account details: %v", err)
 	}
-	slog.Debug("AccountDetails:", "Account", fmt.Sprintf("%#v", resp.Account))
-	slog.Debug("AccountDetails:", "LastTransactionID", resp.LastTransactionID)
+	debugResponse(resp)
 }
 
 func TestClient_AccountSummary(t *testing.T) {
@@ -58,7 +60,7 @@ func TestClient_AccountSummary(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get account summary: %v", err)
 	}
-	slog.Debug("AccountSummary:", "Account", fmt.Sprintf("%#v", resp.Account))
+	debugResponse(resp)
 }
 
 func TestClient_AccountInstruments(t *testing.T) {
@@ -67,10 +69,7 @@ func TestClient_AccountInstruments(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get account instruments: %v", err)
 	}
-	for _, instrument := range resp.Instruments {
-		slog.Debug("AccountInstruments:", "instrument", fmt.Sprintf("%#v", instrument))
-	}
-	slog.Debug("AccountInstruments:", "LastTransactionID", resp.LastTransactionID)
+	debugResponse(resp)
 }
 
 func TestClient_AccountConfiguration(t *testing.T) {
@@ -80,8 +79,7 @@ func TestClient_AccountConfiguration(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to set account configuration: %v", err)
 	}
-	slog.Debug("AccountConfiguration:", "AccountConfiguration", fmt.Sprintf("%#v", resp.ClientConfigureTransaction))
-	slog.Debug("AccountConfiguration:", "LastTransactionID", resp.LastTransactionID)
+	debugResponse(resp)
 }
 
 func TestClient_AccountChanges(t *testing.T) {
@@ -91,31 +89,5 @@ func TestClient_AccountChanges(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get account changes: %v", err)
 	}
-	for _, order := range resp.Changes.OrdersCreated {
-		slog.Debug("AccountChanges:", "OrderCreated", fmt.Sprintf("%#v", order))
-	}
-	for _, order := range resp.Changes.OrdersCancelled {
-		slog.Debug("AccountChanges:", "OrderCancelled", fmt.Sprintf("%#v", order))
-	}
-	for _, order := range resp.Changes.OrdersFilled {
-		slog.Debug("AccountChanges:", "OrderFilled", fmt.Sprintf("%#v", order))
-	}
-	for _, order := range resp.Changes.OrdersTriggered {
-		slog.Debug("AccountChanges:", "OrderTriggered", fmt.Sprintf("%#v", order))
-	}
-	for _, trade := range resp.Changes.TradesOpened {
-		slog.Debug("AccountChanges:", "TradeOpened", fmt.Sprintf("%#v", trade))
-	}
-	for _, trade := range resp.Changes.TradesReduced {
-		slog.Debug("AccountChanges:", "TradeReduced", fmt.Sprintf("%#v", trade))
-	}
-	for _, trade := range resp.Changes.TradesClosed {
-		slog.Debug("AccountChanges:", "TradeClosed", fmt.Sprintf("%#v", trade))
-	}
-	for _, position := range resp.Changes.Positions {
-		slog.Debug("AccountChanges:", "Position", fmt.Sprintf("%#v", position))
-	}
-	for _, transaction := range resp.Changes.Transactions {
-		slog.Debug("AccountChanges:", "Transaction", fmt.Sprintf("%#v", transaction))
-	}
+	debugResponse(resp)
 }
