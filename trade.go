@@ -54,7 +54,7 @@ type Trade struct {
 	MarginUsed AccountUnits `json:"marginUsed"`
 	// AverageClosePrice is the average closing price of the Trade. Only present if the Trade has
 	// been closed or reduced at least once.
-	AverageClosePrice PriceValue `json:"averageClosePrice"`
+	AverageClosePrice *PriceValue `json:"averageClosePrice,omitempty"`
 	// ClosingTransactionIDs is the list of Transaction IDs associated with closing portions of
 	// this Trade.
 	ClosingTransactionIDs []TransactionID `json:"closingTransactionIDs"`
@@ -64,18 +64,18 @@ type Trade struct {
 	DividendAdjustment AccountUnits `json:"dividendAdjustment"`
 	// CloseTime is the date/time when the Trade was fully closed. Only provided for Trades whose
 	// state is CLOSED.
-	CloseTime DateTime `json:"closeTime"`
+	CloseTime *DateTime `json:"closeTime,omitempty"`
 	// ClientExtensions are the client extensions of the Trade.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOrder is the full representation of the Trade's Take Profit Order, only provided
 	// if such an Order exists.
-	TakeProfitOrder TakeProfitOrder `json:"takeProfitOrder"`
+	TakeProfitOrder *TakeProfitOrder `json:"takeProfitOrder,omitempty"`
 	// StopLossOrder is the full representation of the Trade's Stop Loss Order, only provided if
 	// such an Order exists.
-	StopLossOrder StopLossOrder `json:"stopLossOrder"`
+	StopLossOrder *StopLossOrder `json:"stopLossOrder,omitempty"`
 	// TrailingStopLossOrder is the full representation of the Trade's Trailing Stop Loss Order,
 	// only provided if such an Order exists.
-	TrailingStopLossOrder TrailingStopLossOrder `json:"trailingStopLossOrder"`
+	TrailingStopLossOrder *TrailingStopLossOrder `json:"trailingStopLossOrder,omitempty"`
 }
 
 // TradeSummary is the summary of a Trade within an Account. This representation does not provide
@@ -364,11 +364,11 @@ func NewTradeCloseALLRequest() TradeCloseRequest {
 }
 
 type TradeCloseResponse struct {
-	OrderCreateTransaction MarketOrderTransaction `json:"orderCreateTransaction"`
-	OrderFillTransaction   OrderFillTransaction   `json:"orderFillTransaction"`
-	OrderCancelTransaction OrderCancelTransaction `json:"orderCancelTransaction"`
-	RelatedTransactionIDs  []TransactionID        `json:"relatedTransactionIDs"`
-	LastTransactionID      TransactionID          `json:"lastTransactionID"`
+	OrderCreateTransaction MarketOrderTransaction  `json:"orderCreateTransaction"`
+	OrderFillTransaction   OrderFillTransaction    `json:"orderFillTransaction"`
+	OrderCancelTransaction *OrderCancelTransaction `json:"orderCancelTransaction,omitempty"`
+	RelatedTransactionIDs  []TransactionID         `json:"relatedTransactionIDs"`
+	LastTransactionID      TransactionID           `json:"lastTransactionID"`
 }
 
 type TradeCloseBadRequestResponse struct {
@@ -501,7 +501,7 @@ type TradeUpdateOrdersRequest struct {
 }
 
 func (r TradeUpdateOrdersRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r.TakeProfit)
+	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
