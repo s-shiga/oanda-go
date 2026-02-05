@@ -78,5 +78,5 @@ type PriceBucket struct {
 	// Price is the price offered.
 	Price PriceValue `json:"price"`
 	// Liquidity is the amount of liquidity offered.
-	Liquidity int `json:"liquidity"`
+	Liquidity *DecimalNumber `json:"liquidity,omitempty"`
 }
