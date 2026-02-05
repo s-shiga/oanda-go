@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	Version                     = "0.1.0"
 	FXTradeURL                  = "https://api-fxtrade.oanda.com"
 	FXTradePracticeURL          = "https://api-fxpractice.oanda.com"
 	FXTradeStreamingURL         = "https://stream-fxtrade.oanda.com"
@@ -72,7 +73,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 		baseURL:          FXTradeURL,
 		baseStreamingURL: FXTradeStreamingURL,
 		apiKey:           apiKey,
-		userAgent:        fmt.Sprintf("github.com/S-Shiga/oanda-go (%s; %s)", goVersion, osArch),
+		userAgent:        fmt.Sprintf("oanda-go/%s (%s; %s)", Version, goVersion, osArch),
 		accountID:        "",
 		httpClient:       http.DefaultClient,
 	}
