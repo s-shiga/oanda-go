@@ -493,3 +493,83 @@ func (c *Client) TradeUpdateClientExtensions(ctx context.Context, accountID Acco
 		return nil, decodeErrorResponse(httpResp)
 	}
 }
+
+type TradeUpdateOrdersRequest struct {
+	TakeProfit         *TakeProfitDetails         `json:"takeProfit,omitempty"`
+	StopLoss           *StopLossDetails           `json:"stopLoss,omitempty"`
+	TrailingStopLoss   *TrailingStopLossDetails   `json:"trailingStopLoss,omitempty"`
+	GuaranteedStopLoss *GuaranteedStopLossDetails `json:"guaranteedStopLoss,omitempty"`
+}
+
+func (r TradeUpdateOrdersRequest) body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r.TakeProfit)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+type TradeUpdateOrdersResponse struct {
+	TakeProfitOrderCancelTransaction         *OrderCancelTransaction             `json:"takeProfitOrderCancelTransaction,omitempty"`
+	TakeProfitOrderTransaction               *TakeProfitOrderTransaction         `json:"takeProfitOrderTransaction,omitempty"`
+	TakeProfitOrderFillTransaction           *OrderFillTransaction               `json:"takeProfitOrderFillTransaction,omitempty"`
+	TakeProfitOrderCreatedCancelTransaction  *OrderCancelTransaction             `json:"takeProfitOrderCreatedCancelTransaction,omitempty"`
+	StopLossOrderCancelTransaction           *OrderCancelTransaction             `json:"stopLossOrderCancelTransaction,omitempty"`
+	StopLossOrderTransaction                 *StopLossOrderTransaction           `json:"stopLossOrderTransaction,omitempty"`
+	StopLossOrderFillTransaction             *OrderFillTransaction               `json:"stopLossOrderFillTransaction,omitempty"`
+	StopLossOrderCreatedCancelTransaction    *OrderCancelTransaction             `json:"stopLossOrderCreatedCancelTransaction,omitempty"`
+	TrailingStopLossOrderCancelTransaction   *OrderCancelTransaction             `json:"trailingStopLossOrderCancelTransaction,omitempty"`
+	TrailingStopLossOrderTransaction         *TrailingStopLossOrderTransaction   `json:"trailingStopLossOrderTransaction,omitempty"`
+	GuaranteedStopLossOrderCancelTransaction *OrderCancelTransaction             `json:"guaranteedStopLossOrderCancelTransaction,omitempty"`
+	GuaranteedStopLossOrderTransaction       *GuaranteedStopLossOrderTransaction `json:"guaranteedStopLossOrderTransaction,omitempty"`
+	RelatedTransactionIDs                    []TransactionID                     `json:"relatedTransactionIDs"`
+	LastTransactionID                        TransactionID                       `json:"lastTransactionID"`
+}
+
+type TradeUpdateOrdersErrorResponse struct {
+	TakeProfitOrderCancelRejectTransaction         *OrderCancelRejectTransaction             `json:"takeProfitOrderCancelRejectTransaction,omitempty"`
+	TakeProfitOrderRejectTransaction               *TakeProfitOrderRejectTransaction         `json:"takeProfitOrderRejectTransaction,omitempty"`
+	StopLossOrderCancelRejectTransaction           *OrderCancelRejectTransaction             `json:"stopLossOrderCancelRejectTransaction,omitempty"`
+	StopLossOrderRejectTransaction                 *StopLossOrderRejectTransaction           `json:"stopLossOrderRejectTransaction,omitempty"`
+	TrailingStopLossOrderCancelRejectTransaction   *OrderCancelRejectTransaction             `json:"trailingStopLossOrderCancelRejectTransaction,omitempty"`
+	TrailingStopLossOrderRejectTransaction         *TrailingStopLossOrderRejectTransaction   `json:"trailingStopLossOrderRejectTransaction,omitempty"`
+	GuaranteedStopLossOrderCancelRejectTransaction *OrderCancelRejectTransaction             `json:"guaranteedStopLossOrderCancelRejectTransaction,omitempty"`
+	GuaranteedStopLossOrderRejectTransaction       *GuaranteedStopLossOrderRejectTransaction `json:"guaranteedStopLossOrderRejectTransaction,omitempty"`
+	LastTransactionID                              TransactionID                             `json:"lastTransactionID"`
+	RelatedTransactionIDs                          []TransactionID                           `json:"relatedTransactionIDs"`
+	ErrorCode                                      string                                    `json:"errorCode"`
+	ErrorMessage                                   string                                    `json:"errorMessage"`
+}
+
+func (r TradeUpdateOrdersErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
+func (c *Client) TradeUpdateOrders(ctx context.Context, accountID AccountID, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", accountID, specifier)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := c.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp TradeUpdateOrdersResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp TradeUpdateOrdersErrorResponse
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
+}
