@@ -10,7 +10,9 @@ import (
 	"time"
 )
 
+//
 // Definitions https://developer.oanda.com/rest-live-v20/transaction-df/
+//
 
 // Transactions
 
@@ -420,7 +422,7 @@ type MarketIfTouchedOrderRejectTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -451,25 +453,25 @@ type TakeProfitOrderTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Take Profit Order.
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Reason is the reason that the Take Profit Order was created.
 	Reason TakeProfitOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 }
 
 // TakeProfitOrderRejectTransaction represents a Transaction that rejects the creation of a Take Profit Order.
@@ -478,19 +480,19 @@ type TakeProfitOrderRejectTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Take Profit Order.
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Reason is the reason that the Take Profit Order was created.
 	Reason TakeProfitOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
@@ -505,15 +507,15 @@ type StopLossOrderTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Stop Loss Order.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance from the current price to use as the Stop Loss Order price.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Guaranteed is deprecated. Indicates if the Stop Loss Order is guaranteed.
@@ -538,15 +540,15 @@ type StopLossOrderRejectTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Stop Loss Order.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance from the current price to use as the Stop Loss Order price.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Guaranteed is deprecated. Indicates if the Stop Loss Order is guaranteed.
@@ -554,7 +556,7 @@ type StopLossOrderRejectTransaction struct {
 	// Reason is the reason that the Stop Loss Order was created.
 	Reason StopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
@@ -569,15 +571,15 @@ type GuaranteedStopLossOrderTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance from the current price to use as the Order price.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// GuaranteedExecutionPremium is the fee charged for the Guaranteed Stop Loss Order.
@@ -585,7 +587,7 @@ type GuaranteedStopLossOrderTransaction struct {
 	// Reason is the reason that the Guaranteed Stop Loss Order was created.
 	Reason GuaranteedStopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
@@ -600,21 +602,21 @@ type GuaranteedStopLossOrderRejectTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order.
-	Price PriceValue `json:"price"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance from the current price to use as the Order price.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Reason is the reason that the Guaranteed Stop Loss Order was created.
 	Reason GuaranteedStopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
@@ -629,19 +631,19 @@ type TrailingStopLossOrderTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Distance is the price distance specified for the Trailing Stop Loss Order.
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Reason is the reason that the Trailing Stop Loss Order was created.
 	Reason TrailingStopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
@@ -656,19 +658,19 @@ type TrailingStopLossOrderRejectTransaction struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Distance is the price distance specified for the Trailing Stop Loss Order.
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
 	// Reason is the reason that the Trailing Stop Loss Order was created.
 	Reason TrailingStopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
 	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
@@ -683,7 +685,7 @@ type OrderFillTransaction struct {
 	// OrderID is the ID of the Order filled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order filled.
-	ClientOrderID ClientID `json:"clientOrderID"`
+	ClientOrderID *ClientID `json:"clientOrderID,omitempty"`
 	// Instrument is the name of the filled Order's instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the number of units filled by the Order.
@@ -711,7 +713,7 @@ type OrderFillTransaction struct {
 	// BaseFinancing is the financing paid or collected in the base currency.
 	BaseFinancing DecimalNumber `json:"baseFinancing"`
 	// QuoteFinancing is the financing paid or collected in the quote currency.
-	QuoteFinancing DecimalNumber `json:"quoteFinancing"`
+	QuoteFinancing *DecimalNumber `json:"quoteFinancing,omitempty"`
 	// Commission is the commission charged in the Account's home currency.
 	Commission AccountUnits `json:"commission"`
 	// GuaranteedExecutionFee is the total guaranteed execution fee charged.
@@ -721,11 +723,11 @@ type OrderFillTransaction struct {
 	// AccountBalance is the Account's balance after the Order was filled.
 	AccountBalance AccountUnits `json:"accountBalance"`
 	// TradeOpened is the Trade that was opened when the Order was filled.
-	TradeOpened TradeOpen `json:"tradeOpened"`
+	TradeOpened *TradeOpen `json:"tradeOpened,omitempty"`
 	// TradesClosed are the Trades that were closed when the Order was filled.
-	TradesClosed []TradeReduce `json:"tradesClosed"`
+	TradesClosed []TradeReduce `json:"tradesClosed,omitempty"`
 	// TradeReduced is the Trade that was reduced when the Order was filled.
-	TradeReduced TradeReduce `json:"tradeReduced"`
+	TradeReduced *TradeReduce `json:"tradeReduced,omitempty"`
 	// HalfSpreadCost is the half spread cost for the Order.
 	HalfSpreadCost AccountUnits `json:"halfSpreadCost"`
 }
@@ -736,7 +738,7 @@ type OrderCancelTransaction struct {
 	// OrderID is the ID of the Order cancelled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order cancelled.
-	ClientOrderID ClientID `json:"clientOrderID"`
+	ClientOrderID *ClientID `json:"clientOrderID,omitempty"`
 	// Reason is the reason that the Order was cancelled.
 	Reason OrderCancelReason `json:"reason"`
 	// ReplacedByOrderID is the ID of the Order that replaced this Order.
@@ -749,7 +751,7 @@ type OrderCancelRejectTransaction struct {
 	// OrderID is the ID of the Order intended to be cancelled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order intended to be cancelled.
-	ClientOrderID ClientID `json:"clientOrderID"`
+	ClientOrderID *ClientID `json:"clientOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -760,11 +762,11 @@ type OrderClientExtensionsModifyTransaction struct {
 	// OrderID is the ID of the Order whose client extensions are to be modified.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the original client Order ID of the Order.
-	ClientOrderID ClientID `json:"clientOrderID"`
+	ClientOrderID *ClientID `json:"clientOrderID,omitempty"`
 	// ClientExtensionsModify contains the new client extensions for the Order.
-	ClientExtensionsModify ClientExtensions `json:"clientExtensionsModify"`
+	ClientExtensionsModify *ClientExtensions `json:"clientExtensionsModify,omitempty"`
 	// TradeClientExtensionsModify contains the new client extensions for the Trade.
-	TradeClientExtensionsModify ClientExtensions `json:"tradeClientExtensionsModify"`
+	TradeClientExtensionsModify *ClientExtensions `json:"tradeClientExtensionsModify,omitempty"`
 }
 
 // OrderClientExtensionsModifyRejectTransaction represents a Transaction that rejects the modification of an Order's client extensions.
@@ -773,11 +775,11 @@ type OrderClientExtensionsModifyRejectTransaction struct {
 	// OrderID is the ID of the Order whose client extensions are to be modified.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the original client Order ID of the Order.
-	ClientOrderID ClientID `json:"clientOrderID"`
+	ClientOrderID *ClientID `json:"clientOrderID,omitempty"`
 	// ClientExtensionsModify contains the new client extensions for the Order.
-	ClientExtensionsModify ClientExtensions `json:"clientExtensionsModify"`
+	ClientExtensionsModify *ClientExtensions `json:"clientExtensionsModify,omitempty"`
 	// TradeClientExtensionsModify contains the new client extensions for the Trade.
-	TradeClientExtensionsModify ClientExtensions `json:"tradeClientExtensionsModify"`
+	TradeClientExtensionsModify *ClientExtensions `json:"tradeClientExtensionsModify,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -788,7 +790,7 @@ type TradeClientExtensionsModifyTransaction struct {
 	// TradeID is the ID of the Trade whose client extensions are to be modified.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the original client Trade ID of the Trade.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// TradeClientExtensionsModify contains the new client extensions for the Trade.
 	TradeClientExtensionsModify ClientExtensions `json:"tradeClientExtensionsModify"`
 }
@@ -799,7 +801,7 @@ type TradeClientExtensionsModifyRejectTransaction struct {
 	// TradeID is the ID of the Trade whose client extensions are to be modified.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the original client Trade ID of the Trade.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// TradeClientExtensionsModify contains the new client extensions for the Trade.
 	TradeClientExtensionsModify ClientExtensions `json:"tradeClientExtensionsModify"`
 	// RejectReason is the reason that the Reject Transaction was created.
@@ -1496,7 +1498,7 @@ type MarketOrderTradeClose struct {
 	// TradeID is the ID of the Trade requested to be closed.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade requested to be closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Units indicates the number of units of the Trade to close. If not specified, all units of the
 	// Trade will be closed.
 	Units DecimalNumber `json:"units"`
@@ -1525,7 +1527,7 @@ type MarketOrderDelayedTradeClose struct {
 	// TradeID is the ID of the Trade being closed.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade being closed.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// SourceTransactionID is the Transaction ID of the DelayedTradeClosure transaction to which this
 	// Delayed Trade Close belongs to.
 	SourceTransactionID TransactionID `json:"sourceTransactionID"`
@@ -1865,7 +1867,9 @@ type TransactionHeartbeat struct {
 	Time DateTime `json:"time"`
 }
 
+//
 // Endpoints https://developer.oanda.com/rest-live-v20/transaction-ep/
+//
 
 type TransactionListRequest struct {
 	From     *time.Time
