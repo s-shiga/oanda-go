@@ -4,46 +4,6 @@ import (
 	"testing"
 )
 
-func TestClient_TradeList(t *testing.T) {
-	client := setupClient(t)
-	req := NewTradeListRequest().SetInstrument("USD_JPY")
-	resp, err := client.TradeList(t.Context(), req)
-	if err != nil {
-		t.Errorf("failed to list trades: %s", err)
-	}
-	debugResponse(resp)
-}
-
-func TestClient_TradeListOpen(t *testing.T) {
-	client := setupClient(t)
-	resp, err := client.TradeListOpen(t.Context())
-	if err != nil {
-		t.Errorf("failed to list trades: %s", err)
-	}
-	debugResponse(resp)
-}
-
-func TestClient_TradeDetails(t *testing.T) {
-	client := setupClient(t)
-	tradeID := "454"
-	resp, err := client.TradeDetails(t.Context(), tradeID)
-	if err != nil {
-		t.Errorf("failed to list trades: %s", err)
-	}
-	debugResponse(resp)
-}
-
-func TestClient_TradeClose(t *testing.T) {
-	client := setupClient(t)
-	tradeID := "448"
-	req := NewTradeCloseALLRequest()
-	resp, err := client.TradeClose(t.Context(), tradeID, req)
-	if err != nil {
-		t.Errorf("failed to close trade: %s", err)
-	}
-	debugResponse(resp)
-}
-
 func TestClient_Trade(t *testing.T) {
 	client := setupClient(t)
 	var tradeID TradeID
