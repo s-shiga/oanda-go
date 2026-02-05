@@ -28,6 +28,7 @@ type Client struct {
 	baseURL          string
 	baseStreamingURL string
 	apiKey           string
+	userAgent        string
 	accountID        AccountID
 	httpClient       HTTPClient
 }
@@ -46,6 +47,12 @@ func WithBaseStreamingURL(baseStreamingURL string) Option {
 	}
 }
 
+func WithUserAgent(userAgent string) Option {
+	return func(c *Client) {
+		c.userAgent = userAgent
+	}
+}
+
 func WithAccountID(id AccountID) Option {
 	return func(c *Client) {
 		c.accountID = id
@@ -59,10 +66,13 @@ func WithHTTPClient(client *http.Client) Option {
 }
 
 func NewClient(apiKey string, opts ...Option) *Client {
+	goVersion := runtime.Version()
+	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	client := &Client{
 		baseURL:          FXTradeURL,
 		baseStreamingURL: FXTradeStreamingURL,
 		apiKey:           apiKey,
+		userAgent:        fmt.Sprintf("github.com/S-Shiga/oanda-go (%s; %s)", goVersion, osArch),
 		accountID:        "",
 		httpClient:       http.DefaultClient,
 	}
@@ -100,9 +110,7 @@ func (c *Client) getURL(path string, query url.Values) (string, error) {
 
 func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
-	goVersion := runtime.Version()
-	osArch := runtime.GOOS + "/" + runtime.GOARCH
-	req.Header.Add("User-Agent", fmt.Sprintf("github.com/S-Shiga/oanda-go (%s; %s)", goVersion, osArch))
+	req.Header.Add("User-Agent", c.userAgent)
 	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
