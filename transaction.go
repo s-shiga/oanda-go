@@ -1949,7 +1949,7 @@ type TransactionListResponse struct {
 }
 
 func (c *Client) TransactionList(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/transactions", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/transactions", c.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err

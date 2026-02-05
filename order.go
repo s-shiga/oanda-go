@@ -125,7 +125,7 @@ type TradeClosingDetails struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 }
 
 type OrdersOnFill struct {
@@ -160,17 +160,17 @@ type OrdersOnFill struct {
 type PositionClosingDetails struct {
 	// TradeClose is details of the Trade requested to be closed, only provided when the
 	// MarketOrder is being used to explicitly close a Trade.
-	TradeClose MarketOrderTradeClose `json:"tradeClose"`
+	TradeClose *MarketOrderTradeClose `json:"tradeClose,omitempty"`
 	// LongPositionCloseout details the long Position to closeout when the Order is filled and
 	// whether the long Position should be fully closed or only partially closed.
-	LongPositionCloseout MarketOrderPositionCloseout `json:"longPositionCloseout"`
+	LongPositionCloseout *MarketOrderPositionCloseout `json:"longPositionCloseout,omitempty"`
 	// ShortPositionCloseout details the short Position to closeout when the Order is filled and
 	// whether the short Position should be fully closed or only partially closed.
-	ShortPositionCloseout MarketOrderPositionCloseout `json:"shortPositionCloseout"`
+	ShortPositionCloseout *MarketOrderPositionCloseout `json:"shortPositionCloseout,omitempty"`
 	// MarginCloseout details the Margin Closeout that this Market Order was created for.
-	MarginCloseout MarketOrderMarginCloseout `json:"marginCloseout"`
+	MarginCloseout *MarketOrderMarginCloseout `json:"marginCloseout,omitempty"`
 	// DelayedTradeClose details the delayed Trade close that this Market Order was created for.
-	DelayedTradeClose MarketOrderDelayedTradeClose `json:"delayedTradeClose"`
+	DelayedTradeClose *MarketOrderDelayedTradeClose `json:"delayedTradeClose,omitempty"`
 }
 
 type FillingDetails struct {
@@ -1567,7 +1567,7 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 }
 
 func (c *Client) OrderCreate(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/orders", c.accountID)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -1737,7 +1737,7 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
 func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/orders", c.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -1771,7 +1771,7 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderLi
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
 func (c *Client) OrderListPending(ctx context.Context) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", c.accountID)
 	resp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -1823,7 +1823,7 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
 func (c *Client) OrderDetails(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.accountID, specifier)
 	return doGet[OrderDetailsResponse](c, ctx, path, nil)
 }
 
@@ -1839,7 +1839,7 @@ type OrderReplaceResponse struct {
 }
 
 func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -1880,7 +1880,7 @@ type OrderCancelResponse struct {
 }
 
 func (c *Client) OrderCancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", c.accountID, specifier)
 	httpResp, err := c.sendPutRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
@@ -1928,7 +1928,7 @@ func (c *Client) OrderUpdateClientExtensions(
 	specifier OrderSpecifier,
 	req OrderUpdateClientExtensionsRequest,
 ) (*OrderUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", c.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err

@@ -45,7 +45,7 @@ type PositionSide struct {
 	// the Position.
 	AveragePrice PriceValue `json:"averagePrice"`
 	// TradeIDs is the list of the open Trade IDs which contribute to the open Position.
-	TradeIDs []TradeID `json:"tradeIDs"`
+	TradeIDs []TradeID `json:"tradeIDs,omitempty"`
 	// PL is the profit/loss realized by the PositionSide over the lifetime of the Account.
 	PL AccountUnits `json:"pl"`
 	// UnrealizedPL is the unrealized profit/loss of all open Trades that contribute to this PositionSide.
@@ -86,7 +86,7 @@ type PositionListResponse struct {
 }
 
 func (c *Client) PositionList(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/positions", c.accountID)
 	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -99,7 +99,7 @@ func (c *Client) PositionList(ctx context.Context) (*PositionListResponse, error
 }
 
 func (c *Client) PositionListOpen(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/openPositions", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/openPositions", c.accountID)
 	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -117,7 +117,7 @@ type PositionListInstrumentResponse struct {
 }
 
 func (c *Client) PositionListInstrument(ctx context.Context, instrument InstrumentName) (*PositionListInstrumentResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", c.AccountID, instrument)
+	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", c.accountID, instrument)
 	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)

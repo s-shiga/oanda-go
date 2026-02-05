@@ -57,7 +57,7 @@ type Trade struct {
 	AverageClosePrice *PriceValue `json:"averageClosePrice,omitempty"`
 	// ClosingTransactionIDs is the list of Transaction IDs associated with closing portions of
 	// this Trade.
-	ClosingTransactionIDs []TransactionID `json:"closingTransactionIDs"`
+	ClosingTransactionIDs []TransactionID `json:"closingTransactionIDs,omitempty"`
 	// Financing is the financing paid/collected for this Trade.
 	Financing AccountUnits `json:"financing"`
 	// DividendAdjustment is the dividend adjustment paid or collected for this Trade.
@@ -112,16 +112,16 @@ type TradeSummary struct {
 	AverageClosePrice PriceValue `json:"averageClosePrice"`
 	// ClosingTransactionIDs is the list of Transaction IDs associated with closing portions of
 	// this Trade.
-	ClosingTransactionIDs []TransactionID `json:"closingTransactionIDs"`
+	ClosingTransactionIDs []TransactionID `json:"closingTransactionIDs,omitempty"`
 	// Financing is the financing paid/collected for this Trade.
 	Financing AccountUnits `json:"financing"`
 	// DividendAdjustment is the dividend adjustment paid or collected for this Trade.
 	DividendAdjustment AccountUnits `json:"dividendAdjustment"`
 	// CloseTime is the date/time when the Trade was fully closed. Only provided for Trades whose
 	// state is CLOSED.
-	CloseTime DateTime `json:"closeTime"`
+	CloseTime *DateTime `json:"closeTime,omitempty"`
 	// ClientExtensions are the client extensions of the Trade.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOrderID is the ID of the Trade's Take Profit Order, only provided if such an
 	// Order exists.
 	TakeProfitOrderID OrderID `json:"takeProfitOrderID"`
@@ -129,10 +129,10 @@ type TradeSummary struct {
 	StopLossOrderID OrderID `json:"stopLossOrderID"`
 	// GuaranteedStopLossOrderID is the ID of the Trade's Guaranteed Stop Loss Order, only provided
 	// if such an Order exists.
-	GuaranteedStopLossOrderID OrderID `json:"guaranteedStopLossOrderID"`
+	GuaranteedStopLossOrderID OrderID `json:"guaranteedStopLossOrderID,omitempty"`
 	// TrailingStopLossOrderID is the ID of the Trade's Trailing Stop Loss Order, only provided if
 	// such an Order exists.
-	TrailingStopLossOrderID OrderID `json:"trailingStopLossOrderID"`
+	TrailingStopLossOrderID OrderID `json:"trailingStopLossOrderID,omitempty"`
 }
 
 // CalculatedTradeState represents the dynamic (calculated) state of an open Trade.
@@ -286,7 +286,7 @@ type TradeListResponse struct {
 // TradeList retrieves a list of Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) (*TradeListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%s/trades", c.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) (*TradeLi
 // TradeListOpen retrieves a list of all currently open Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeListOpen(ctx context.Context) (*TradeListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/openTrades", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%s/openTrades", c.accountID)
 	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -325,7 +325,7 @@ type TradeDetailsResponse struct {
 // TradeDetails retrieves the details of a specific Trade in an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
 func (c *Client) TradeDetails(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", c.accountID, specifier)
 	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
@@ -394,7 +394,7 @@ func (r TradeCloseNotFoundResponse) Error() string {
 }
 
 func (c *Client) TradeClose(ctx context.Context, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", c.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -459,7 +459,7 @@ func (r TradeUpdateClientExtensionsErrorResponse) Error() string {
 }
 
 func (c *Client) TradeUpdateClientExtensions(ctx context.Context, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", c.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -545,7 +545,7 @@ func (r TradeUpdateOrdersErrorResponse) Error() string {
 }
 
 func (c *Client) TradeUpdateOrders(ctx context.Context, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", c.AccountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", c.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err

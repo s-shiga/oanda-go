@@ -31,13 +31,13 @@ type Account struct {
 	CreatedTime DateTime `json:"createdTime"`
 	// GuaranteedStopLossOrderParameters contains the current mutability and hedging settings
 	// related to guaranteed Stop Loss orders.
-	GuaranteedStopLossOrderParameters GuaranteedStopLossOrderParameters `json:"guaranteedStopLossOrderParameters"`
+	GuaranteedStopLossOrderParameters *GuaranteedStopLossOrderParameters `json:"guaranteedStopLossOrderParameters,omitempty"`
 	// GuaranteedStopLossOrderMode describes the guaranteed Stop Loss Order mode of the Account.
 	GuaranteedStopLossOrderMode GuaranteedStopLossOrderMode `json:"guaranteedStopLossOrderMode"`
 	// ResettablePLTime is the date/time that the Account's resettablePL was last reset.
-	ResettablePLTime DateTime `json:"resettablePLTime"`
+	ResettablePLTime *DateTime `json:"resettablePLTime,omitempty"`
 	// MarginRate is the current financing margin rate used for financing calculations for the Account.
-	MarginRate DecimalNumber `json:"marginRate"`
+	MarginRate DecimalNumber `json:"marginRate,omitempty"`
 	// OpenTradeCount is the number of Trades currently open in the Account.
 	OpenTradeCount int `json:"openTradeCount"`
 	// OpenPositionCount is the number of Positions currently open in the Account.
@@ -73,10 +73,10 @@ type Account struct {
 	// positive value indicating how much can be withdrawn from the account.
 	WithdrawalLimit AccountUnits `json:"withdrawalLimit"`
 	// MarginCallMarginUsed is the Account's margin call margin used.
-	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed"`
+	MarginCallMarginUsed *AccountUnits `json:"marginCallMarginUsed,omitempty"`
 	// MarginCallPercent is the Account's margin call percentage. When this value is 1.0 or above
 	// the Account is in a margin call situation.
-	MarginCallPercent DecimalNumber `json:"marginCallPercent"`
+	MarginCallPercent *DecimalNumber `json:"marginCallPercent,omitempty"`
 	// Balance is the current balance of the Account.
 	Balance AccountUnits `json:"balance"`
 	// PL is the total profit/loss realized over the lifetime of the Account.
@@ -96,20 +96,20 @@ type Account struct {
 	GuaranteedExecutionFees AccountUnits `json:"guaranteedExecutionFees"`
 	// MarginCallEnterTime is the date/time when the Account entered a margin call state. Only
 	// provided if the Account is in a margin call.
-	MarginCallEnterTime DateTime `json:"marginCallEnterTime"`
+	MarginCallEnterTime *DateTime `json:"marginCallEnterTime,omitempty"`
 	// MarginCallExtensionCount is the number of times that the Account's current margin call was
 	// extended.
-	MarginCallExtensionCount int `json:"marginCallExtensionCount"`
+	MarginCallExtensionCount *int `json:"marginCallExtensionCount,omitempty"`
 	// LastMarginCallExtensionTime is the date/time of the Account's last margin call extension.
-	LastMarginCallExtensionTime DateTime `json:"lastMarginCallExtensionTime"`
+	LastMarginCallExtensionTime *DateTime `json:"lastMarginCallExtensionTime,omitempty"`
 	// LastTransactionID is the ID of the last Transaction created for the Account.
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 	// Trades is the details of the Trades currently open in the Account.
-	Trades []TradeSummary `json:"trades"`
+	Trades []TradeSummary `json:"trades,omitempty"`
 	// Positions is the details of the Positions currently open in the Account.
-	Positions []Position `json:"positions"`
+	Positions []Position `json:"positions,omitempty"`
 	// Orders is the details of the Orders currently pending in the Account.
-	Orders []Order `json:"orders"`
+	Orders []Order `json:"orders,omitempty"`
 }
 
 func (a *Account) UnmarshalJSON(b []byte) error {
@@ -154,10 +154,10 @@ type AccountProperties struct {
 type GuaranteedStopLossOrderParameters struct {
 	// MutabilityMarketOpen indicates whether or not guaranteed Stop Loss Orders can be cancelled
 	// or have their price changed while the market is open.
-	MutabilityMarketOpen GuaranteedStopLossOrderMutability `json:"mutabilityMarketOpen"`
+	MutabilityMarketOpen *GuaranteedStopLossOrderMutability `json:"mutabilityMarketOpen,omitempty"`
 	// MutabilityMarketHalted indicates whether or not guaranteed Stop Loss Orders can be cancelled
 	// or have their price changed while the market is halted.
-	MutabilityMarketHalted GuaranteedStopLossOrderMutability `json:"mutabilityMarketHalted"`
+	MutabilityMarketHalted *GuaranteedStopLossOrderMutability `json:"mutabilityMarketHalted,omitempty"`
 }
 
 // GuaranteedStopLossOrderMode describes the guaranteed Stop Loss Order mode of an Account.
@@ -199,7 +199,7 @@ type AccountSummary struct {
 	// ID is the Account's identifier.
 	ID AccountID `json:"id"`
 	// Alias is the client-assigned alias for the Account. Only provided if the Account has an alias.
-	Alias string `json:"alias"`
+	Alias string `json:"alias,omitempty"`
 	// Currency is the home currency of the Account.
 	Currency Currency `json:"currency"`
 	// CreatedByUserID is the ID of the user that created the Account.
@@ -208,13 +208,13 @@ type AccountSummary struct {
 	CreatedTime DateTime `json:"createdTime"`
 	// GuaranteedStopLossOrderParameters contains the current mutability and hedging settings
 	// related to guaranteed Stop Loss orders.
-	GuaranteedStopLossOrderParameters GuaranteedStopLossOrderParameters `json:"guaranteedStopLossOrderParameters"`
+	GuaranteedStopLossOrderParameters *GuaranteedStopLossOrderParameters `json:"guaranteedStopLossOrderParameters,omitempty"`
 	// GuaranteedStopLossOrderMode describes the guaranteed Stop Loss Order mode of the Account.
 	GuaranteedStopLossOrderMode GuaranteedStopLossOrderMode `json:"guaranteedStopLossOrderMode"`
 	// ResettablePLTime is the date/time that the Account's resettablePL was last reset.
-	ResettablePLTime DateTime `json:"resettablePLTime"`
+	ResettablePLTime *DateTime `json:"resettablePLTime,omitempty"`
 	// MarginRate is the current financing margin rate used for financing calculations for the Account.
-	MarginRate DecimalNumber `json:"marginRate"`
+	MarginRate DecimalNumber `json:"marginRate,omitempty"`
 	// OpenTradeCount is the number of Trades currently open in the Account.
 	OpenTradeCount int `json:"openTradeCount"`
 	// OpenPositionCount is the number of Positions currently open in the Account.
@@ -250,10 +250,10 @@ type AccountSummary struct {
 	// positive value indicating how much can be withdrawn from the account.
 	WithdrawalLimit AccountUnits `json:"withdrawalLimit"`
 	// MarginCallMarginUsed is the Account's margin call margin used.
-	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed"`
+	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed,omitempty"`
 	// MarginCallPercent is the Account's margin call percentage. When this value is 1.0 or above
 	// the Account is in a margin call situation.
-	MarginCallPercent DecimalNumber `json:"marginCallPercent"`
+	MarginCallPercent DecimalNumber `json:"marginCallPercent,omitempty"`
 	// Balance is the current balance of the Account.
 	Balance AccountUnits `json:"balance"`
 	// PL is the total profit/loss realized over the lifetime of the Account.
@@ -273,12 +273,12 @@ type AccountSummary struct {
 	GuaranteedExecutionFees AccountUnits `json:"guaranteedExecutionFees"`
 	// MarginCallEnterTime is the date/time when the Account entered a margin call state. Only
 	// provided if the Account is in a margin call.
-	MarginCallEnterTime DateTime `json:"marginCallEnterTime"`
+	MarginCallEnterTime *DateTime `json:"marginCallEnterTime,omitempty"`
 	// MarginCallExtensionCount is the number of times that the Account's current margin call was
 	// extended.
 	MarginCallExtensionCount int `json:"marginCallExtensionCount"`
 	// LastMarginCallExtensionTime is the date/time of the Account's last margin call extension.
-	LastMarginCallExtensionTime DateTime `json:"lastMarginCallExtensionTime"`
+	LastMarginCallExtensionTime *DateTime `json:"lastMarginCallExtensionTime,omitempty"`
 	// LastTransactionID is the ID of the last Transaction created for the Account.
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
@@ -471,7 +471,7 @@ type AccountDetailsResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
 func (c *Client) AccountDetails(ctx context.Context) (*AccountDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v", c.accountID)
 	return doGet[AccountDetailsResponse](c, ctx, path, nil)
 }
 
@@ -499,7 +499,7 @@ type AccountSummaryResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
 func (c *Client) AccountSummary(ctx context.Context) (*AccountSummaryResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/summary", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/summary", c.accountID)
 	return doGet[AccountSummaryResponse](c, ctx, path, nil)
 }
 
@@ -528,7 +528,7 @@ type AccountInstrumentsResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
 func (c *Client) AccountInstruments(ctx context.Context, instruments ...InstrumentName) (*AccountInstrumentsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/instruments", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/instruments", c.accountID)
 	v := url.Values{}
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
@@ -569,7 +569,7 @@ type AccountConfigurationResponse struct {
 }
 
 func (c *Client) AccountConfiguration(ctx context.Context, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/configuration", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/configuration", c.accountID)
 	return doPatch[AccountConfigurationResponse](c, ctx, path, req)
 }
 
@@ -602,7 +602,7 @@ type AccountChangesResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
 func (c *Client) AccountChanges(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/changes", c.AccountID)
+	path := fmt.Sprintf("/v3/accounts/%v/changes", c.accountID)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
 	return doGet[AccountChangesResponse](c, ctx, path, v)

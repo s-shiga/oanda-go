@@ -1,40 +1,9 @@
 package oanda
 
 import (
-	"encoding/json"
-	"log/slog"
-	"os"
+	"fmt"
 	"testing"
 )
-
-func init() {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-}
-
-func setupClientWithoutAccountID(t *testing.T) (client *Client) {
-	client, err := NewPracticeClientWithoutAccountID()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return client
-}
-
-func setupClient(t *testing.T) *Client {
-	accountID, ok := os.LookupEnv("OANDA_ACCOUNT_ID_DEMO")
-	if !ok {
-		t.Fatal("OANDA_ACCOUNT_ID_DEMO not set")
-	}
-	client, err := NewPracticeClient(accountID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return client
-}
-
-func debugResponse(resp any) {
-	b, _ := json.MarshalIndent(resp, "", "  ")
-	slog.Debug(string(b))
-}
 
 func TestClient_AccountsList(t *testing.T) {
 	client := setupClientWithoutAccountID(t)
@@ -51,7 +20,8 @@ func TestClient_AccountDetails(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to get account details: %v", err)
 	}
-	debugResponse(resp)
+	fmt.Printf("%+v\n", resp)
+	debugResponse(resp.Account)
 }
 
 func TestClient_AccountSummary(t *testing.T) {
