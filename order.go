@@ -1526,13 +1526,13 @@ const (
 //
 
 type OrderCreateResponse struct {
-	OrderCreateTransaction        Transaction            `json:"orderCreateTransaction"`
-	OrderFillTransaction          OrderFillTransaction   `json:"orderFillTransaction"`
-	OrderCancelTransaction        OrderCancelTransaction `json:"orderCancelTransaction"`
-	OrderReissueTransaction       Transaction            `json:"orderReissueTransaction"`
-	OrderReissueRejectTransaction Transaction            `json:"orderReissueRejectTransaction"`
-	RelatedTransactionIDs         []TransactionID        `json:"relatedTransactionIDs"`
-	LastTransactionID             TransactionID          `json:"lastTransactionID"`
+	OrderCreateTransaction        Transaction             `json:"orderCreateTransaction"`
+	OrderFillTransaction          *OrderFillTransaction   `json:"orderFillTransaction,omitempty"`
+	OrderCancelTransaction        *OrderCancelTransaction `json:"orderCancelTransaction,omitempty"`
+	OrderReissueTransaction       *Transaction            `json:"orderReissueTransaction,omitempty"`
+	OrderReissueRejectTransaction *Transaction            `json:"orderReissueRejectTransaction,omitempty"`
+	RelatedTransactionIDs         []TransactionID         `json:"relatedTransactionIDs"`
+	LastTransactionID             TransactionID           `json:"lastTransactionID"`
 }
 
 type OrderErrorResponse struct {
