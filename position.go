@@ -85,44 +85,46 @@ type PositionListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionId"`
 }
 
-func (c *Client) PositionList(ctx context.Context) ([]Position, TransactionID, error) {
+func (c *Client) PositionList(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions", c.AccountID)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	var positionListResp PositionListResponse
-	if err := decodeResponse(resp, &positionListResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	var resp PositionListResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return positionListResp.Positions, positionListResp.LastTransactionID, nil
+	return &resp, nil
 }
 
-func (c *Client) PositionListOpen(ctx context.Context) ([]Position, TransactionID, error) {
+func (c *Client) PositionListOpen(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/openPositions", c.AccountID)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	var positionListResp PositionListResponse
-	if err := decodeResponse(resp, &positionListResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	var resp PositionListResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return positionListResp.Positions, positionListResp.LastTransactionID, nil
+	return &resp, nil
 }
 
-func (c *Client) PositionListInstrument(ctx context.Context, instrument InstrumentName) (*Position, TransactionID, error) {
+type PositionListInstrumentResponse struct {
+	Position          Position      `json:"position"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
+func (c *Client) PositionListInstrument(ctx context.Context, instrument InstrumentName) (*PositionListInstrumentResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", c.AccountID, instrument)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+	httpResp, err := c.sendGetRequest(ctx, path, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to send request: %w", err)
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	positionListResp := struct {
-		Position          Position      `json:"position"`
-		LastTransactionID TransactionID `json:"lastTransactionID"`
-	}{}
-	if err := decodeResponse(resp, &positionListResp); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response: %w", err)
+	var resp PositionListInstrumentResponse
+	if err := decodeResponse(httpResp, &resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return &positionListResp.Position, positionListResp.LastTransactionID, nil
+	return &resp, nil
 }
