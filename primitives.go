@@ -164,6 +164,13 @@ func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
+func (dt *DateTime) MarshalJSON() ([]byte, error) {
+	if dt.Time == nil {
+		return json.Marshal("null")
+	}
+	return json.Marshal(dt.Format(time.RFC3339Nano))
+}
+
 // AcceptDatetimeFormat specifies how DateTime fields should be represented in HTTP responses.
 type AcceptDatetimeFormat string
 
