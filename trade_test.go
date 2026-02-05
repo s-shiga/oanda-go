@@ -25,10 +25,21 @@ func TestClient_TradeListOpen(t *testing.T) {
 
 func TestClient_TradeDetails(t *testing.T) {
 	client := setupClient(t)
-	tradeID := "15808"
+	tradeID := "454"
 	resp, err := client.TradeDetails(t.Context(), tradeID)
 	if err != nil {
 		t.Errorf("failed to list trades: %s", err)
+	}
+	debugResponse(resp)
+}
+
+func TestClient_TradeClose(t *testing.T) {
+	client := setupClient(t)
+	tradeID := "448"
+	req := NewTradeCloseALLRequest()
+	resp, err := client.TradeClose(t.Context(), tradeID, req)
+	if err != nil {
+		t.Errorf("failed to close trade: %s", err)
 	}
 	debugResponse(resp)
 }
@@ -46,6 +57,10 @@ func TestClient_Trade(t *testing.T) {
 		tradeID = resp.OrderFillTransaction.TradeOpened.TradeID
 		debugResponse(resp)
 	})
+
+	if tradeID == "" {
+		t.Fatal("no trade ID")
+	}
 
 	t.Run("list", func(t *testing.T) {
 		req := NewTradeListRequest().SetInstrument("USD_JPY")
@@ -107,12 +122,21 @@ func TestClient_Trade(t *testing.T) {
 
 	t.Run("update orders", func(t *testing.T) {
 		req := &TradeUpdateOrdersRequest{
-			TakeProfit: NewTakeProfitDetails("120.00"),
+			TakeProfit: NewTakeProfitDetails("200.00"),
 			StopLoss:   NewStopLossDetails().SetDistance("10.00"),
 		}
 		resp, err := client.TradeUpdateOrders(t.Context(), tradeID, req)
 		if err != nil {
 			t.Errorf("failed to update orders: %s", err)
+		}
+		debugResponse(resp)
+	})
+
+	t.Run("close", func(t *testing.T) {
+		req := NewTradeCloseALLRequest()
+		resp, err := client.TradeClose(t.Context(), tradeID, req)
+		if err != nil {
+			t.Errorf("failed to close trade: %s", err)
 		}
 		debugResponse(resp)
 	})
