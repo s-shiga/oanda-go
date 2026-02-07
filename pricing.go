@@ -1,5 +1,17 @@
 package oanda
 
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+)
+
 // -----------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/pricing-df/
 // -----------------------------------------------------------------
@@ -93,4 +105,119 @@ type PriceService struct {
 
 func newPriceService(client *Client) *PriceService {
 	return &PriceService{client}
+}
+
+type PriceLatestCandlesticksRequest struct {
+	specifications    []CandleSpecification
+	units             *DecimalNumber
+	smooth            bool
+	dailyAlignment    *int
+	alignmentTimezone *string
+	weeklyAlignment   *WeeklyAlignment
+}
+
+func NewPriceLatestCandlesticksRequest() *PriceLatestCandlesticksRequest {
+	return &PriceLatestCandlesticksRequest{
+		specifications: make([]CandleSpecification, 0),
+		smooth:         false,
+	}
+}
+
+func (r *PriceLatestCandlesticksRequest) Specification(specs ...CandleSpecification) *PriceLatestCandlesticksRequest {
+	r.specifications = append(r.specifications, specs...)
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) Units(units DecimalNumber) *PriceLatestCandlesticksRequest {
+	r.units = &units
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) Smooth() *PriceLatestCandlesticksRequest {
+	r.smooth = true
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) DailyAlignment(dailyAlignment int) *PriceLatestCandlesticksRequest {
+	r.dailyAlignment = &dailyAlignment
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) AlignmentTimezone(alignmentTimezone string) *PriceLatestCandlesticksRequest {
+	r.alignmentTimezone = &alignmentTimezone
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) WeeklyAlignment(weeklyAlignment WeeklyAlignment) *PriceLatestCandlesticksRequest {
+	r.weeklyAlignment = &weeklyAlignment
+	return r
+}
+
+func (r *PriceLatestCandlesticksRequest) validate() error {
+	if len(r.specifications) == 0 {
+		return errors.New("missing specifications")
+	}
+	if r.dailyAlignment != nil {
+		if *r.dailyAlignment < 0 || *r.dailyAlignment > 23 {
+			return fmt.Errorf("daily alignment must be between 0 and 23")
+		}
+	}
+	if r.alignmentTimezone != nil {
+		if _, err := time.LoadLocation(*r.alignmentTimezone); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *PriceLatestCandlesticksRequest) values() (url.Values, error) {
+	values := url.Values{}
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	var specs []string
+	for _, spec := range r.specifications {
+		specs = append(specs, string(spec))
+	}
+	values.Set("candleSpecifications", strings.Join(specs, ","))
+	if r.units != nil {
+		values.Set("units", string(*r.units))
+	}
+	if r.smooth {
+		values.Set("smooth", "True")
+	}
+	if r.dailyAlignment != nil {
+		values.Set("dailyAlignment", strconv.Itoa(*r.dailyAlignment))
+	}
+	if r.alignmentTimezone != nil {
+		values.Set("alignmentTimezone", *r.alignmentTimezone)
+	}
+	if r.weeklyAlignment != nil {
+		values.Set("weeklyAlignment", string(*r.weeklyAlignment))
+	}
+	return values, nil
+}
+
+func (s *PriceService) LatestCandlesticks(ctx context.Context, req *PriceLatestCandlesticksRequest) ([]CandlestickResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.Client.accountID)
+	values, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := s.Client.sendGetRequest(ctx, path, values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send GET request: %w", err)
+	}
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		resp := struct {
+			LatestCandles []CandlestickResponse `json:"latestCandles"`
+		}{}
+		if err = json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
+		}
+		return resp.LatestCandles, nil
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
