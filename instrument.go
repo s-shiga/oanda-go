@@ -349,15 +349,9 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	return v, nil
 }
 
-type CandlesticksResponse struct {
-	Instrument  InstrumentName         `json:"instrument"`
-	Granularity CandlestickGranularity `json:"granularity"`
-	Candles     []Candlestick          `json:"candles"`
-}
-
 // Candlesticks fetches candlestick data for an instrument.
 // See: https://developer.oanda.com/rest-live-v20/instrument-ep/
-func (s *InstrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlesticksResponse, error) {
+func (s *InstrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlestickResponse, error) {
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
 	if err != nil {
@@ -367,7 +361,7 @@ func (s *InstrumentService) Candlesticks(ctx context.Context, req *CandlesticksR
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	var resp CandlesticksResponse
+	var resp CandlestickResponse
 	if err := decodeResponse(httpResp, &resp); err != nil {
 		return nil, err
 	}
