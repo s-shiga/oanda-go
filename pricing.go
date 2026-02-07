@@ -2,10 +2,8 @@ package oanda
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -100,7 +98,7 @@ type PriceBucket struct {
 // ---------------------------------------------------------------
 
 type PriceService struct {
-	Client *Client
+	client *Client
 }
 
 func newPriceService(client *Client) *PriceService {
@@ -198,26 +196,84 @@ func (r *PriceLatestCandlesticksRequest) values() (url.Values, error) {
 	return values, nil
 }
 
+type PriceLatestCandlesticksResponse struct {
+	LatestCandles []CandlestickResponse `json:"latestCandles"`
+}
+
 func (s *PriceService) LatestCandlesticks(ctx context.Context, req *PriceLatestCandlesticksRequest) ([]CandlestickResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.Client.accountID)
+	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := s.Client.sendGetRequest(ctx, path, values)
+	resp, err := doGet[PriceLatestCandlesticksResponse](s.client, ctx, path, values)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send GET request: %w", err)
+		return nil, err
 	}
-	switch httpResp.StatusCode {
-	case http.StatusOK:
-		resp := struct {
-			LatestCandles []CandlestickResponse `json:"latestCandles"`
-		}{}
-		if err = json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
-		}
-		return resp.LatestCandles, nil
-	default:
-		return nil, decodeErrorResponse(httpResp)
+	return resp.LatestCandles, nil
+}
+
+type PriceInformationRequest struct {
+	instruments            []InstrumentName
+	since                  *DateTime
+	includeHomeConversions bool
+}
+
+func NewPriceInformationRequest() *PriceInformationRequest {
+	return &PriceInformationRequest{
+		instruments:            make([]InstrumentName, 0),
+		includeHomeConversions: false,
 	}
+}
+
+func (r *PriceInformationRequest) Instruments(instruments ...InstrumentName) *PriceInformationRequest {
+	r.instruments = append(r.instruments, instruments...)
+	return r
+}
+
+func (r *PriceInformationRequest) Since(since DateTime) *PriceInformationRequest {
+	r.since = &since
+	return r
+}
+
+func (r *PriceInformationRequest) IncludeHomeConversions() *PriceInformationRequest {
+	r.includeHomeConversions = true
+	return r
+}
+
+func (r *PriceInformationRequest) validate() error {
+	if len(r.instruments) == 0 {
+		return errors.New("missing instruments")
+	}
+	return nil
+}
+
+func (r *PriceInformationRequest) values() (url.Values, error) {
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	values := url.Values{}
+	values.Set("instruments", strings.Join(r.instruments, ","))
+	if r.since != nil {
+		values.Set("since", r.since.String())
+	}
+	if r.includeHomeConversions {
+		values.Set("includeHomeConversions", "true")
+	}
+	return values, nil
+}
+
+type PriceInformationResponse struct {
+	Prices          []ClientPrice     `json:"prices"`
+	HomeConversions []HomeConversions `json:"homeConversions"`
+	Time            DateTime          `json:"time"`
+}
+
+func (s *PriceService) Information(ctx context.Context, req *PriceInformationRequest) (*PriceInformationResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/pricing", s.client.accountID)
+	values, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	return doGet[PriceInformationResponse](s.client, ctx, path, values)
 }
