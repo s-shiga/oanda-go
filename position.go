@@ -5,7 +5,9 @@ import (
 	"fmt"
 )
 
+// ------------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/position-df/
+// ------------------------------------------------------------------
 
 // Position is the specification of a Position within an Account.
 type Position struct {
@@ -78,16 +80,26 @@ type CalculatedPositionState struct {
 	MarginUsed AccountUnits `json:"marginUsed"`
 }
 
+// ----------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/position-ep/
+// ----------------------------------------------------------------
+
+type PositionService struct {
+	client *Client
+}
+
+func newPositionService(client *Client) *PositionService {
+	return &PositionService{client}
+}
 
 type PositionListResponse struct {
 	Positions         []Position    `json:"positions"`
 	LastTransactionID TransactionID `json:"lastTransactionId"`
 }
 
-func (c *Client) PositionList(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions", c.accountID)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
+func (s *PositionService) List(ctx context.Context) (*PositionListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions", s.client.accountID)
+	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -98,9 +110,9 @@ func (c *Client) PositionList(ctx context.Context) (*PositionListResponse, error
 	return &resp, nil
 }
 
-func (c *Client) PositionListOpen(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/openPositions", c.accountID)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
+func (s *PositionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/openPositions", s.client.accountID)
+	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -111,18 +123,18 @@ func (c *Client) PositionListOpen(ctx context.Context) (*PositionListResponse, e
 	return &resp, nil
 }
 
-type PositionListInstrumentResponse struct {
+type PositionListByInstrumentResponse struct {
 	Position          Position      `json:"position"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-func (c *Client) PositionListInstrument(ctx context.Context, instrument InstrumentName) (*PositionListInstrumentResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", c.accountID, instrument)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
+func (s *PositionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", s.client.accountID, instrument)
+	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	var resp PositionListInstrumentResponse
+	var resp PositionListByInstrumentResponse
 	if err := decodeResponse(httpResp, &resp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}

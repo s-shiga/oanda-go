@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-//
+// ---------------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/transaction-df/
-//
+// ---------------------------------------------------------------------
 
 // Transactions
 
@@ -1867,9 +1867,17 @@ type TransactionHeartbeat struct {
 	Time DateTime `json:"time"`
 }
 
-//
+// -------------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/transaction-ep/
-//
+// -------------------------------------------------------------------
+
+type TransactionService struct {
+	client *Client
+}
+
+func newTransactionService(client *Client) *TransactionService {
+	return &TransactionService{client}
+}
 
 type TransactionListRequest struct {
 	From     *time.Time
@@ -1948,13 +1956,13 @@ type TransactionListResponse struct {
 	LastTransactionID TransactionID     `json:"lastTransactionID"`
 }
 
-func (c *Client) TransactionList(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/transactions", c.accountID)
+func (s *TransactionService) List(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/transactions", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.sendGetRequest(ctx, path, v)
+	resp, err := s.client.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}

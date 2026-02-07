@@ -124,7 +124,50 @@ type CandlestickResponse struct {
 	Candles []Candlestick `json:"candles"`
 }
 
+// ------------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/instrument-ep/
+// ------------------------------------------------------------------
+
+type InstrumentService struct {
+	client *Client
+}
+
+func newInstrumentService(client *Client) *InstrumentService {
+	return &InstrumentService{client}
+}
+
+type InstrumentListResponse struct {
+	Instruments       []Instrument  `json:"instruments"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
+// List retrieves the list of tradeable instruments for the given Account.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/instruments
+//
+// The instruments returned are those that can be traded using the specified account.
+// You can optionally filter the results by providing specific instrument names.
+//
+// Parameters:
+//   - ctx: Context for the request.
+//   - id: The Account identifier.
+//   - instruments: Optional list of instrument names to filter. If empty, all tradeable
+//     instruments are returned.
+//
+// Returns:
+//   - []Instrument: A slice of instruments available for trading.
+//   - TransactionID: The ID of the most recent transaction created for the account.
+//   - error: An error if the request fails or response cannot be decoded.
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
+func (s *InstrumentService) List(ctx context.Context, instruments ...InstrumentName) (*InstrumentListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/instruments", s.client.accountID)
+	v := url.Values{}
+	if len(instruments) != 0 {
+		v.Set("instruments", strings.Join(instruments, ","))
+	}
+	return doGet[InstrumentListResponse](s.client, ctx, path, v)
+}
 
 // CandlesticksRequest represents a request for candlestick data for an instrument.
 type CandlesticksRequest struct {
@@ -314,13 +357,13 @@ type CandlesticksResponse struct {
 
 // Candlesticks fetches candlestick data for an instrument.
 // See: https://developer.oanda.com/rest-live-v20/instrument-ep/
-func (c *Client) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlesticksResponse, error) {
+func (s *InstrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlesticksResponse, error) {
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendGetRequest(ctx, path, v)
+	httpResp, err := s.client.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}

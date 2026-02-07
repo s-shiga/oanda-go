@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strings"
 )
 
-//
+// -----------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/account-df/
-//
+// -----------------------------------------------------------------
 
 // AccountID is the string representation of an Account Identifier.
 type AccountID = string
@@ -430,15 +429,23 @@ const (
 	PositionAggregationModeNetSum PositionAggregationMode = "NET_SUM"
 )
 
-//
+// ---------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
-//
+// ---------------------------------------------------------------
+
+type AccountService struct {
+	client *Client
+}
+
+func newAccountService(client *Client) *AccountService {
+	return &AccountService{client}
+}
 
 type AccountListResponse struct {
 	Accounts []AccountProperties `json:"accounts"`
 }
 
-// AccountList retrieves the list of accounts authorized for the provided token.
+// List retrieves the list of accounts authorized for the provided token.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts
 //
@@ -447,8 +454,8 @@ type AccountListResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_1
-func (c *Client) AccountList(ctx context.Context) (*AccountListResponse, error) {
-	return doGet[AccountListResponse](c, ctx, "/v3/accounts", nil)
+func (s *AccountService) List(ctx context.Context) (*AccountListResponse, error) {
+	return doGet[AccountListResponse](s.client, ctx, "/v3/accounts", nil)
 }
 
 type AccountDetailsResponse struct {
@@ -456,7 +463,7 @@ type AccountDetailsResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// AccountDetails retrieves the full details for a single Account.
+// Details retrieves the full details for a single Account.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}
 //
@@ -470,9 +477,9 @@ type AccountDetailsResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
-func (c *Client) AccountDetails(ctx context.Context) (*AccountDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v", c.accountID)
-	return doGet[AccountDetailsResponse](c, ctx, path, nil)
+func (s *AccountService) Details(ctx context.Context) (*AccountDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v", s.client.accountID)
+	return doGet[AccountDetailsResponse](s.client, ctx, path, nil)
 }
 
 type AccountSummaryResponse struct {
@@ -480,7 +487,7 @@ type AccountSummaryResponse struct {
 	LastTransactionID TransactionID  `json:"lastTransactionID"`
 }
 
-// AccountSummary retrieves a summary for a single Account.
+// Summary retrieves a summary for a single Account.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/summary
 //
@@ -498,50 +505,17 @@ type AccountSummaryResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
-func (c *Client) AccountSummary(ctx context.Context) (*AccountSummaryResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/summary", c.accountID)
-	return doGet[AccountSummaryResponse](c, ctx, path, nil)
+func (s *AccountService) Summary(ctx context.Context) (*AccountSummaryResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/summary", s.client.accountID)
+	return doGet[AccountSummaryResponse](s.client, ctx, path, nil)
 }
 
-type AccountInstrumentsResponse struct {
-	Instruments       []Instrument  `json:"instruments"`
-	LastTransactionID TransactionID `json:"lastTransactionID"`
-}
-
-// AccountInstruments retrieves the list of tradeable instruments for the given Account.
-//
-// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/instruments
-//
-// The instruments returned are those that can be traded using the specified account.
-// You can optionally filter the results by providing specific instrument names.
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - id: The Account identifier.
-//   - instruments: Optional list of instrument names to filter. If empty, all tradeable
-//     instruments are returned.
-//
-// Returns:
-//   - []Instrument: A slice of instruments available for trading.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
-//
-// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
-func (c *Client) AccountInstruments(ctx context.Context, instruments ...InstrumentName) (*AccountInstrumentsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/instruments", c.accountID)
-	v := url.Values{}
-	if len(instruments) != 0 {
-		v.Set("instruments", strings.Join(instruments, ","))
-	}
-	return doGet[AccountInstrumentsResponse](c, ctx, path, v)
-}
-
-type AccountConfigurationRequest struct {
+type AccountConfigureRequest struct {
 	Alias      string        `json:"alias"`
 	MarginRate DecimalNumber `json:"marginRate"`
 }
 
-func (r *AccountConfigurationRequest) body() (*bytes.Buffer, error) {
+func (r *AccountConfigureRequest) body() (*bytes.Buffer, error) {
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -549,28 +523,28 @@ func (r *AccountConfigurationRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
-func NewAccountConfigurationRequest() *AccountConfigurationRequest {
-	return &AccountConfigurationRequest{}
+func NewAccountConfigureRequest() *AccountConfigureRequest {
+	return &AccountConfigureRequest{}
 }
 
-func (r *AccountConfigurationRequest) SetAlias(alias string) *AccountConfigurationRequest {
+func (r *AccountConfigureRequest) SetAlias(alias string) *AccountConfigureRequest {
 	r.Alias = alias
 	return r
 }
 
-func (r *AccountConfigurationRequest) SetMarginRate(marginRate DecimalNumber) *AccountConfigurationRequest {
+func (r *AccountConfigureRequest) SetMarginRate(marginRate DecimalNumber) *AccountConfigureRequest {
 	r.MarginRate = marginRate
 	return r
 }
 
-type AccountConfigurationResponse struct {
+type AccountConfigureResponse struct {
 	ClientConfigureTransaction ClientConfigureTransaction `json:"clientConfigureTransaction"`
 	LastTransactionID          TransactionID              `json:"lastTransactionID"`
 }
 
-func (c *Client) AccountConfiguration(ctx context.Context, req *AccountConfigurationRequest) (*AccountConfigurationResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/configuration", c.accountID)
-	return doPatch[AccountConfigurationResponse](c, ctx, path, req)
+func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/configuration", s.client.accountID)
+	return doPatch[AccountConfigureResponse](s.client, ctx, path, req)
 }
 
 type AccountChangesResponse struct {
@@ -579,7 +553,7 @@ type AccountChangesResponse struct {
 	LastTransactionID TransactionID       `json:"lastTransactionID"`
 }
 
-// AccountChanges retrieves the changes to an Account's Orders, Trades, and Positions
+// Changes retrieves the changes to an Account's Orders, Trades, and Positions
 // since a specified TransactionID.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/changes
@@ -601,9 +575,9 @@ type AccountChangesResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
-func (c *Client) AccountChanges(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/changes", c.accountID)
+func (s *AccountService) Changes(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/changes", s.client.accountID)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
-	return doGet[AccountChangesResponse](c, ctx, path, v)
+	return doGet[AccountChangesResponse](s.client, ctx, path, v)
 }

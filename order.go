@@ -12,9 +12,9 @@ import (
 	"strings"
 )
 
-//
+// ---------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/order-df/
-//
+// ---------------------------------------------------------------
 
 // Orders
 
@@ -1521,9 +1521,17 @@ const (
 	OrderTriggerConditionMid OrderTriggerCondition = "MID"
 )
 
-//
+// -------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
-//
+// -------------------------------------------------------------
+
+type OrderService struct {
+	client *Client
+}
+
+func newOrderService(client *Client) *OrderService {
+	return &OrderService{client}
+}
 
 type OrderCreateResponse struct {
 	OrderCreateTransaction        Transaction             `json:"orderCreateTransaction"`
@@ -1566,13 +1574,13 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 	return bytes.NewBuffer(body), nil
 }
 
-func (c *Client) OrderCreate(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", c.accountID)
+func (s *OrderService) Create(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPostRequest(ctx, path, body)
+	httpResp, err := s.client.sendPostRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send POST request: %w", err)
 	}
@@ -1710,7 +1718,7 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// OrderList retrieves a list of Orders for an Account based on the specified request parameters.
+// List retrieves a list of Orders for an Account based on the specified request parameters.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders
 //
@@ -1736,13 +1744,13 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 //	orders, lastTxID, err := client.OrderList(ctx, req)
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
-func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders", c.accountID)
+func (s *OrderService) List(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.sendGetRequest(ctx, path, v)
+	resp, err := s.client.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -1753,7 +1761,7 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderLi
 	return &orderListResp, nil
 }
 
-// OrderListPending retrieves all pending Orders in an Account.
+// ListPending retrieves all pending Orders in an Account.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/pendingOrders
 //
@@ -1770,9 +1778,9 @@ func (c *Client) OrderList(ctx context.Context, req *OrderListRequest) (*OrderLi
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
-func (c *Client) OrderListPending(ctx context.Context) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", c.accountID)
-	resp, err := c.sendGetRequest(ctx, path, nil)
+func (s *OrderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", s.client.accountID)
+	resp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -1806,7 +1814,7 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// OrderDetails retrieves the details of a single Order in an Account.
+// Details retrieves the details of a single Order in an Account.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders/{orderSpecifier}
 //
@@ -1822,9 +1830,9 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
-func (c *Client) OrderDetails(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.accountID, specifier)
-	return doGet[OrderDetailsResponse](c, ctx, path, nil)
+func (s *OrderService) Details(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
+	return doGet[OrderDetailsResponse](s.client, ctx, path, nil)
 }
 
 type OrderReplaceResponse struct {
@@ -1879,9 +1887,9 @@ type OrderCancelResponse struct {
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
-func (c *Client) OrderCancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", c.accountID, specifier)
-	httpResp, err := c.sendPutRequest(ctx, path, nil)
+func (s *OrderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", s.client.accountID, specifier)
+	httpResp, err := s.client.sendPutRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}
@@ -1923,17 +1931,17 @@ type OrderUpdateClientExtensionsResponse struct {
 	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 }
 
-func (c *Client) OrderUpdateClientExtensions(
+func (s *OrderService) UpdateClientExtensions(
 	ctx context.Context,
 	specifier OrderSpecifier,
 	req OrderUpdateClientExtensionsRequest,
 ) (*OrderUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", c.accountID, specifier)
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPutRequest(ctx, path, body)
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}

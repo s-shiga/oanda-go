@@ -10,7 +10,7 @@ func TestClient_Trade(t *testing.T) {
 
 	t.Run("open order", func(t *testing.T) {
 		req := NewMarketOrderRequest("USD_JPY", "10000")
-		resp, err := client.OrderCreate(t.Context(), req)
+		resp, err := client.Order.Create(t.Context(), req)
 		if err != nil {
 			t.Fatalf("failed to create order: %v", err)
 		}
@@ -24,7 +24,7 @@ func TestClient_Trade(t *testing.T) {
 
 	t.Run("list", func(t *testing.T) {
 		req := NewTradeListRequest().SetInstrument("USD_JPY")
-		resp, err := client.TradeList(t.Context(), req)
+		resp, err := client.Trade.List(t.Context(), req)
 		if err != nil {
 			t.Errorf("failed to list trades: %s", err)
 		}
@@ -41,7 +41,7 @@ func TestClient_Trade(t *testing.T) {
 	})
 
 	t.Run("list open", func(t *testing.T) {
-		resp, err := client.TradeListOpen(t.Context())
+		resp, err := client.Trade.ListOpen(t.Context())
 		if err != nil {
 			t.Errorf("failed to list open trades: %s", err)
 		}
@@ -58,7 +58,7 @@ func TestClient_Trade(t *testing.T) {
 	})
 
 	t.Run("details", func(t *testing.T) {
-		resp, err := client.TradeDetails(t.Context(), tradeID)
+		resp, err := client.Trade.Details(t.Context(), tradeID)
 		if err != nil {
 			t.Errorf("failed to get trade details: %s", err)
 		}
@@ -73,7 +73,7 @@ func TestClient_Trade(t *testing.T) {
 				Comment: "test Comment",
 			},
 		}
-		resp, err := client.TradeUpdateClientExtensions(t.Context(), tradeID, req)
+		resp, err := client.Trade.UpdateClientExtensions(t.Context(), tradeID, req)
 		if err != nil {
 			t.Errorf("failed to update client extensions: %s", err)
 		}
@@ -85,7 +85,7 @@ func TestClient_Trade(t *testing.T) {
 			TakeProfit: NewTakeProfitDetails("200.00"),
 			StopLoss:   NewStopLossDetails().SetDistance("10.00"),
 		}
-		resp, err := client.TradeUpdateOrders(t.Context(), tradeID, req)
+		resp, err := client.Trade.UpdateOrders(t.Context(), tradeID, req)
 		if err != nil {
 			t.Errorf("failed to update orders: %s", err)
 		}

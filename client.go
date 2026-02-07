@@ -32,6 +32,13 @@ type Client struct {
 	userAgent        string
 	accountID        AccountID
 	httpClient       HTTPClient
+	Account          *AccountService
+	Instrument       *InstrumentService
+	Order            *OrderService
+	Trade            *TradeService
+	Position         *PositionService
+	Transaction      *TransactionService
+	Pricing          *PricingService
 }
 
 type Option func(*Client)
@@ -66,17 +73,29 @@ func WithHTTPClient(client *http.Client) Option {
 	}
 }
 
-func NewClient(apiKey string, opts ...Option) *Client {
+func buildClient(baseURL, baseStreamingURL string, apiKey string) *Client {
 	goVersion := runtime.Version()
 	osArch := runtime.GOOS + "/" + runtime.GOARCH
 	client := &Client{
-		baseURL:          FXTradeURL,
-		baseStreamingURL: FXTradeStreamingURL,
+		baseURL:          baseURL,
+		baseStreamingURL: baseStreamingURL,
 		apiKey:           apiKey,
 		userAgent:        fmt.Sprintf("oanda-go/%s (%s; %s)", Version, goVersion, osArch),
 		accountID:        "",
 		httpClient:       http.DefaultClient,
 	}
+	client.Account = newAccountService(client)
+	client.Instrument = newInstrumentService(client)
+	client.Order = newOrderService(client)
+	client.Trade = newTradeService(client)
+	client.Position = newPositionService(client)
+	client.Transaction = newTransactionService(client)
+	client.Pricing = newPricingService(client)
+	return client
+}
+
+func NewClient(apiKey string, opts ...Option) *Client {
+	client := buildClient(FXTradeURL, FXTradeStreamingURL, apiKey)
 	for _, opt := range opts {
 		opt(client)
 	}
@@ -84,13 +103,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 }
 
 func NewDemoClient(apiKey string, opts ...Option) *Client {
-	client := &Client{
-		baseURL:          FXTradePracticeURL,
-		baseStreamingURL: FXTradeStreamingPracticeURL,
-		apiKey:           apiKey,
-		accountID:        "",
-		httpClient:       http.DefaultClient,
-	}
+	client := buildClient(FXTradePracticeURL, FXTradeStreamingPracticeURL, apiKey)
 	for _, opt := range opts {
 		opt(client)
 	}

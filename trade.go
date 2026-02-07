@@ -12,7 +12,9 @@ import (
 	"strings"
 )
 
+// ---------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/trade-df/
+// ---------------------------------------------------------------
 
 // TradeID is the unique identifier for a Trade within an Account. It is a string representation
 // of the OANDA-assigned TradeID, derived from the TransactionID of the Transaction that opened
@@ -184,7 +186,17 @@ const (
 	TradePLZero TradePL = "ZERO"
 )
 
+// -------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/trade-ep/
+// -------------------------------------------------------------
+
+type TradeService struct {
+	client *Client
+}
+
+func newTradeService(client *Client) *TradeService {
+	return &TradeService{client}
+}
 
 // TradeListRequest represents a request to list Trades for an Account.
 type TradeListRequest struct {
@@ -283,15 +295,15 @@ type TradeListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// TradeList retrieves a list of Trades for an Account.
+// List retrieves a list of Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
-func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) (*TradeListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades", c.accountID)
+func (s *TradeService) List(ctx context.Context, req *TradeListRequest) (*TradeListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendGetRequest(ctx, path, v)
+	httpResp, err := s.client.sendGetRequest(ctx, path, v)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -302,11 +314,11 @@ func (c *Client) TradeList(ctx context.Context, req *TradeListRequest) (*TradeLi
 	return &resp, nil
 }
 
-// TradeListOpen retrieves a list of all currently open Trades for an Account.
+// ListOpen retrieves a list of all currently open Trades for an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
-func (c *Client) TradeListOpen(ctx context.Context) (*TradeListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/openTrades", c.accountID)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
+func (s *TradeService) ListOpen(ctx context.Context) (*TradeListResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/openTrades", s.client.accountID)
+	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -322,11 +334,11 @@ type TradeDetailsResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// TradeDetails retrieves the details of a specific Trade in an Account.
+// Details retrieves the details of a specific Trade in an Account.
 // See: https://developer.oanda.com/rest-live-v20/trade-ep/
-func (c *Client) TradeDetails(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", c.accountID, specifier)
-	httpResp, err := c.sendGetRequest(ctx, path, nil)
+func (s *TradeService) Details(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", s.client.accountID, specifier)
+	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
@@ -458,13 +470,13 @@ func (r TradeUpdateClientExtensionsErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
-func (c *Client) TradeUpdateClientExtensions(ctx context.Context, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", c.accountID, specifier)
+func (s *TradeService) UpdateClientExtensions(ctx context.Context, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPutRequest(ctx, path, body)
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}
@@ -544,13 +556,13 @@ func (r TradeUpdateOrdersErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
-func (c *Client) TradeUpdateOrders(ctx context.Context, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", c.accountID, specifier)
+func (s *TradeService) UpdateOrders(ctx context.Context, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPutRequest(ctx, path, body)
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}

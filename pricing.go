@@ -1,6 +1,8 @@
 package oanda
 
+// -----------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/pricing-df/
+// -----------------------------------------------------------------
 
 // ClientPrice represents the price available for an Account at a given time.
 type ClientPrice struct {
@@ -79,4 +81,16 @@ type PriceBucket struct {
 	Price PriceValue `json:"price"`
 	// Liquidity is the amount of liquidity offered.
 	Liquidity *DecimalNumber `json:"liquidity,omitempty"`
+}
+
+// ---------------------------------------------------------------
+// Endpoints https://developer.oanda.com/rest-live-v20/pricing-ep/
+// ---------------------------------------------------------------
+
+type PricingService struct {
+	Client *Client
+}
+
+func newPricingService(client *Client) *PricingService {
+	return &PricingService{client}
 }
