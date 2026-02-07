@@ -25,64 +25,78 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type Client struct {
-	baseURL          string
-	baseStreamingURL string
-	apiKey           string
-	userAgent        string
-	accountID        AccountID
-	httpClient       HTTPClient
-	Account          *AccountService
-	Instrument       *InstrumentService
-	Order            *OrderService
-	Trade            *TradeService
-	Position         *PositionService
-	Transaction      *TransactionService
-	Price            *PriceService
+func defaultUserAgent() string {
+	return fmt.Sprintf(
+		"oanda-go/%s (%s; %s/%s)",
+		Version,
+		runtime.Version(),
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
 }
 
-type Option func(*Client)
+type BaseClient interface {
+	HTTPClient
+}
+
+type clientConfig struct {
+	baseURL    string
+	apiKey     string
+	userAgent  string
+	accountID  AccountID
+	httpClient HTTPClient
+}
+
+type Client struct {
+	clientConfig
+	Account     *AccountService
+	Instrument  *InstrumentService
+	Order       *OrderService
+	Trade       *TradeService
+	Position    *PositionService
+	Transaction *TransactionService
+	Price       *PriceService
+}
+
+type Option func(*clientConfig)
 
 func WithBaseURL(baseURL string) Option {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.baseURL = baseURL
 	}
 }
 
-func WithBaseStreamingURL(baseStreamingURL string) Option {
-	return func(c *Client) {
-		c.baseStreamingURL = baseStreamingURL
-	}
-}
-
 func WithUserAgent(userAgent string) Option {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.userAgent = userAgent
 	}
 }
 
 func WithAccountID(id AccountID) Option {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.accountID = id
 	}
 }
 
 func WithHTTPClient(client *http.Client) Option {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.httpClient = client
 	}
 }
 
-func buildClient(baseURL, baseStreamingURL string, apiKey string) *Client {
-	goVersion := runtime.Version()
-	osArch := runtime.GOOS + "/" + runtime.GOARCH
+func defaultConfig(baseURL, apiKey string) clientConfig {
+	return clientConfig{
+		baseURL:    baseURL,
+		apiKey:     apiKey,
+		userAgent:  defaultUserAgent(),
+		accountID:  "",
+		httpClient: http.DefaultClient,
+	}
+}
+
+func buildClient(baseURL, apiKey string) *Client {
 	client := &Client{
-		baseURL:          baseURL,
-		baseStreamingURL: baseStreamingURL,
-		apiKey:           apiKey,
-		userAgent:        fmt.Sprintf("oanda-go/%s (%s; %s)", Version, goVersion, osArch),
-		accountID:        "",
-		httpClient:       http.DefaultClient,
+		clientConfig: defaultConfig(baseURL, apiKey),
 	}
 	client.Account = newAccountService(client)
 	client.Instrument = newInstrumentService(client)
@@ -95,17 +109,17 @@ func buildClient(baseURL, baseStreamingURL string, apiKey string) *Client {
 }
 
 func NewClient(apiKey string, opts ...Option) *Client {
-	client := buildClient(FXTradeURL, FXTradeStreamingURL, apiKey)
+	client := buildClient(FXTradeURL, apiKey)
 	for _, opt := range opts {
-		opt(client)
+		opt(&client.clientConfig)
 	}
 	return client
 }
 
 func NewDemoClient(apiKey string, opts ...Option) *Client {
-	client := buildClient(FXTradePracticeURL, FXTradeStreamingPracticeURL, apiKey)
+	client := buildClient(FXTradePracticeURL, apiKey)
 	for _, opt := range opts {
-		opt(client)
+		opt(&client.clientConfig)
 	}
 	return client
 }
@@ -217,6 +231,35 @@ func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*
 		return nil, err
 	}
 	return &resp, nil
+}
+
+type StreamClient struct {
+	clientConfig
+	Price *PriceStreamService
+}
+
+func buildStreamClient(baseURL string, apiKey string) *StreamClient {
+	client := &StreamClient{
+		clientConfig: defaultConfig(baseURL, apiKey),
+	}
+	client.Price = newPriceStreamService(client)
+	return client
+}
+
+func NewStreamClient(apiKey string, opts ...Option) *StreamClient {
+	client := buildStreamClient(FXTradeStreamingURL, apiKey)
+	for _, opt := range opts {
+		opt(&client.clientConfig)
+	}
+	return client
+}
+
+func NewDemoStreamClient(apiKey string, opts ...Option) *StreamClient {
+	client := buildStreamClient(FXTradeStreamingPracticeURL, apiKey)
+	for _, opt := range opts {
+		opt(&client.clientConfig)
+	}
+	return client
 }
 
 func closeBody(resp *http.Response) {
