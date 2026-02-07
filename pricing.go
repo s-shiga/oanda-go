@@ -87,10 +87,10 @@ type PriceBucket struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/pricing-ep/
 // ---------------------------------------------------------------
 
-type PricingService struct {
+type PriceService struct {
 	Client *Client
 }
 
-func newPricingService(client *Client) *PricingService {
-	return &PricingService{client}
+func newPriceService(client *Client) *PriceService {
+	return &PriceService{client}
 }

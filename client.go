@@ -38,7 +38,7 @@ type Client struct {
 	Trade            *TradeService
 	Position         *PositionService
 	Transaction      *TransactionService
-	Pricing          *PricingService
+	Price            *PriceService
 }
 
 type Option func(*Client)
@@ -90,7 +90,7 @@ func buildClient(baseURL, baseStreamingURL string, apiKey string) *Client {
 	client.Trade = newTradeService(client)
 	client.Position = newPositionService(client)
 	client.Transaction = newTransactionService(client)
-	client.Pricing = newPricingService(client)
+	client.Price = newPriceService(client)
 	return client
 }
 
