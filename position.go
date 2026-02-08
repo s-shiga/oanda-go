@@ -1,8 +1,12 @@
 package oanda
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
 )
 
 // ------------------------------------------------------------------
@@ -139,4 +143,112 @@ func (s *positionService) ListByInstrument(ctx context.Context, instrument Instr
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	return &resp, nil
+}
+
+type PositionCloseRequest struct {
+	LongUnits             *string           `json:"longUnits,omitempty"`
+	LongClientExtensions  *ClientExtensions `json:"longClientExtensions,omitempty"`
+	ShortUnits            *string           `json:"shortUnits,omitempty"`
+	ShortClientExtensions *ClientExtensions `json:"shortClientExtensions,omitempty"`
+}
+
+func (r *PositionCloseRequest) SetLongAll() *PositionCloseRequest {
+	v := "ALL"
+	r.LongUnits = &v
+	return r
+}
+
+func (r *PositionCloseRequest) SetLongUnits(units uint) *PositionCloseRequest {
+	v := strconv.FormatUint(uint64(units), 10)
+	r.LongUnits = &v
+	return r
+}
+
+func (r *PositionCloseRequest) SetLongClientExtensions(extensions *ClientExtensions) *PositionCloseRequest {
+	r.LongClientExtensions = extensions
+	return r
+}
+
+func (r *PositionCloseRequest) SetShortAll() *PositionCloseRequest {
+	v := "ALL"
+	r.ShortUnits = &v
+	return r
+}
+
+func (r *PositionCloseRequest) SetShortUnits(units uint) *PositionCloseRequest {
+	v := strconv.FormatUint(uint64(units), 10)
+	r.ShortUnits = &v
+	return r
+}
+
+func (r *PositionCloseRequest) SetShortClientExtensions(extensions *ClientExtensions) *PositionCloseRequest {
+	r.ShortClientExtensions = extensions
+	return r
+}
+
+func (r *PositionCloseRequest) body() (*bytes.Buffer, error) {
+	jsonBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(jsonBody), nil
+}
+
+type PositionCloseResponse struct {
+	LongOrderCreateTransaction  *MarketOrderTransaction `json:"longOrderCreateTransaction,omitempty"`
+	LongOrderFillTransaction    *OrderFillTransaction   `json:"longOrderFillTransaction,omitempty"`
+	LongOrderCancelTransaction  *OrderCancelTransaction `json:"longOrderCancelTransaction,omitempty"`
+	ShortOrderCreateTransaction *MarketOrderTransaction `json:"shortOrderCreateTransaction,omitempty"`
+	ShortOrderFillTransaction   *OrderFillTransaction   `json:"shortOrderFillTransaction,omitempty"`
+	ShortOrderCancelTransaction *OrderCancelTransaction `json:"shortOrderCancelTransaction,omitempty"`
+	RelatedTransactionIDs       []TransactionID         `json:"relatedTransactionIDs"`
+	LastTransactionID           TransactionID           `json:"lastTransactionID"`
+}
+
+type PositionCloseErrorResponse struct {
+	LongOrderRejectTransaction  *MarketOrderRejectTransaction `json:"longOrderRejectTransaction,omitempty"`
+	ShortOrderRejectTransaction *MarketOrderRejectTransaction `json:"shortOrderRejectTransaction,omitempty"`
+	RelatedTransactionIDs       []TransactionID               `json:"relatedTransactionIDs"`
+	LastTransactionID           TransactionID                 `json:"lastTransactionID"`
+	ErrorCode                   string                        `json:"errorCode"`
+	ErrorMessage                string                        `json:"errorMessage"`
+}
+
+func (r PositionCloseErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
+func (s *positionService) Close(ctx context.Context, instrument InstrumentName, req *PositionCloseRequest) (*PositionCloseResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/positions/%v/close", s.client.accountID, instrument)
+	body, err := req.body()
+	if err != nil {
+		return nil, err
+	}
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PUT request: %w", err)
+	}
+	defer closeBody(httpResp)
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp PositionCloseResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp PositionCloseErrorResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+	case http.StatusNotFound:
+		var resp PositionCloseErrorResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
