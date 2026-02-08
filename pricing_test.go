@@ -2,6 +2,7 @@ package oanda
 
 import (
 	"testing"
+	"time"
 )
 
 func TestPriceService_LatestCandlestick(t *testing.T) {
@@ -22,4 +23,24 @@ func TestPriceService_Information(t *testing.T) {
 		t.Errorf("failed to get information: %v", err)
 	}
 	debugResponse(resp)
+}
+
+func TestPriceStreamService_Stream(t *testing.T) {
+	client := setupStreamClient(t)
+	req := NewPriceStreamRequest("USD_JPY")
+	ch := make(chan PriceStreamItem)
+	done := make(chan struct{}, 1)
+	go func() {
+		for priceStreamItem := range ch {
+			debugResponse(priceStreamItem)
+		}
+	}()
+	go func() {
+		time.Sleep(10 * time.Second)
+		done <- struct{}{}
+	}()
+	defer close(ch)
+	if err := client.Price.Stream(t.Context(), req, ch, done); err != nil {
+		t.Errorf("got error: %v", err)
+	}
 }

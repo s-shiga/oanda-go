@@ -2,8 +2,12 @@ package oanda
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -16,6 +20,8 @@ import (
 
 // ClientPrice represents the price available for an Account at a given time.
 type ClientPrice struct {
+	Type string   `json:"type"`
+	Time DateTime `json:"time"`
 	// Bids are the bid prices available.
 	Bids []PriceBucket `json:"bids"`
 	// Asks are the ask prices available.
@@ -24,8 +30,14 @@ type ClientPrice struct {
 	CloseoutBid PriceValue `json:"closeoutBid"`
 	// CloseoutAsk is the closeout ask price.
 	CloseoutAsk PriceValue `json:"closeoutAsk"`
-	// Timestamp is the date/time when the price was generated.
-	Timestamp DateTime `json:"timestamp"`
+}
+
+func (p ClientPrice) GetType() string {
+	return p.Type
+}
+
+func (p ClientPrice) GetTime() DateTime {
+	return p.Time
 }
 
 // PriceStatus represents the status of the Price.
@@ -73,6 +85,14 @@ type PricingHeartbeat struct {
 	Type string `json:"type"`
 	// Time is the date/time when the PricingHeartbeat was created.
 	Time DateTime `json:"time"`
+}
+
+func (p PricingHeartbeat) GetType() string {
+	return p.Type
+}
+
+func (p PricingHeartbeat) GetTime() DateTime {
+	return p.Time
 }
 
 // CandleSpecification is a string containing the following, all delimited by ":"
@@ -276,4 +296,112 @@ func (s *PriceService) Information(ctx context.Context, req *PriceInformationReq
 		return nil, err
 	}
 	return doGet[PriceInformationResponse](s.client, ctx, path, values)
+}
+
+type PriceStreamService struct {
+	client *StreamClient
+}
+
+func newPriceStreamService(client *StreamClient) *PriceStreamService {
+	return &PriceStreamService{client: client}
+}
+
+type PriceStreamRequest struct {
+	instruments           []InstrumentName
+	snapShot              bool
+	includeHomeConversion bool
+}
+
+func NewPriceStreamRequest(instruments ...InstrumentName) *PriceStreamRequest {
+	return &PriceStreamRequest{
+		instruments:           instruments,
+		snapShot:              true,
+		includeHomeConversion: false,
+	}
+}
+
+func (r *PriceStreamRequest) DisableSnapShot() *PriceStreamRequest {
+	r.snapShot = false
+	return r
+}
+
+func (r *PriceStreamRequest) IncludeHomeConversion() *PriceStreamRequest {
+	r.includeHomeConversion = true
+	return r
+}
+
+func (r *PriceStreamRequest) values() (url.Values, error) {
+	values := url.Values{}
+	if len(r.instruments) == 0 {
+		return nil, errors.New("missing instruments")
+	}
+	values.Set("instruments", strings.Join(r.instruments, ","))
+	if !r.snapShot {
+		values.Set("snapShot", "False")
+	}
+	if r.includeHomeConversion {
+		values.Set("includeHomeConversions", "True")
+	}
+	return values, nil
+}
+
+type PriceStreamItem interface {
+	GetType() string
+	GetTime() DateTime
+}
+
+func (s *PriceStreamService) Stream(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
+	path := fmt.Sprintf("/v3/account/%s/pricing/stream", s.client.accountID)
+	values, err := req.values()
+	if err != nil {
+		return err
+	}
+	u, err := joinURL(s.client.baseURL, path, values)
+	if err != nil {
+		return err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	if err != nil {
+		return err
+	}
+	s.client.setHeaders(httpReq)
+	httpResp, err := s.client.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send GET request: %v", err)
+	}
+	defer closeBody(httpResp)
+	dec := json.NewDecoder(httpResp.Body)
+	for {
+		select {
+		case <-done:
+			slog.Info("price stream closed")
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			var typeOnly struct {
+				Type string `json:"type"`
+			}
+			if err := dec.Decode(&typeOnly); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return err
+			}
+			switch typeOnly.Type {
+			case "PRICE":
+				var price ClientPrice
+				if err := dec.Decode(&price); err != nil {
+					return err
+				}
+				ch <- price
+			case "HEARTBEAT":
+				var heartbeat PricingHeartbeat
+				if err := dec.Decode(&heartbeat); err != nil {
+					return err
+				}
+				ch <- heartbeat
+			}
+		}
+	}
 }

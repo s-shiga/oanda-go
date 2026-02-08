@@ -124,8 +124,8 @@ func NewDemoClient(apiKey string, opts ...Option) *Client {
 	return client
 }
 
-func (c *Client) getURL(path string, query url.Values) (string, error) {
-	u, err := url.Parse(c.baseURL)
+func joinURL(baseURL string, path string, query url.Values) (string, error) {
+	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +147,7 @@ type Request interface {
 }
 
 func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
-	u, err := c.getURL(path, values)
+	u, err := joinURL(c.baseURL, path, values)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func doGet[R any](c *Client, ctx context.Context, path string, query url.Values)
 }
 
 func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := c.getURL(path, nil)
+	u, err := joinURL(c.baseURL, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reade
 }
 
 func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := c.getURL(path, nil)
+	u, err := joinURL(c.baseURL, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader
 }
 
 func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := c.getURL(path, nil)
+	u, err := joinURL(c.baseURL, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -260,6 +260,12 @@ func NewDemoStreamClient(apiKey string, opts ...Option) *StreamClient {
 		opt(&client.clientConfig)
 	}
 	return client
+}
+
+func (c *StreamClient) setHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Add("User-Agent", c.userAgent)
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
 func closeBody(resp *http.Response) {

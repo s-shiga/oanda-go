@@ -43,6 +43,14 @@ func setupClient(t *testing.T) *Client {
 	return client
 }
 
+func setupStreamClient(t *testing.T) *StreamClient {
+	t.Helper()
+	apiKey := getAPIKey(t)
+	accountID := getAccountID(t)
+	streamClient := NewDemoStreamClient(apiKey, WithAccountID(accountID))
+	return streamClient
+}
+
 func debugResponse(resp any) {
 	b, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
