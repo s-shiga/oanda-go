@@ -1899,12 +1899,12 @@ func (t TransactionHeartbeat) GetTime() DateTime {
 // Endpoints https://developer.oanda.com/rest-live-v20/transaction-ep/
 // -------------------------------------------------------------------
 
-type TransactionService struct {
+type transactionService struct {
 	client *Client
 }
 
-func newTransactionService(client *Client) *TransactionService {
-	return &TransactionService{client}
+func newTransactionService(client *Client) *transactionService {
+	return &transactionService{client}
 }
 
 type TransactionListRequest struct {
@@ -1984,7 +1984,7 @@ type TransactionListResponse struct {
 	LastTransactionID TransactionID     `json:"lastTransactionID"`
 }
 
-func (s *TransactionService) List(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
+func (s *transactionService) List(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/transactions", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -1999,6 +1999,16 @@ func (s *TransactionService) List(ctx context.Context, req *TransactionListReque
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	return &transactionListResp, nil
+}
+
+type TransactionDetailsResponse struct {
+	Transaction       Transaction   `json:"transaction"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
+func (s *transactionService) Details(ctx context.Context, transactionID TransactionID) (*TransactionDetailsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/transactions/%v", s.client.accountID, transactionID)
+	return doGet[TransactionDetailsResponse](s.client, ctx, path, nil)
 }
 
 type transactionStreamService struct {

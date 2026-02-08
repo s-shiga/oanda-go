@@ -54,7 +54,7 @@ type Client struct {
 	Order       *orderService
 	Trade       *tradeService
 	Position    *positionService
-	Transaction *TransactionService
+	Transaction *transactionService
 	Price       *priceService
 }
 
