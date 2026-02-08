@@ -117,12 +117,12 @@ type PriceBucket struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/pricing-ep/
 // ---------------------------------------------------------------
 
-type PriceService struct {
+type priceService struct {
 	client *Client
 }
 
-func newPriceService(client *Client) *PriceService {
-	return &PriceService{client}
+func newPriceService(client *Client) *priceService {
+	return &priceService{client}
 }
 
 type PriceLatestCandlesticksRequest struct {
@@ -220,7 +220,7 @@ type PriceLatestCandlesticksResponse struct {
 	LatestCandles []CandlestickResponse `json:"latestCandles"`
 }
 
-func (s *PriceService) LatestCandlesticks(ctx context.Context, req *PriceLatestCandlesticksRequest) ([]CandlestickResponse, error) {
+func (s *priceService) LatestCandlesticks(ctx context.Context, req *PriceLatestCandlesticksRequest) ([]CandlestickResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
@@ -289,7 +289,7 @@ type PriceInformationResponse struct {
 	Time            DateTime          `json:"time"`
 }
 
-func (s *PriceService) Information(ctx context.Context, req *PriceInformationRequest) (*PriceInformationResponse, error) {
+func (s *priceService) Information(ctx context.Context, req *PriceInformationRequest) (*PriceInformationResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/pricing", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
@@ -298,12 +298,12 @@ func (s *PriceService) Information(ctx context.Context, req *PriceInformationReq
 	return doGet[PriceInformationResponse](s.client, ctx, path, values)
 }
 
-type PriceStreamService struct {
+type priceStreamService struct {
 	client *StreamClient
 }
 
-func newPriceStreamService(client *StreamClient) *PriceStreamService {
-	return &PriceStreamService{client: client}
+func newPriceStreamService(client *StreamClient) *priceStreamService {
+	return &priceStreamService{client: client}
 }
 
 type PriceStreamRequest struct {
@@ -350,7 +350,7 @@ type PriceStreamItem interface {
 	GetTime() DateTime
 }
 
-func (s *PriceStreamService) Stream(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
+func (s *priceStreamService) Stream(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
 	path := fmt.Sprintf("/v3/account/%s/pricing/stream", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
@@ -367,7 +367,7 @@ func (s *PriceStreamService) Stream(ctx context.Context, req *PriceStreamRequest
 	s.client.setHeaders(httpReq)
 	httpResp, err := s.client.httpClient.Do(httpReq)
 	if err != nil {
-		return fmt.Errorf("failed to send GET request: %v", err)
+		return fmt.Errorf("failed to send GET request: %w", err)
 	}
 	defer closeBody(httpResp)
 	dec := json.NewDecoder(httpResp.Body)
@@ -386,7 +386,7 @@ func (s *PriceStreamService) Stream(ctx context.Context, req *PriceStreamRequest
 				if err == io.EOF {
 					break
 				}
-				return err
+				return fmt.Errorf("failed to decode JSON response: %w", err)
 			}
 			switch typeOnly.Type {
 			case "PRICE":

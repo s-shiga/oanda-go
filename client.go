@@ -51,11 +51,11 @@ type Client struct {
 	clientConfig
 	Account     *AccountService
 	Instrument  *InstrumentService
-	Order       *OrderService
-	Trade       *TradeService
-	Position    *PositionService
+	Order       *orderService
+	Trade       *tradeService
+	Position    *positionService
 	Transaction *TransactionService
-	Price       *PriceService
+	Price       *priceService
 }
 
 type Option func(*clientConfig)
@@ -235,13 +235,15 @@ func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*
 
 type StreamClient struct {
 	clientConfig
-	Price *PriceStreamService
+	Transaction *transactionStreamService
+	Price       *priceStreamService
 }
 
 func buildStreamClient(baseURL string, apiKey string) *StreamClient {
 	client := &StreamClient{
 		clientConfig: defaultConfig(baseURL, apiKey),
 	}
+	client.Transaction = newTransactionStreamService(client)
 	client.Price = newPriceStreamService(client)
 	return client
 }

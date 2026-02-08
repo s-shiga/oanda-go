@@ -84,12 +84,12 @@ type CalculatedPositionState struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/position-ep/
 // ----------------------------------------------------------------
 
-type PositionService struct {
+type positionService struct {
 	client *Client
 }
 
-func newPositionService(client *Client) *PositionService {
-	return &PositionService{client}
+func newPositionService(client *Client) *positionService {
+	return &positionService{client}
 }
 
 type PositionListResponse struct {
@@ -97,7 +97,7 @@ type PositionListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionId"`
 }
 
-func (s *PositionService) List(ctx context.Context) (*PositionListResponse, error) {
+func (s *positionService) List(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions", s.client.accountID)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *PositionService) List(ctx context.Context) (*PositionListResponse, erro
 	return &resp, nil
 }
 
-func (s *PositionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
+func (s *positionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/openPositions", s.client.accountID)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
@@ -128,7 +128,7 @@ type PositionListByInstrumentResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-func (s *PositionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
+func (s *positionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", s.client.accountID, instrument)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {

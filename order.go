@@ -1525,12 +1525,12 @@ const (
 // Endpoints https://developer.oanda.com/rest-live-v20/order-ep/
 // -------------------------------------------------------------
 
-type OrderService struct {
+type orderService struct {
 	client *Client
 }
 
-func newOrderService(client *Client) *OrderService {
-	return &OrderService{client}
+func newOrderService(client *Client) *orderService {
+	return &orderService{client}
 }
 
 type OrderCreateResponse struct {
@@ -1574,7 +1574,7 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 	return bytes.NewBuffer(body), nil
 }
 
-func (s *OrderService) Create(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
+func (s *orderService) Create(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	body, err := req.body()
 	if err != nil {
@@ -1744,7 +1744,7 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 //	orders, lastTxID, err := client.OrderList(ctx, req)
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
-func (s *OrderService) List(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
+func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -1778,7 +1778,7 @@ func (s *OrderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
-func (s *OrderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
+func (s *orderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", s.client.accountID)
 	resp, err := s.client.sendGetRequest(ctx, path, nil)
 	if err != nil {
@@ -1830,7 +1830,7 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
-func (s *OrderService) Details(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
+func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
 	return doGet[OrderDetailsResponse](s.client, ctx, path, nil)
 }
@@ -1887,7 +1887,7 @@ type OrderCancelResponse struct {
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
-func (s *OrderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
+func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", s.client.accountID, specifier)
 	httpResp, err := s.client.sendPutRequest(ctx, path, nil)
 	if err != nil {
@@ -1931,7 +1931,7 @@ type OrderUpdateClientExtensionsResponse struct {
 	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 }
 
-func (s *OrderService) UpdateClientExtensions(
+func (s *orderService) UpdateClientExtensions(
 	ctx context.Context,
 	specifier OrderSpecifier,
 	req OrderUpdateClientExtensionsRequest,

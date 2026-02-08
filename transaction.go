@@ -2,8 +2,12 @@ package oanda
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -33,6 +37,18 @@ type Transaction struct {
 	RequestID RequestID `json:"requestID"`
 	// Type is the Type of the Transaction.
 	Type TransactionType `json:"type"`
+}
+
+func (t Transaction) GetType() string {
+	return string(t.Type)
+}
+
+func (t Transaction) GetID() TransactionID {
+	return t.ID
+}
+
+func (t Transaction) GetTime() DateTime {
+	return t.Time
 }
 
 // CreateTransaction represents a Transaction that creates an Account.
@@ -1867,6 +1883,18 @@ type TransactionHeartbeat struct {
 	Time DateTime `json:"time"`
 }
 
+func (t TransactionHeartbeat) GetType() string {
+	return t.Type
+}
+
+func (t TransactionHeartbeat) GetID() string {
+	return t.LastTransactionID
+}
+
+func (t TransactionHeartbeat) GetTime() DateTime {
+	return t.Time
+}
+
 // -------------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/transaction-ep/
 // -------------------------------------------------------------------
@@ -1971,4 +1999,224 @@ func (s *TransactionService) List(ctx context.Context, req *TransactionListReque
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 	return &transactionListResp, nil
+}
+
+type transactionStreamService struct {
+	client *StreamClient
+}
+
+func newTransactionStreamService(client *StreamClient) *transactionStreamService {
+	return &transactionStreamService{client}
+}
+
+type TransactionStreamItem interface {
+	GetType() string
+	GetID() TransactionID
+	GetTime() DateTime
+}
+
+func (s *transactionStreamService) Stream(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
+	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", s.client.accountID)
+	u, err := joinURL(s.client.baseURL, path, nil)
+	if err != nil {
+		return err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	if err != nil {
+		return err
+	}
+	s.client.setHeaders(httpReq)
+	httpResp, err := s.client.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send GET request: %w", err)
+	}
+	defer closeBody(httpResp)
+	dec := json.NewDecoder(httpResp.Body)
+	for {
+		select {
+		case <-done:
+			slog.Info("transaction stream closed")
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			var typeOnly struct {
+				Type string `json:"type"`
+			}
+			if err := dec.Decode(&typeOnly); err != nil {
+				if err == io.EOF {
+					break
+				}
+				return fmt.Errorf("failed to decode JSON response: %w", err)
+			}
+			switch typeOnly.Type {
+			case "CREATE":
+				if err := decodeItem[CreateTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "CLOSE":
+				if err := decodeItem[CloseTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "REOPEN":
+				if err := decodeItem[ReopenTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "CLIENT_CONFIGURE":
+				if err := decodeItem[ClientConfigureTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "CLIENT_CONFIGURE_REJECT":
+				if err := decodeItem[ClientConfigureRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRANSFER_FUNDS":
+				if err := decodeItem[TransferFundsTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRANSFER_FUNDS_REJECT":
+				if err := decodeItem[TransferFundsRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARKET_ORDER":
+				if err := decodeItem[MarketOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARKET_ORDER_REJECT":
+				if err := decodeItem[MarketOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "FIXED_PRICE_ORDER":
+				if err := decodeItem[FixedPriceOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "LIMIT_ORDER":
+				if err := decodeItem[LimitOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "LIMIT_ORDER_REJECT":
+				if err := decodeItem[LimitOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "STOP_ORDER":
+				if err := decodeItem[StopOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "STOP_ORDER_REJECT":
+				if err := decodeItem[StopOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARKET_IF_TOUCHED_ORDER":
+				if err := decodeItem[MarketIfTouchedOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARKET_IF_TOUCHED_ORDER_REJECT":
+				if err := decodeItem[MarketIfTouchedOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TAKE_PROFIT_ORDER":
+				if err := decodeItem[TakeProfitOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TAKE_PROFIT_ORDER_REJECT":
+				if err := decodeItem[TakeProfitOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "STOP_LOSS_ORDER":
+				if err := decodeItem[StopLossOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "STOP_LOSS_ORDER_REJECT":
+				if err := decodeItem[StopLossOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "GUARANTEED_STOP_LOSS_ORDER":
+				if err := decodeItem[GuaranteedStopLossOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "GUARANTEED_STOP_LOSS_ORDER_REJECT":
+				if err := decodeItem[GuaranteedStopLossOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRAILING_STOP_LOSS_ORDER":
+				if err := decodeItem[TrailingStopLossOrderTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRAILING_STOP_LOSS_ORDER_REJECT":
+				if err := decodeItem[TrailingStopLossOrderRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "ORDER_FILL":
+				if err := decodeItem[OrderFillTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "ORDER_CANCEL":
+				if err := decodeItem[OrderCancelTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "ORDER_CANCEL_REJECT":
+				if err := decodeItem[OrderCancelRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "ORDER_CLIENT_EXTENSIONS_MODIFY":
+				if err := decodeItem[OrderClientExtensionsModifyTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT":
+				if err := decodeItem[OrderClientExtensionsModifyRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRADE_CLIENT_EXTENSIONS_MODIFY":
+				if err := decodeItem[TradeClientExtensionsModifyTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT":
+				if err := decodeItem[TradeClientExtensionsModifyRejectTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARGIN_CALL_ENTER":
+				if err := decodeItem[MarginCallEnterTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARGIN_CALL_EXTEND":
+				if err := decodeItem[MarginCallExtendTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "MARGIN_CALL_EXIT":
+				if err := decodeItem[MarginCallExitTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "DELAYED_TRADE_CLOSURE":
+				if err := decodeItem[DelayedTradeClosureTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "DAILY_FINANCING":
+				if err := decodeItem[DailyFinancingTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "DIVIDEND_ADJUSTMENT":
+				if err := decodeItem[DividendAdjustmentTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "RESET_RESETTABLE_PL":
+				if err := decodeItem[ResetResettablePLTransaction](dec, ch); err != nil {
+					return err
+				}
+			case "HEARTBEAT":
+				if err := decodeItem[TransactionHeartbeat](dec, ch); err != nil {
+					return err
+				}
+			}
+
+		}
+	}
+}
+
+func decodeItem[R TransactionStreamItem](dec *json.Decoder, ch chan<- TransactionStreamItem) error {
+	var t R
+	if err := dec.Decode(&t); err != nil {
+		return fmt.Errorf("failed to decode JSON response: %w", err)
+	}
+	ch <- t
+	return nil
 }
