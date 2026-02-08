@@ -25,6 +25,16 @@ func TestTransactionService_Details(t *testing.T) {
 	debugResponse(resp)
 }
 
+func TestTransactionService_GetByIDRange(t *testing.T) {
+	client := setupClient(t)
+	req := NewTransactionGetByIDRangeRequest("500", "510")
+	resp, err := client.Transaction.GetByIDRange(t.Context(), req)
+	if err != nil {
+		t.Errorf("failed to get transactions by ID range: %v", err)
+	}
+	debugResponse(resp)
+}
+
 func TestTransactionStreamService_Stream(t *testing.T) {
 	client := setupStreamClient(t)
 	ch := make(chan TransactionStreamItem)

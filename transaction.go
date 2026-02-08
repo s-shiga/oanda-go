@@ -2011,6 +2011,53 @@ func (s *transactionService) Details(ctx context.Context, transactionID Transact
 	return doGet[TransactionDetailsResponse](s.client, ctx, path, nil)
 }
 
+type TransactionGetByIDRangeRequest struct {
+	From TransactionID
+	To   TransactionID
+	Type []TransactionFilter
+}
+
+func NewTransactionGetByIDRangeRequest(from, to TransactionID) *TransactionGetByIDRangeRequest {
+	return &TransactionGetByIDRangeRequest{
+		From: from,
+		To:   to,
+		Type: make([]TransactionFilter, 0),
+	}
+}
+
+func (r *TransactionGetByIDRangeRequest) SetFilters(filters ...TransactionFilter) *TransactionGetByIDRangeRequest {
+	r.Type = append(r.Type, filters...)
+	return r
+}
+
+func (r *TransactionGetByIDRangeRequest) values() (url.Values, error) {
+	values := url.Values{}
+	values.Set("from", r.From)
+	values.Set("to", r.To)
+	if len(r.Type) > 0 {
+		var s []string
+		for _, t := range r.Type {
+			s = append(s, string(t))
+		}
+		values.Set("type", strings.Join(s, ","))
+	}
+	return values, nil
+}
+
+type TransactionsResponse struct {
+	Transactions      []Transaction `json:"transactions"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
+}
+
+func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionGetByIDRangeRequest) (*TransactionsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/transactions/idrange", s.client.accountID)
+	v, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	return doGet[TransactionsResponse](s.client, ctx, path, v)
+}
+
 type transactionStreamService struct {
 	client *StreamClient
 }
