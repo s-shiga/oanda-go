@@ -2058,6 +2058,45 @@ func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionG
 	return doGet[TransactionsResponse](s.client, ctx, path, v)
 }
 
+type TransactionGetBySinceIDRequest struct {
+	ID   TransactionID
+	Type []TransactionFilter
+}
+
+func NewTransactionGetBySinceIDRequest(id TransactionID) *TransactionGetBySinceIDRequest {
+	return &TransactionGetBySinceIDRequest{
+		ID:   id,
+		Type: make([]TransactionFilter, 0),
+	}
+}
+
+func (r *TransactionGetBySinceIDRequest) SetFilters(filters ...TransactionFilter) *TransactionGetBySinceIDRequest {
+	r.Type = append(r.Type, filters...)
+	return r
+}
+
+func (r *TransactionGetBySinceIDRequest) values() (url.Values, error) {
+	values := url.Values{}
+	values.Set("id", string(r.ID))
+	if len(r.Type) > 0 {
+		var s []string
+		for _, t := range r.Type {
+			s = append(s, string(t))
+		}
+		values.Set("type", strings.Join(s, ","))
+	}
+	return values, nil
+}
+
+func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionGetBySinceIDRequest) (*TransactionsResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/transactions/sinceid", s.client.accountID)
+	v, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	return doGet[TransactionsResponse](s.client, ctx, path, v)
+}
+
 type transactionStreamService struct {
 	client *StreamClient
 }

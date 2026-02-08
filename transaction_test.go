@@ -35,6 +35,16 @@ func TestTransactionService_GetByIDRange(t *testing.T) {
 	debugResponse(resp)
 }
 
+func TestTransactionService_GetBySinceID(t *testing.T) {
+	client := setupClient(t)
+	req := NewTransactionGetBySinceIDRequest("520")
+	resp, err := client.Transaction.GetBySinceID(t.Context(), req)
+	if err != nil {
+		t.Errorf("failed to get transactions by since ID: %v", err)
+	}
+	debugResponse(resp)
+}
+
 func TestTransactionStreamService_Stream(t *testing.T) {
 	client := setupStreamClient(t)
 	ch := make(chan TransactionStreamItem)
