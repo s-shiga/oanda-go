@@ -298,6 +298,45 @@ func (s *priceService) Information(ctx context.Context, req *PriceInformationReq
 	return doGet[PriceInformationResponse](s.client, ctx, path, values)
 }
 
+type PriceCandlesticksRequest struct {
+	CandlesticksRequest
+	units *int
+}
+
+func NewPriceCandlesticksRequest(instrument InstrumentName, granularity CandlestickGranularity) *PriceCandlesticksRequest {
+	return &PriceCandlesticksRequest{
+		CandlesticksRequest: *NewCandlesticksRequest(instrument, granularity),
+	}
+}
+
+func (r *PriceCandlesticksRequest) Units(units int) *PriceCandlesticksRequest {
+	r.units = &units
+	return r
+}
+
+func (r *PriceCandlesticksRequest) values() (url.Values, error) {
+	values, err := r.CandlesticksRequest.values()
+	if err != nil {
+		return nil, err
+	}
+	if r.units != nil {
+		if *r.units <= 0 {
+			return nil, errors.New("units must be greater than 0")
+		}
+		values.Set("units", strconv.Itoa(*r.units))
+	}
+	return values, nil
+}
+
+func (s *priceService) Candlesticks(ctx context.Context, req *PriceCandlesticksRequest) (*CandlestickResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/instruments/%s/candles", s.client.accountID, req.Instrument)
+	values, err := req.values()
+	if err != nil {
+		return nil, err
+	}
+	return doGet[CandlestickResponse](s.client, ctx, path, values)
+}
+
 type priceStreamService struct {
 	client *StreamClient
 }
