@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 )
 
@@ -542,9 +544,53 @@ type AccountConfigureResponse struct {
 	LastTransactionID          TransactionID              `json:"lastTransactionID"`
 }
 
+type AccountConfigureErrorResponse struct {
+	ClientConfigureRejectTransaction ClientConfigureRejectTransaction `json:"clientConfigureRejectTransaction"`
+	LastTransactionID                TransactionID                    `json:"lastTransactionID"`
+	ErrorCode                        string                           `json:"errorCode"`
+	ErrorMessage                     string                           `json:"errorMessage"`
+}
+
+func (r AccountConfigureErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
 func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/configuration", s.client.accountID)
-	return doPatch[AccountConfigureResponse](s.client, ctx, path, req)
+	var body io.Reader
+	var err error
+	if req != nil {
+		body, err = req.body()
+		if err != nil {
+			return nil, err
+		}
+	}
+	httpResp, err := s.client.sendPatchRequest(ctx, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
+	}
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		var resp AccountConfigureResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return &resp, nil
+	case http.StatusBadRequest:
+		var resp AccountConfigureErrorResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+	case http.StatusForbidden:
+		var resp AccountConfigureErrorResponse
+		if err := decodeResponse(httpResp, &resp); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return nil, Forbidden{HTTPError{StatusCode: httpResp.StatusCode, Message: "forbidden", Err: resp}}
+	default:
+		return nil, decodeErrorResponse(httpResp)
+	}
 }
 
 type AccountChangesResponse struct {

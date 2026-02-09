@@ -35,10 +35,6 @@ func defaultUserAgent() string {
 	)
 }
 
-type BaseClient interface {
-	HTTPClient
-}
-
 type clientConfig struct {
 	baseURL    string
 	apiKey     string
@@ -213,26 +209,6 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 	return c.httpClient.Do(req)
 }
 
-func doPatch[R any](c *Client, ctx context.Context, path string, req Request) (*R, error) {
-	var body io.Reader
-	var err error
-	if req != nil {
-		body, err = req.body()
-		if err != nil {
-			return nil, err
-		}
-	}
-	httpResp, err := c.sendPatchRequest(ctx, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send PATCH request: %w", err)
-	}
-	var resp R
-	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
-}
-
 type StreamClient struct {
 	clientConfig
 	Transaction *transactionStreamService
@@ -296,7 +272,7 @@ func decodeErrorResponse(resp *http.Response) error {
 		Message string `json:"errorMessage"`
 	}{}
 	if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
-		panic(fmt.Errorf("failed to decode response body: %w", err))
+		return fmt.Errorf("failed to decode error response body: %w", err)
 	}
 	err := errors.New(errResp.Message)
 	switch resp.StatusCode {
