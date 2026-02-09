@@ -390,7 +390,7 @@ type PriceStreamItem interface {
 }
 
 func (s *priceStreamService) Stream(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
-	path := fmt.Sprintf("/v3/account/%s/pricing/stream", s.client.accountID)
+	path := fmt.Sprintf("/v3/accounts/%s/pricing/stream", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
 		return err
