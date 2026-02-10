@@ -5,7 +5,9 @@ import (
 	"time"
 )
 
+// --------------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/primitives-df/
+// --------------------------------------------------------------------
 
 // DecimalNumber is a decimal number encoded as a string. The amount of precision provided depends
 // on what the number represents.

@@ -10,7 +10,9 @@ import (
 	"time"
 )
 
+// --------------------------------------------------------------------
 // Definitions https://developer.oanda.com/rest-live-v20/instrument-df/
+// --------------------------------------------------------------------
 
 // Instrument declared in primitives.go
 
