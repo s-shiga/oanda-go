@@ -17,7 +17,7 @@ func TestPriceService_LatestCandlestick(t *testing.T) {
 
 func TestPriceService_Information(t *testing.T) {
 	client := setupClient(t)
-	req := NewPriceInformationRequest().Instruments("EUR_USD")
+	req := NewPriceInformationRequest().AddInstruments("EUR_USD")
 	resp, err := client.Price.Information(t.Context(), req)
 	if err != nil {
 		t.Errorf("failed to get information: %v", err)

@@ -234,35 +234,35 @@ func (s *priceService) LatestCandlesticks(ctx context.Context, req *PriceLatestC
 }
 
 type PriceInformationRequest struct {
-	instruments            []InstrumentName
-	since                  *DateTime
-	includeHomeConversions bool
+	Instruments            []InstrumentName
+	Since                  *DateTime
+	IncludeHomeConversions bool
 }
 
 func NewPriceInformationRequest() *PriceInformationRequest {
 	return &PriceInformationRequest{
-		instruments:            make([]InstrumentName, 0),
-		includeHomeConversions: false,
+		Instruments:            make([]InstrumentName, 0),
+		IncludeHomeConversions: false,
 	}
 }
 
-func (r *PriceInformationRequest) Instruments(instruments ...InstrumentName) *PriceInformationRequest {
-	r.instruments = append(r.instruments, instruments...)
+func (r *PriceInformationRequest) AddInstruments(instruments ...InstrumentName) *PriceInformationRequest {
+	r.Instruments = append(r.Instruments, instruments...)
 	return r
 }
 
-func (r *PriceInformationRequest) Since(since DateTime) *PriceInformationRequest {
-	r.since = &since
+func (r *PriceInformationRequest) SetSince(since DateTime) *PriceInformationRequest {
+	r.Since = &since
 	return r
 }
 
-func (r *PriceInformationRequest) IncludeHomeConversions() *PriceInformationRequest {
-	r.includeHomeConversions = true
+func (r *PriceInformationRequest) SetIncludeHomeConversions() *PriceInformationRequest {
+	r.IncludeHomeConversions = true
 	return r
 }
 
 func (r *PriceInformationRequest) validate() error {
-	if len(r.instruments) == 0 {
+	if len(r.Instruments) == 0 {
 		return errors.New("missing instruments")
 	}
 	return nil
@@ -273,11 +273,11 @@ func (r *PriceInformationRequest) values() (url.Values, error) {
 		return nil, err
 	}
 	values := url.Values{}
-	values.Set("instruments", strings.Join(r.instruments, ","))
-	if r.since != nil {
-		values.Set("since", r.since.String())
+	values.Set("instruments", strings.Join(r.Instruments, ","))
+	if r.Since != nil {
+		values.Set("since", r.Since.String())
 	}
-	if r.includeHomeConversions {
+	if r.IncludeHomeConversions {
 		values.Set("includeHomeConversions", "true")
 	}
 	return values, nil

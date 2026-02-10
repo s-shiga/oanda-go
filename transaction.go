@@ -1911,7 +1911,7 @@ type TransactionListRequest struct {
 	From     *time.Time
 	To       *time.Time
 	PageSize *int
-	Type     []TransactionType
+	Filters  []TransactionFilter
 }
 
 func NewTransactionListRequest() *TransactionListRequest {
@@ -1933,8 +1933,8 @@ func (req *TransactionListRequest) SetPageSize(pageSize int) *TransactionListReq
 	return req
 }
 
-func (req *TransactionListRequest) AddType(transactionType TransactionType) *TransactionListRequest {
-	req.Type = append(req.Type, transactionType)
+func (req *TransactionListRequest) SetFilters(filters ...TransactionFilter) *TransactionListRequest {
+	req.Filters = append(req.Filters, filters...)
 	return req
 }
 
@@ -1964,9 +1964,9 @@ func (req *TransactionListRequest) values() (url.Values, error) {
 	if req.PageSize != nil {
 		v.Set("page_size", strconv.Itoa(*req.PageSize))
 	}
-	if len(req.Type) > 0 {
+	if len(req.Filters) > 0 {
 		var s []string
-		for _, t := range req.Type {
+		for _, t := range req.Filters {
 			s = append(s, string(t))
 		}
 		v.Set("type", strings.Join(s, ","))
