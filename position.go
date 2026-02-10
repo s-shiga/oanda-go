@@ -96,11 +96,17 @@ func newPositionService(client *Client) *positionService {
 	return &positionService{client}
 }
 
+// PositionListResponse is the response returned by [positionService.List] and [positionService.ListOpen].
 type PositionListResponse struct {
 	Positions         []Position    `json:"positions"`
 	LastTransactionID TransactionID `json:"lastTransactionId"`
 }
 
+// List retrieves all Positions for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/positions
+//
+// Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_1
 func (s *positionService) List(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions", s.client.accountID)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
@@ -114,6 +120,11 @@ func (s *positionService) List(ctx context.Context) (*PositionListResponse, erro
 	return &resp, nil
 }
 
+// ListOpen retrieves all open Positions for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/openPositions
+//
+// Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_2
 func (s *positionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/openPositions", s.client.accountID)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
@@ -127,11 +138,17 @@ func (s *positionService) ListOpen(ctx context.Context) (*PositionListResponse, 
 	return &resp, nil
 }
 
+// PositionListByInstrumentResponse is the response returned by [positionService.ListByInstrument].
 type PositionListByInstrumentResponse struct {
 	Position          Position      `json:"position"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+// ListByInstrument retrieves the Position for a specific instrument in the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/positions/{instrument}
+//
+// Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_3
 func (s *positionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", s.client.accountID, instrument)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
@@ -145,6 +162,7 @@ func (s *positionService) ListByInstrument(ctx context.Context, instrument Instr
 	return &resp, nil
 }
 
+// PositionCloseRequest represents a request to close (fully or partially) a Position's long and/or short side.
 type PositionCloseRequest struct {
 	LongUnits             *string           `json:"longUnits,omitempty"`
 	LongClientExtensions  *ClientExtensions `json:"longClientExtensions,omitempty"`
@@ -152,35 +170,41 @@ type PositionCloseRequest struct {
 	ShortClientExtensions *ClientExtensions `json:"shortClientExtensions,omitempty"`
 }
 
+// SetLongAll sets the request to close all units of the long side.
 func (r *PositionCloseRequest) SetLongAll() *PositionCloseRequest {
 	v := "ALL"
 	r.LongUnits = &v
 	return r
 }
 
+// SetLongUnits sets the number of long units to close.
 func (r *PositionCloseRequest) SetLongUnits(units uint) *PositionCloseRequest {
 	v := strconv.FormatUint(uint64(units), 10)
 	r.LongUnits = &v
 	return r
 }
 
+// SetLongClientExtensions sets the client extensions for the long side close.
 func (r *PositionCloseRequest) SetLongClientExtensions(extensions *ClientExtensions) *PositionCloseRequest {
 	r.LongClientExtensions = extensions
 	return r
 }
 
+// SetShortAll sets the request to close all units of the short side.
 func (r *PositionCloseRequest) SetShortAll() *PositionCloseRequest {
 	v := "ALL"
 	r.ShortUnits = &v
 	return r
 }
 
+// SetShortUnits sets the number of short units to close.
 func (r *PositionCloseRequest) SetShortUnits(units uint) *PositionCloseRequest {
 	v := strconv.FormatUint(uint64(units), 10)
 	r.ShortUnits = &v
 	return r
 }
 
+// SetShortClientExtensions sets the client extensions for the short side close.
 func (r *PositionCloseRequest) SetShortClientExtensions(extensions *ClientExtensions) *PositionCloseRequest {
 	r.ShortClientExtensions = extensions
 	return r
@@ -194,6 +218,7 @@ func (r *PositionCloseRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// PositionCloseResponse is the successful response returned by [positionService.Close].
 type PositionCloseResponse struct {
 	LongOrderCreateTransaction  *MarketOrderTransaction `json:"longOrderCreateTransaction,omitempty"`
 	LongOrderFillTransaction    *OrderFillTransaction   `json:"longOrderFillTransaction,omitempty"`
@@ -205,6 +230,7 @@ type PositionCloseResponse struct {
 	LastTransactionID           TransactionID           `json:"lastTransactionID"`
 }
 
+// PositionCloseErrorResponse is the error response returned by [positionService.Close].
 type PositionCloseErrorResponse struct {
 	LongOrderRejectTransaction  *MarketOrderRejectTransaction `json:"longOrderRejectTransaction,omitempty"`
 	ShortOrderRejectTransaction *MarketOrderRejectTransaction `json:"shortOrderRejectTransaction,omitempty"`
@@ -214,10 +240,16 @@ type PositionCloseErrorResponse struct {
 	ErrorMessage                string                        `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r PositionCloseErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// Close closes (fully or partially) the long and/or short side of a Position for a specific instrument.
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/positions/{instrument}/close
+//
+// Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_4
 func (s *positionService) Close(ctx context.Context, instrument InstrumentName, req *PositionCloseRequest) (*PositionCloseResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v/close", s.client.accountID, instrument)
 	body, err := req.body()
