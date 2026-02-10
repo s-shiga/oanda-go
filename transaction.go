@@ -1270,6 +1270,7 @@ type ClientExtensions struct {
 	Comment ClientComment `json:"comment,omitempty"`
 }
 
+// NewClientExtensions creates a new [ClientExtensions] with the given ID, tag, and comment.
 func NewClientExtensions(id ClientID, tag ClientTag, comment ClientComment) *ClientExtensions {
 	return &ClientExtensions{
 		ID:      id,
@@ -1293,6 +1294,7 @@ type TakeProfitDetails struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
+// NewTakeProfitDetails creates a new [TakeProfitDetails] with the given price and GTC time in force.
 func NewTakeProfitDetails(price PriceValue) *TakeProfitDetails {
 	return &TakeProfitDetails{
 		Price:       price,
@@ -1300,17 +1302,20 @@ func NewTakeProfitDetails(price PriceValue) *TakeProfitDetails {
 	}
 }
 
+// SetGTD sets the time in force to GTD with the given date.
 func (d *TakeProfitDetails) SetGTD(date DateTime) *TakeProfitDetails {
 	d.TimeInForce = TimeInForceGTD
 	d.GtdTime = &date
 	return d
 }
 
+// SetGFD sets the time in force to GFD.
 func (d *TakeProfitDetails) SetGFD() *TakeProfitDetails {
 	d.TimeInForce = TimeInForceGFD
 	return d
 }
 
+// SetClientExtensions sets the client extensions.
 func (d *TakeProfitDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TakeProfitDetails {
 	d.ClientExtensions = clientExtensions
 	return d
@@ -1338,33 +1343,39 @@ type StopLossDetails struct {
 	Guaranteed bool `json:"guaranteed"`
 }
 
+// NewStopLossDetails creates a new [StopLossDetails] with GTC time in force.
 func NewStopLossDetails() *StopLossDetails {
 	return &StopLossDetails{
 		TimeInForce: TimeInForceGTC,
 	}
 }
 
+// SetPrice sets the price threshold.
 func (d *StopLossDetails) SetPrice(price PriceValue) *StopLossDetails {
 	d.Price = &price
 	return d
 }
 
+// SetDistance sets the distance from the Trade's open price.
 func (d *StopLossDetails) SetDistance(distance DecimalNumber) *StopLossDetails {
 	d.Distance = &distance
 	return d
 }
 
+// SetGTD sets the time in force to GTD with the given date.
 func (d *StopLossDetails) SetGTD(date DateTime) *StopLossDetails {
 	d.TimeInForce = TimeInForceGTD
 	d.GtdTime = &date
 	return d
 }
 
+// SetGFD sets the time in force to GFD.
 func (d *StopLossDetails) SetGFD() *StopLossDetails {
 	d.TimeInForce = TimeInForceGFD
 	return d
 }
 
+// SetClientExtensions sets the client extensions.
 func (d *StopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *StopLossDetails {
 	d.ClientExtensions = clientExtensions
 	return d
@@ -1391,33 +1402,39 @@ type GuaranteedStopLossDetails struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
+// NewGuaranteedStopLossDetails creates a new [GuaranteedStopLossDetails] with GTC time in force.
 func NewGuaranteedStopLossDetails() *GuaranteedStopLossDetails {
 	return &GuaranteedStopLossDetails{
 		TimeInForce: TimeInForceGTC,
 	}
 }
 
+// SetPrice sets the price threshold.
 func (d *GuaranteedStopLossDetails) SetPrice(price PriceValue) *GuaranteedStopLossDetails {
 	d.Price = &price
 	return d
 }
 
+// SetDistance sets the distance from the Trade's open price.
 func (d *GuaranteedStopLossDetails) SetDistance(distance DecimalNumber) *GuaranteedStopLossDetails {
 	d.Distance = &distance
 	return d
 }
 
+// SetGTD sets the time in force to GTD with the given date.
 func (d *GuaranteedStopLossDetails) SetGTD(date DateTime) *GuaranteedStopLossDetails {
 	d.TimeInForce = TimeInForceGTD
 	d.GtdTime = &date
 	return d
 }
 
+// SetGFD sets the time in force to GFD.
 func (d *GuaranteedStopLossDetails) SetGFD() *GuaranteedStopLossDetails {
 	d.TimeInForce = TimeInForceGFD
 	return d
 }
 
+// SetClientExtensions sets the client extensions.
 func (d *GuaranteedStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *GuaranteedStopLossDetails {
 	d.ClientExtensions = clientExtensions
 	return d
@@ -1439,6 +1456,7 @@ type TrailingStopLossDetails struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
+// NewTrailingStopLossDetails creates a new [TrailingStopLossDetails] with the given distance and GTC time in force.
 func NewTrailingStopLossDetails(distance DecimalNumber) *TrailingStopLossDetails {
 	return &TrailingStopLossDetails{
 		Distance:    distance,
@@ -1446,17 +1464,20 @@ func NewTrailingStopLossDetails(distance DecimalNumber) *TrailingStopLossDetails
 	}
 }
 
+// SetGTD sets the time in force to GTD with the given date.
 func (d *TrailingStopLossDetails) SetGTD(date DateTime) *TrailingStopLossDetails {
 	d.TimeInForce = TimeInForceGTD
 	d.GtdTime = &date
 	return d
 }
 
+// SetGFD sets the time in force to GFD.
 func (d *TrailingStopLossDetails) SetGFD() *TrailingStopLossDetails {
 	d.TimeInForce = TimeInForceGFD
 	return d
 }
 
+// SetClientExtensions sets the client extensions.
 func (d *TrailingStopLossDetails) SetClientExtensions(clientExtensions *ClientExtensions) *TrailingStopLossDetails {
 	d.ClientExtensions = clientExtensions
 	return d
@@ -1883,14 +1904,17 @@ type TransactionHeartbeat struct {
 	Time DateTime `json:"time"`
 }
 
+// GetType returns the type of the heartbeat message.
 func (t TransactionHeartbeat) GetType() string {
 	return t.Type
 }
 
+// GetID returns the last Transaction ID.
 func (t TransactionHeartbeat) GetID() string {
 	return t.LastTransactionID
 }
 
+// GetTime returns the time of the heartbeat message.
 func (t TransactionHeartbeat) GetTime() DateTime {
 	return t.Time
 }
@@ -1907,6 +1931,7 @@ func newTransactionService(client *Client) *transactionService {
 	return &transactionService{client}
 }
 
+// TransactionListRequest represents a request to list Transactions for the Account configured via [WithAccountID].
 type TransactionListRequest struct {
 	From     *time.Time
 	To       *time.Time
@@ -1914,25 +1939,30 @@ type TransactionListRequest struct {
 	Filters  []TransactionFilter
 }
 
+// NewTransactionListRequest creates a new [TransactionListRequest].
 func NewTransactionListRequest() *TransactionListRequest {
 	return &TransactionListRequest{}
 }
 
+// SetFrom sets the starting date/time for the Transaction list.
 func (req *TransactionListRequest) SetFrom(from time.Time) *TransactionListRequest {
 	req.From = &from
 	return req
 }
 
+// SetTo sets the ending date/time for the Transaction list.
 func (req *TransactionListRequest) SetTo(to time.Time) *TransactionListRequest {
 	req.To = &to
 	return req
 }
 
+// SetPageSize sets the number of Transactions to include per page.
 func (req *TransactionListRequest) SetPageSize(pageSize int) *TransactionListRequest {
 	req.PageSize = &pageSize
 	return req
 }
 
+// SetFilters sets the Transaction type filters.
 func (req *TransactionListRequest) SetFilters(filters ...TransactionFilter) *TransactionListRequest {
 	req.Filters = append(req.Filters, filters...)
 	return req
@@ -1974,6 +2004,7 @@ func (req *TransactionListRequest) values() (url.Values, error) {
 	return v, nil
 }
 
+// TransactionListResponse is the response returned by [transactionService.List].
 type TransactionListResponse struct {
 	From              DateTime          `json:"from"`
 	To                DateTime          `json:"to"`
@@ -1984,6 +2015,11 @@ type TransactionListResponse struct {
 	LastTransactionID TransactionID     `json:"lastTransactionID"`
 }
 
+// List retrieves a list of Transactions for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions
+//
+// Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_1
 func (s *transactionService) List(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/transactions", s.client.accountID)
 	v, err := req.values()
@@ -2001,22 +2037,30 @@ func (s *transactionService) List(ctx context.Context, req *TransactionListReque
 	return &transactionListResp, nil
 }
 
+// TransactionDetailsResponse is the response returned by [transactionService.Details].
 type TransactionDetailsResponse struct {
 	Transaction       Transaction   `json:"transaction"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+// Details retrieves the details of a single Transaction for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/{transactionID}
+//
+// Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_2
 func (s *transactionService) Details(ctx context.Context, transactionID TransactionID) (*TransactionDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/transactions/%v", s.client.accountID, transactionID)
 	return doGet[TransactionDetailsResponse](s.client, ctx, path, nil)
 }
 
+// TransactionGetByIDRangeRequest represents a request to get Transactions by ID range.
 type TransactionGetByIDRangeRequest struct {
 	From TransactionID
 	To   TransactionID
 	Type []TransactionFilter
 }
 
+// NewTransactionGetByIDRangeRequest creates a new [TransactionGetByIDRangeRequest] with the given from and to Transaction IDs.
 func NewTransactionGetByIDRangeRequest(from, to TransactionID) *TransactionGetByIDRangeRequest {
 	return &TransactionGetByIDRangeRequest{
 		From: from,
@@ -2025,6 +2069,7 @@ func NewTransactionGetByIDRangeRequest(from, to TransactionID) *TransactionGetBy
 	}
 }
 
+// SetFilters sets the Transaction type filters.
 func (r *TransactionGetByIDRangeRequest) SetFilters(filters ...TransactionFilter) *TransactionGetByIDRangeRequest {
 	r.Type = append(r.Type, filters...)
 	return r
@@ -2044,11 +2089,17 @@ func (r *TransactionGetByIDRangeRequest) values() (url.Values, error) {
 	return values, nil
 }
 
+// TransactionsResponse is the response returned by [transactionService.GetByIDRange] and [transactionService.GetBySinceID].
 type TransactionsResponse struct {
 	Transactions      []Transaction `json:"transactions"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+// GetByIDRange retrieves Transactions in a given ID range for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/idrange
+//
+// Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_3
 func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionGetByIDRangeRequest) (*TransactionsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/idrange", s.client.accountID)
 	v, err := req.values()
@@ -2058,11 +2109,13 @@ func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionG
 	return doGet[TransactionsResponse](s.client, ctx, path, v)
 }
 
+// TransactionGetBySinceIDRequest represents a request to get Transactions since a given ID.
 type TransactionGetBySinceIDRequest struct {
 	ID   TransactionID
 	Type []TransactionFilter
 }
 
+// NewTransactionGetBySinceIDRequest creates a new [TransactionGetBySinceIDRequest] with the given Transaction ID.
 func NewTransactionGetBySinceIDRequest(id TransactionID) *TransactionGetBySinceIDRequest {
 	return &TransactionGetBySinceIDRequest{
 		ID:   id,
@@ -2070,6 +2123,7 @@ func NewTransactionGetBySinceIDRequest(id TransactionID) *TransactionGetBySinceI
 	}
 }
 
+// SetFilters sets the Transaction type filters.
 func (r *TransactionGetBySinceIDRequest) SetFilters(filters ...TransactionFilter) *TransactionGetBySinceIDRequest {
 	r.Type = append(r.Type, filters...)
 	return r
@@ -2088,6 +2142,11 @@ func (r *TransactionGetBySinceIDRequest) values() (url.Values, error) {
 	return values, nil
 }
 
+// GetBySinceID retrieves Transactions since a given ID for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/sinceid
+//
+// Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_4
 func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionGetBySinceIDRequest) (*TransactionsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/sinceid", s.client.accountID)
 	v, err := req.values()
@@ -2105,12 +2164,18 @@ func newTransactionStreamService(client *StreamClient) *transactionStreamService
 	return &transactionStreamService{client}
 }
 
+// TransactionStreamItem is an interface for items received from a Transaction stream.
 type TransactionStreamItem interface {
 	GetType() string
 	GetID() TransactionID
 	GetTime() DateTime
 }
 
+// Stream opens a streaming connection for Transactions on the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/stream
+//
+// Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_5
 func (s *transactionStreamService) Stream(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", s.client.accountID)
 	u, err := joinURL(s.client.baseURL, path, nil)
