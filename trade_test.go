@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestClient_Trade(t *testing.T) {
+func TestTradeService(t *testing.T) {
 	client := setupClient(t)
 	var tradeID TradeID
 

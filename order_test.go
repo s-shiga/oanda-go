@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestClient_Order(t *testing.T) {
+func TestOrderService(t *testing.T) {
 	client := setupClient(t)
 	var orderID OrderID
 

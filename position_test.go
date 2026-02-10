@@ -2,7 +2,7 @@ package oanda
 
 import "testing"
 
-func TestClient_PositionList(t *testing.T) {
+func TestPositionService_List(t *testing.T) {
 	client := setupClient(t)
 	resp, err := client.Position.List(t.Context())
 	if err != nil {
@@ -11,7 +11,7 @@ func TestClient_PositionList(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestClient_PositionListOpen(t *testing.T) {
+func TestPositionService_ListOpen(t *testing.T) {
 	client := setupClient(t)
 	resp, err := client.Position.ListOpen(t.Context())
 	if err != nil {
@@ -20,7 +20,7 @@ func TestClient_PositionListOpen(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestClient_PositionListInstrument(t *testing.T) {
+func TestPositionService_ListByInstrument(t *testing.T) {
 	client := setupClient(t)
 	resp, err := client.Position.ListByInstrument(t.Context(), "USD_JPY")
 	if err != nil {

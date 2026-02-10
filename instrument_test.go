@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestClient_AccountInstruments(t *testing.T) {
+func TestInstrumentService_List(t *testing.T) {
 	client := setupClient(t)
 
 	t.Run("without instruments", func(t *testing.T) {
@@ -25,7 +25,7 @@ func TestClient_AccountInstruments(t *testing.T) {
 	})
 }
 
-func TestClient_Candlesticks(t *testing.T) {
+func TestInstrumentService_Candlesticks(t *testing.T) {
 	client := setupClientWithoutAccountID(t)
 	from := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)

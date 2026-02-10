@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestClient_AccountsList(t *testing.T) {
+func TestAccountService_List(t *testing.T) {
 	client := setupClientWithoutAccountID(t)
 	resp, err := client.Account.List(t.Context())
 	if err != nil {
@@ -14,7 +14,7 @@ func TestClient_AccountsList(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestClient_AccountDetails(t *testing.T) {
+func TestAccountService_Details(t *testing.T) {
 	client := setupClient(t)
 	resp, err := client.Account.Details(t.Context())
 	if err != nil {
@@ -24,7 +24,7 @@ func TestClient_AccountDetails(t *testing.T) {
 	debugResponse(resp.Account)
 }
 
-func TestClient_AccountSummary(t *testing.T) {
+func TestAccountService_Summary(t *testing.T) {
 	client := setupClient(t)
 	resp, err := client.Account.Summary(t.Context())
 	if err != nil {
@@ -33,7 +33,7 @@ func TestClient_AccountSummary(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestClient_AccountConfiguration(t *testing.T) {
+func TestAccountService_Configure(t *testing.T) {
 	client := setupClient(t)
 	req := NewAccountConfigureRequest().SetAlias("TestAlias")
 	resp, err := client.Account.Configure(t.Context(), req)
@@ -43,7 +43,7 @@ func TestClient_AccountConfiguration(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestClient_AccountChanges(t *testing.T) {
+func TestAccountService_Changes(t *testing.T) {
 	client := setupClient(t)
 	transactionID := "500"
 	resp, err := client.Account.Changes(t.Context(), transactionID)

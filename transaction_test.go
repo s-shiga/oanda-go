@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestClient_TransactionList(t *testing.T) {
+func TestTransactionService_List(t *testing.T) {
 	client := setupClient(t)
 	req := NewTransactionListRequest()
 	resp, err := client.Transaction.List(t.Context(), req)
