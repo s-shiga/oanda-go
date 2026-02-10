@@ -18,6 +18,7 @@ import (
 
 // Orders
 
+// Order is the interface implemented by all order types returned by the OANDA v20 API.
 type Order interface {
 	GetID() OrderID
 	GetCreateTime() DateTime
@@ -121,6 +122,7 @@ type OrderBase struct {
 	Type OrderType `json:"type"`
 }
 
+// TradeClosingDetails contains the Trade ID and client Trade ID of the Trade to close.
 type TradeClosingDetails struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
@@ -128,6 +130,7 @@ type TradeClosingDetails struct {
 	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 }
 
+// OrdersOnFill contains details of dependent Orders to create when a Trade is opened by filling this Order.
 type OrdersOnFill struct {
 	// TakeProfitOnFill specifies the details of a Take Profit Order to be
 	// created on behalf of a client. This may happen when an Order is filled
@@ -157,6 +160,7 @@ type OrdersOnFill struct {
 	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
+// PositionClosingDetails contains details of Trade/Position closeouts associated with a MarketOrder.
 type PositionClosingDetails struct {
 	// TradeClose is details of the Trade requested to be closed, only provided when the
 	// MarketOrder is being used to explicitly close a Trade.
@@ -173,6 +177,7 @@ type PositionClosingDetails struct {
 	DelayedTradeClose *MarketOrderDelayedTradeClose `json:"delayedTradeClose,omitempty"`
 }
 
+// FillingDetails contains the Transaction ID and time when an Order was filled.
 type FillingDetails struct {
 	// FillingTransactionID is the ID of the Transaction that filled this Order (only provided when
 	// the Order's state is FILLED).
@@ -181,6 +186,7 @@ type FillingDetails struct {
 	FilledTime *DateTime `json:"filledTime,omitempty"`
 }
 
+// CancellingDetails contains the Transaction ID and time when an Order was cancelled.
 type CancellingDetails struct {
 	// CancellingTransactionID is the ID of the Transaction that cancelled the Order (only provided
 	// when the Order's state is CANCELLED).
@@ -190,6 +196,7 @@ type CancellingDetails struct {
 	CancelledTime *DateTime `json:"cancelledTime,omitempty"`
 }
 
+// RelatedTradeIDs contains the IDs of Trades opened, reduced, or closed when an Order was filled.
 type RelatedTradeIDs struct {
 	// TradeOpenedID is the ID of the Trade opened when the Order was filled (only provided when the
 	// Order's state is FILLED and a Trade was opened as a result of the fill).
@@ -202,6 +209,7 @@ type RelatedTradeIDs struct {
 	TradeClosedIDs []TradeID `json:"tradeClosedIDs,omitempty"`
 }
 
+// ReplaceDetails contains IDs linking Orders involved in a cancel/replace operation.
 type ReplaceDetails struct {
 	// ReplacesOrderID is the ID of the Order that was replaced by this Order (only provided if this
 	// Order was created as part of a cancel/replace).
@@ -663,6 +671,7 @@ func (o TrailingStopLossOrder) GetType() OrderType {
 
 // Order Requests
 
+// OrderRequest is the interface implemented by all order request types (e.g. MarketOrderRequest).
 type OrderRequest interface {
 	body() (*bytes.Buffer, error)
 }
@@ -711,6 +720,7 @@ func (r *MarketOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewMarketOrderRequest creates a new MarketOrderRequest with default TimeInForce FOK and PositionFill DEFAULT.
 func NewMarketOrderRequest(instrument InstrumentName, units DecimalNumber) *MarketOrderRequest {
 	return &MarketOrderRequest{
 		Type:         OrderTypeMarket,
@@ -721,46 +731,55 @@ func NewMarketOrderRequest(instrument InstrumentName, units DecimalNumber) *Mark
 	}
 }
 
+// SetIOC sets the TimeInForce to IOC (Immediate or Cancel).
 func (r *MarketOrderRequest) SetIOC() *MarketOrderRequest {
 	r.TimeInForce = TimeInForceIOC
 	return r
 }
 
+// SetPriceBound sets the worst price that the client is willing to have the Market Order filled at.
 func (r *MarketOrderRequest) SetPriceBound(priceBound PriceValue) *MarketOrderRequest {
 	r.PriceBound = priceBound
 	return r
 }
 
+// SetPositionFill sets how Positions in the Account are modified when the Order is filled.
 func (r *MarketOrderRequest) SetPositionFill(positionFill OrderPositionFill) *MarketOrderRequest {
 	r.PositionFill = positionFill
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *MarketOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *MarketOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
 }
 
+// SetTakeProfitOnFill sets the Take Profit Order details for when the Order is filled.
 func (r *MarketOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *MarketOrderRequest {
 	r.TakeProfitOnFill = details
 	return r
 }
 
+// SetStopLossOnFill sets the Stop Loss Order details for when the Order is filled.
 func (r *MarketOrderRequest) SetStopLossOnFill(details *StopLossDetails) *MarketOrderRequest {
 	r.StopLossOnFill = details
 	return r
 }
 
+// SetGuaranteedStopLossOnFill sets the Guaranteed Stop Loss Order details for when the Order is filled.
 func (r *MarketOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *MarketOrderRequest {
 	r.GuaranteedStopLossOnFill = details
 	return r
 }
 
+// SetTrailingStopLossOnFill sets the Trailing Stop Loss Order details for when the Order is filled.
 func (r *MarketOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *MarketOrderRequest {
 	r.TrailingStopLossOnFill = details
 	return r
 }
 
+// SetTradeClientExtensions sets the client extensions for the Trade created when the Order is filled.
 func (r *MarketOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *MarketOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
@@ -817,6 +836,7 @@ func (r *LimitOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewLimitOrderRequest creates a new LimitOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
 func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *LimitOrderRequest {
 	return &LimitOrderRequest{
 		Type:             OrderTypeLimit,
@@ -829,52 +849,62 @@ func NewLimitOrderRequest(instrument InstrumentName, units DecimalNumber, price 
 	}
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *LimitOrderRequest) SetGTD(date DateTime) *LimitOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = &date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *LimitOrderRequest) SetGFD() *LimitOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetPositionFill sets how Positions in the Account are modified when the Order is filled.
 func (r *LimitOrderRequest) SetPositionFill(positionFill OrderPositionFill) *LimitOrderRequest {
 	r.PositionFill = positionFill
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *LimitOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *LimitOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *LimitOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *LimitOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
 }
 
+// SetTakeProfitOnFill sets the Take Profit Order details for when the Order is filled.
 func (r *LimitOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *LimitOrderRequest {
 	r.TakeProfitOnFill = details
 	return r
 }
 
+// SetStopLossOnFill sets the Stop Loss Order details for when the Order is filled.
 func (r *LimitOrderRequest) SetStopLossOnFill(details *StopLossDetails) *LimitOrderRequest {
 	r.StopLossOnFill = details
 	return r
 }
 
+// SetGuaranteedStopLossOnFill sets the Guaranteed Stop Loss Order details for when the Order is filled.
 func (r *LimitOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *LimitOrderRequest {
 	r.GuaranteedStopLossOnFill = details
 	return r
 }
 
+// SetTrailingStopLossOnFill sets the Trailing Stop Loss Order details for when the Order is filled.
 func (r *LimitOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *LimitOrderRequest {
 	r.TrailingStopLossOnFill = details
 	return r
 }
 
+// SetTradeClientExtensions sets the client extensions for the Trade created when the Order is filled.
 func (r *LimitOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *LimitOrderRequest {
 	r.TradeClientExtensions = clientExtensions
 	return r
@@ -935,6 +965,7 @@ func (r *StopOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewStopOrderRequest creates a new StopOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
 func NewStopOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *StopOrderRequest {
 	return &StopOrderRequest{
 		Type:             OrderTypeStop,
@@ -947,57 +978,68 @@ func NewStopOrderRequest(instrument InstrumentName, units DecimalNumber, price P
 	}
 }
 
+// SetPriceBound sets the worst market price that may be used to fill this Stop Order.
 func (r *StopOrderRequest) SetPriceBound(priceBound PriceValue) *StopOrderRequest {
 	r.PriceBound = priceBound
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *StopOrderRequest) SetGTD(date DateTime) *StopOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *StopOrderRequest) SetGFD() *StopOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetPositionFill sets how Positions in the Account are modified when the Order is filled.
 func (r *StopOrderRequest) SetPositionFill(positionFill OrderPositionFill) *StopOrderRequest {
 	r.PositionFill = positionFill
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *StopOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *StopOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *StopOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *StopOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
 }
 
+// SetTakeProfitOnFill sets the Take Profit Order details for when the Order is filled.
 func (r *StopOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *StopOrderRequest {
 	r.TakeProfitOnFill = details
 	return r
 }
 
+// SetStopLossOnFill sets the Stop Loss Order details for when the Order is filled.
 func (r *StopOrderRequest) SetStopLossOnFill(details *StopLossDetails) *StopOrderRequest {
 	r.StopLossOnFill = details
 	return r
 }
 
+// SetGuaranteedStopLossOnFill sets the Guaranteed Stop Loss Order details for when the Order is filled.
 func (r *StopOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *StopOrderRequest {
 	r.GuaranteedStopLossOnFill = details
 	return r
 }
 
+// SetTrailingStopLossOnFill sets the Trailing Stop Loss Order details for when the Order is filled.
 func (r *StopOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *StopOrderRequest {
 	r.TrailingStopLossOnFill = details
 	return r
 }
 
+// SetTradeClientExtensions sets the client extensions for the Trade created when the Order is filled.
 func (r *StopOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *StopOrderRequest {
 	r.TradeClientExtensions = clientExtensions
 	return r
@@ -1060,6 +1102,7 @@ func (r *MarketIfTouchedOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewMarketIfTouchedOrderRequest creates a new MarketIfTouchedOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
 func NewMarketIfTouchedOrderRequest(instrument InstrumentName, units DecimalNumber, price PriceValue) *MarketIfTouchedOrderRequest {
 	return &MarketIfTouchedOrderRequest{
 		Type:             OrderTypeMarketIfTouched,
@@ -1072,67 +1115,80 @@ func NewMarketIfTouchedOrderRequest(instrument InstrumentName, units DecimalNumb
 	}
 }
 
+// SetPriceBound sets the worst market price that may be used to fill this Order.
 func (r *MarketIfTouchedOrderRequest) SetPriceBound(priceBound PriceValue) *MarketIfTouchedOrderRequest {
 	r.PriceBound = priceBound
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *MarketIfTouchedOrderRequest) SetGTD(date DateTime) *MarketIfTouchedOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *MarketIfTouchedOrderRequest) SetGFD() *MarketIfTouchedOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetOpenOnly sets the PositionFill to OPEN_ONLY so the Order can only open new Positions.
 func (r *MarketIfTouchedOrderRequest) SetOpenOnly() *MarketIfTouchedOrderRequest {
 	r.PositionFill = OrderPositionFillOpenOnly
 	return r
 }
 
+// SetReduceFirst sets the PositionFill to REDUCE_FIRST so existing Positions are reduced before opening new ones.
 func (r *MarketIfTouchedOrderRequest) SetReduceFirst() *MarketIfTouchedOrderRequest {
 	r.PositionFill = OrderPositionFillReduceFirst
 	return r
 }
 
+// SetReduceOnly sets the PositionFill to REDUCE_ONLY so the Order can only reduce existing Positions.
 func (r *MarketIfTouchedOrderRequest) SetReduceOnly() *MarketIfTouchedOrderRequest {
 	r.PositionFill = OrderPositionFillReduceOnly
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *MarketIfTouchedOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *MarketIfTouchedOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *MarketIfTouchedOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *MarketIfTouchedOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
 }
 
+// SetTakeProfitOnFill sets the Take Profit Order details for when the Order is filled.
 func (r *MarketIfTouchedOrderRequest) SetTakeProfitOnFill(details *TakeProfitDetails) *MarketIfTouchedOrderRequest {
 	r.TakeProfitOnFill = details
 	return r
 }
 
+// SetStopLossOnFill sets the Stop Loss Order details for when the Order is filled.
 func (r *MarketIfTouchedOrderRequest) SetStopLossOnFill(details *StopLossDetails) *MarketIfTouchedOrderRequest {
 	r.StopLossOnFill = details
 	return r
 }
 
+// SetGuaranteedStopLossOnFill sets the Guaranteed Stop Loss Order details for when the Order is filled.
 func (r *MarketIfTouchedOrderRequest) SetGuaranteedStopLossOnFill(details *GuaranteedStopLossDetails) *MarketIfTouchedOrderRequest {
 	r.GuaranteedStopLossOnFill = details
 	return r
 }
 
+// SetTrailingStopLossOnFill sets the Trailing Stop Loss Order details for when the Order is filled.
 func (r *MarketIfTouchedOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLossDetails) *MarketIfTouchedOrderRequest {
 	r.TrailingStopLossOnFill = details
 	return r
 }
 
+// SetTradeClientExtensions sets the client extensions for the Trade created when the Order is filled.
 func (r *MarketIfTouchedOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *MarketIfTouchedOrderRequest {
 	r.TradeClientExtensions = clientExtensions
 	return r
@@ -1168,6 +1224,7 @@ func (r *TakeProfitOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewTakeProfitOrderRequest creates a new TakeProfitOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
 func NewTakeProfitOrderRequest(tradeID TradeID, price PriceValue) *TakeProfitOrderRequest {
 	return &TakeProfitOrderRequest{
 		Type:             OrderTypeTakeProfit,
@@ -1178,27 +1235,32 @@ func NewTakeProfitOrderRequest(tradeID TradeID, price PriceValue) *TakeProfitOrd
 	}
 }
 
+// SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *TakeProfitOrderRequest) SetClientTradeID(clientID ClientID) *TakeProfitOrderRequest {
 	r.ClientTradeID = clientID
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *TakeProfitOrderRequest) SetGTD(date DateTime) *TakeProfitOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *TakeProfitOrderRequest) SetGFD() *TakeProfitOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *TakeProfitOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *TakeProfitOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *TakeProfitOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *TakeProfitOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
@@ -1240,6 +1302,7 @@ func (r *StopLossOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewStopLossOrderRequest creates a new StopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
 func NewStopLossOrderRequest(tradeID TradeID, price PriceValue) *StopLossOrderRequest {
 	return &StopLossOrderRequest{
 		Type:             OrderTypeStopLoss,
@@ -1250,27 +1313,32 @@ func NewStopLossOrderRequest(tradeID TradeID, price PriceValue) *StopLossOrderRe
 	}
 }
 
+// SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *StopLossOrderRequest) SetClientTradeID(clientID ClientID) *StopLossOrderRequest {
 	r.ClientTradeID = clientID
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *StopLossOrderRequest) SetGTD(date DateTime) *StopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *StopLossOrderRequest) SetGFD() *StopLossOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *StopLossOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *StopLossOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *StopLossOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *StopLossOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
@@ -1312,6 +1380,7 @@ func (r *GuaranteedStopLossOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewGuaranteedStopLossOrderRequest creates a new GuaranteedStopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
 func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *GuaranteedStopLossOrderRequest {
 	return &GuaranteedStopLossOrderRequest{
 		Type:             OrderTypeGuaranteedStopLoss,
@@ -1322,27 +1391,32 @@ func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *Guara
 	}
 }
 
+// SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *GuaranteedStopLossOrderRequest) SetClientTradeID(clientID ClientID) *GuaranteedStopLossOrderRequest {
 	r.ClientTradeID = clientID
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *GuaranteedStopLossOrderRequest) SetGTD(date DateTime) *GuaranteedStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *GuaranteedStopLossOrderRequest) SetGFD() *GuaranteedStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *GuaranteedStopLossOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *GuaranteedStopLossOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *GuaranteedStopLossOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *GuaranteedStopLossOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
@@ -1378,6 +1452,7 @@ func (r *TrailingStopLossOrderRequest) body() (*bytes.Buffer, error) {
 	return orderRequestWrapper(r)
 }
 
+// NewTrailingStopLossOrderRequest creates a new TrailingStopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
 func NewTrailingStopLossOrderRequest(tradeID TradeID, distance DecimalNumber) *TrailingStopLossOrderRequest {
 	return &TrailingStopLossOrderRequest{
 		Type:             OrderTypeTrailingStopLoss,
@@ -1388,27 +1463,32 @@ func NewTrailingStopLossOrderRequest(tradeID TradeID, distance DecimalNumber) *T
 	}
 }
 
+// SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *TrailingStopLossOrderRequest) SetClientTradeID(clientID ClientID) *TrailingStopLossOrderRequest {
 	r.ClientTradeID = clientID
 	return r
 }
 
+// SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *TrailingStopLossOrderRequest) SetGTD(date DateTime) *TrailingStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
 	r.GtdTime = date
 	return r
 }
 
+// SetGFD sets the TimeInForce to GFD (Good For Day).
 func (r *TrailingStopLossOrderRequest) SetGFD() *TrailingStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGFD
 	return r
 }
 
+// SetTriggerCondition sets which price component is used to determine if the Order should be triggered.
 func (r *TrailingStopLossOrderRequest) SetTriggerCondition(triggerCondition OrderTriggerCondition) *TrailingStopLossOrderRequest {
 	r.TriggerCondition = triggerCondition
 	return r
 }
 
+// SetClientExtensions sets the client extensions for the Order.
 func (r *TrailingStopLossOrderRequest) SetClientExtensions(clientExtensions *ClientExtensions) *TrailingStopLossOrderRequest {
 	r.ClientExtensions = clientExtensions
 	return r
@@ -1423,15 +1503,24 @@ type OrderID = string
 type OrderType string
 
 const (
-	OrderTypeMarket             OrderType = "MARKET"
-	OrderTypeLimit              OrderType = "LIMIT"
-	OrderTypeStop               OrderType = "STOP"
-	OrderTypeMarketIfTouched    OrderType = "MARKET_IF_TOUCHED"
-	OrderTypeFixedPrice         OrderType = "FIXED_PRICE"
-	OrderTypeTakeProfit         OrderType = "TAKE_PROFIT"
-	OrderTypeStopLoss           OrderType = "STOP_LOSS"
+	// OrderTypeMarket represents a Market Order.
+	OrderTypeMarket OrderType = "MARKET"
+	// OrderTypeLimit represents a Limit Order.
+	OrderTypeLimit OrderType = "LIMIT"
+	// OrderTypeStop represents a Stop Order.
+	OrderTypeStop OrderType = "STOP"
+	// OrderTypeMarketIfTouched represents a Market If Touched Order.
+	OrderTypeMarketIfTouched OrderType = "MARKET_IF_TOUCHED"
+	// OrderTypeFixedPrice represents a Fixed Price Order.
+	OrderTypeFixedPrice OrderType = "FIXED_PRICE"
+	// OrderTypeTakeProfit represents a Take Profit Order.
+	OrderTypeTakeProfit OrderType = "TAKE_PROFIT"
+	// OrderTypeStopLoss represents a Stop Loss Order.
+	OrderTypeStopLoss OrderType = "STOP_LOSS"
+	// OrderTypeGuaranteedStopLoss represents a Guaranteed Stop Loss Order.
 	OrderTypeGuaranteedStopLoss OrderType = "GUARANTEED_STOP_LOSS"
-	OrderTypeTrailingStopLoss   OrderType = "TRAILING_STOP_LOSS"
+	// OrderTypeTrailingStopLoss represents a Trailing Stop Loss Order.
+	OrderTypeTrailingStopLoss OrderType = "TRAILING_STOP_LOSS"
 )
 
 // CancellableOrderType represents the type of Orders that can be cancelled.
@@ -1439,30 +1528,43 @@ const (
 type CancellableOrderType string
 
 const (
-	CancellableOrderTypeLimit              CancellableOrderType = "LIMIT"
-	CancellableOrderTypeStop               CancellableOrderType = "STOP"
-	CancellableOrderTypeMarketIfTouched    CancellableOrderType = "MARKET_IF_TOUCHED"
-	CancellableOrderTypeTakeProfit         CancellableOrderType = "TAKE_PROFIT"
-	CancellableOrderTypeStopLoss           CancellableOrderType = "STOP_LOSS"
+	// CancellableOrderTypeLimit represents a cancellable Limit Order.
+	CancellableOrderTypeLimit CancellableOrderType = "LIMIT"
+	// CancellableOrderTypeStop represents a cancellable Stop Order.
+	CancellableOrderTypeStop CancellableOrderType = "STOP"
+	// CancellableOrderTypeMarketIfTouched represents a cancellable Market If Touched Order.
+	CancellableOrderTypeMarketIfTouched CancellableOrderType = "MARKET_IF_TOUCHED"
+	// CancellableOrderTypeTakeProfit represents a cancellable Take Profit Order.
+	CancellableOrderTypeTakeProfit CancellableOrderType = "TAKE_PROFIT"
+	// CancellableOrderTypeStopLoss represents a cancellable Stop Loss Order.
+	CancellableOrderTypeStopLoss CancellableOrderType = "STOP_LOSS"
+	// CancellableOrderTypeGuaranteedStopLoss represents a cancellable Guaranteed Stop Loss Order.
 	CancellableOrderTypeGuaranteedStopLoss CancellableOrderType = "GUARANTEED_STOP_LOSS"
-	CancellableOrderTypeTrailingStopLoss   CancellableOrderType = "TRAILING_STOP_LOSS"
+	// CancellableOrderTypeTrailingStopLoss represents a cancellable Trailing Stop Loss Order.
+	CancellableOrderTypeTrailingStopLoss CancellableOrderType = "TRAILING_STOP_LOSS"
 )
 
 // OrderState represents the current state of an Order.
 type OrderState string
 
 const (
-	OrderStatePending   OrderState = "PENDING"
-	OrderStateFilled    OrderState = "FILLED"
+	// OrderStatePending means the Order is currently pending execution.
+	OrderStatePending OrderState = "PENDING"
+	// OrderStateFilled means the Order has been filled.
+	OrderStateFilled OrderState = "FILLED"
+	// OrderStateTriggered means the Order has been triggered.
 	OrderStateTriggered OrderState = "TRIGGERED"
+	// OrderStateCancelled means the Order has been cancelled.
 	OrderStateCancelled OrderState = "CANCELLED"
 )
 
+// OrderIdentifier contains both the OANDA-assigned and client-assigned identifiers for an Order.
 type OrderIdentifier struct {
 	OrderID       OrderID  `json:"orderID"`
 	ClientOrderID ClientID `json:"clientOrderID"`
 }
 
+// OrderSpecifier is either an Order's OANDA-assigned OrderID or the client-provided ClientID prefixed with "@".
 type OrderSpecifier = string
 
 // TimeInForce specifies how long an Order should remain pending before being automatically
@@ -1533,6 +1635,7 @@ func newOrderService(client *Client) *orderService {
 	return &orderService{client}
 }
 
+// OrderCreateResponse is the successful response returned by [orderService.Create].
 type OrderCreateResponse struct {
 	OrderCreateTransaction        Transaction             `json:"orderCreateTransaction"`
 	OrderFillTransaction          *OrderFillTransaction   `json:"orderFillTransaction,omitempty"`
@@ -1543,6 +1646,7 @@ type OrderCreateResponse struct {
 	LastTransactionID             TransactionID           `json:"lastTransactionID"`
 }
 
+// OrderErrorResponse is the error response returned by order endpoints when a request is rejected.
 type OrderErrorResponse struct {
 	OrderRejectTransaction Transaction     `json:"orderRejectTransaction"`
 	RelatedTransactionIDs  []TransactionID `json:"relatedTransactionIDs"`
@@ -1551,6 +1655,7 @@ type OrderErrorResponse struct {
 	ErrorMessage           string          `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (e OrderErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", e.ErrorCode, e.ErrorMessage)
 }
@@ -1574,6 +1679,11 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 	return bytes.NewBuffer(body), nil
 }
 
+// Create submits a new Order for the Account configured via WithAccountID.
+//
+// This corresponds to the OANDA API endpoint: POST /v3/accounts/{accountID}/orders
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_1
 func (s *orderService) Create(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	body, err := req.body()
@@ -1718,30 +1828,10 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-// List retrieves a list of Orders for an Account based on the specified request parameters.
+// List retrieves a list of Orders for the Account configured via WithAccountID.
+// Use [NewOrderListRequest] to create and configure filter parameters.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders
-//
-// The request can be configured to filter by Order IDs, state, instrument, and to paginate
-// results using count and beforeID parameters.
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - req: The OrderListRequest containing the account ID and optional filter parameters.
-//     Use NewOrderListRequest to create and configure the request.
-//
-// Returns:
-//   - []Order: A slice of Orders matching the request criteria.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails, validation fails, or response cannot be decoded.
-//
-// Example:
-//
-//	req := oanda.NewOrderListRequest(accountID).
-//	    SetState(oanda.OrderStatePending).
-//	    SetInstrument("EUR_USD").
-//	    SetCount(50)
-//	orders, lastTxID, err := client.OrderList(ctx, req)
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
 func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
@@ -1761,21 +1851,9 @@ func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 	return &orderListResp, nil
 }
 
-// ListPending retrieves all pending Orders in an Account.
+// ListPending retrieves all pending Orders for the Account configured via WithAccountID.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/pendingOrders
-//
-// This is a convenience method that returns only Orders in the PENDING state.
-// For more flexible filtering options, use OrderList with SetState(OrderStatePending).
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - accountID: The Account identifier.
-//
-// Returns:
-//   - []Order: A slice of all pending Orders for the account.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
 func (s *orderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
@@ -1791,6 +1869,7 @@ func (s *orderService) ListPending(ctx context.Context) (*OrderListResponse, err
 	return &orderListResp, nil
 }
 
+// OrderDetailsResponse is the response returned by [orderService.Details].
 type OrderDetailsResponse struct {
 	Order             Order         `json:"order"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
@@ -1814,20 +1893,10 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Details retrieves the details of a single Order in an Account.
+// Details retrieves the details of a single Order for the Account configured via WithAccountID.
+// The specifier can be the Order's OANDA-assigned OrderID or a client ID prefixed with "@".
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders/{orderSpecifier}
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - accountID: The Account identifier.
-//   - specifier: The Order specifier, which can be either the Order's OANDA-assigned OrderID
-//     (e.g., "1234") or the client-provided ClientID prefixed with "@" (e.g., "@my_order_id").
-//
-// Returns:
-//   - *Order: The full details of the specified Order.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
 func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
@@ -1835,6 +1904,7 @@ func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*
 	return doGet[OrderDetailsResponse](s.client, ctx, path, nil)
 }
 
+// OrderReplaceResponse is the successful response returned by [Client.OrderReplace].
 type OrderReplaceResponse struct {
 	OrderCancelTransaction          OrderCancelTransaction `json:"orderCancelTransaction"`
 	OrderCreateTransaction          Transaction            `json:"orderCreateTransaction"`
@@ -1846,6 +1916,11 @@ type OrderReplaceResponse struct {
 	LastTransactionID               TransactionID          `json:"lastTransactionID"`
 }
 
+// OrderReplace cancels and replaces an existing Order with a new one.
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_5
 func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.accountID, specifier)
 	body, err := req.body()
@@ -1881,12 +1956,18 @@ func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req
 	}
 }
 
+// OrderCancelResponse is the successful response returned by [orderService.Cancel].
 type OrderCancelResponse struct {
 	OrderCancelTransaction OrderCancelTransaction `json:"orderCancelTransaction"`
 	RelatedTransactionIDs  []TransactionID        `json:"relatedTransactionIDs"`
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
+// Cancel cancels a pending Order for the Account configured via WithAccountID.
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}/cancel
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_6
 func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", s.client.accountID, specifier)
 	httpResp, err := s.client.sendPutRequest(ctx, path, nil)
@@ -1912,6 +1993,7 @@ func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*O
 	}
 }
 
+// OrderUpdateClientExtensionsRequest is the request body for updating client extensions on an Order.
 type OrderUpdateClientExtensionsRequest struct {
 	ClientExtensions      ClientExtensions `json:"clientExtensions,omitempty"`
 	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions,omitempty"`
@@ -1925,12 +2007,18 @@ func (r *OrderUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// OrderUpdateClientExtensionsResponse is the successful response returned by [orderService.UpdateClientExtensions].
 type OrderUpdateClientExtensionsResponse struct {
 	OrderClientExtensionsModifyTransaction OrderClientExtensionsModifyTransaction `json:"orderClientExtensionsModifyTransaction"`
 	LastTransactionID                      TransactionID                          `json:"lastTransactionID"`
 	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 }
 
+// UpdateClientExtensions updates the client extensions for an Order.
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}/clientExtensions
+//
+// Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_7
 func (s *orderService) UpdateClientExtensions(
 	ctx context.Context,
 	specifier OrderSpecifier,
