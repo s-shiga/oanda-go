@@ -30,7 +30,7 @@ jobs:
         run: go test -v ./...
         env:
           OANDA_API_KEY_DEMO: ${{ secrets.OANDA_API_KEY_DEMO }}
-          OANDA_ACCOUNT_ID_DEMO: ${{ secret.OANDA_ACCOUNT_ID_DEMO }}
+          OANDA_ACCOUNT_ID_DEMO: ${{ secrets.OANDA_ACCOUNT_ID_DEMO }}
 
       - name: Vet
         run: go vet ./...
