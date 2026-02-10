@@ -130,6 +130,8 @@ type CandlestickResponse struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/instrument-ep/
 // ------------------------------------------------------------------
 
+// InstrumentService handles communication with the Instrument related endpoints of the
+// OANDA v20 REST API.
 type InstrumentService struct {
 	client *Client
 }
@@ -138,28 +140,17 @@ func newInstrumentService(client *Client) *InstrumentService {
 	return &InstrumentService{client}
 }
 
+// InstrumentListResponse is the response returned by [InstrumentService.List].
 type InstrumentListResponse struct {
 	Instruments       []Instrument  `json:"instruments"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// List retrieves the list of tradeable instruments for the given Account.
+// List retrieves the list of tradeable instruments for the Account configured
+// via [WithAccountID]. You can optionally filter the results by providing
+// specific instrument names; if none are given, all tradeable instruments are returned.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/instruments
-//
-// The instruments returned are those that can be traded using the specified account.
-// You can optionally filter the results by providing specific instrument names.
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - id: The Account identifier.
-//   - instruments: Optional list of instrument names to filter. If empty, all tradeable
-//     instruments are returned.
-//
-// Returns:
-//   - []Instrument: A slice of instruments available for trading.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
 func (s *InstrumentService) List(ctx context.Context, instruments ...InstrumentName) (*InstrumentListResponse, error) {

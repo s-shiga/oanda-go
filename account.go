@@ -435,6 +435,8 @@ const (
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 // ---------------------------------------------------------------
 
+// AccountService handles communication with the Account related endpoints of the
+// OANDA v20 REST API.
 type AccountService struct {
 	client *Client
 }
@@ -443,6 +445,7 @@ func newAccountService(client *Client) *AccountService {
 	return &AccountService{client}
 }
 
+// AccountListResponse is the response returned by [AccountService.List].
 type AccountListResponse struct {
 	Accounts []AccountProperties `json:"accounts"`
 }
@@ -460,23 +463,15 @@ func (s *AccountService) List(ctx context.Context) (*AccountListResponse, error)
 	return doGet[AccountListResponse](s.client, ctx, "/v3/accounts", nil)
 }
 
+// AccountDetailsResponse is the response returned by [AccountService.Details].
 type AccountDetailsResponse struct {
 	Account           Account       `json:"account"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// Details retrieves the full details for a single Account.
+// Details retrieves the full details for the Account configured via [WithAccountID].
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - id: The Account identifier to retrieve details for.
-//
-// Returns:
-//   - *Account: Full account details including open trades, positions, and pending orders.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
 func (s *AccountService) Details(ctx context.Context) (*AccountDetailsResponse, error) {
@@ -484,27 +479,18 @@ func (s *AccountService) Details(ctx context.Context) (*AccountDetailsResponse, 
 	return doGet[AccountDetailsResponse](s.client, ctx, path, nil)
 }
 
+// AccountSummaryResponse is the response returned by [AccountService.Summary].
 type AccountSummaryResponse struct {
 	Account           AccountSummary `json:"account"`
 	LastTransactionID TransactionID  `json:"lastTransactionID"`
 }
 
-// Summary retrieves a summary for a single Account.
+// Summary retrieves a summary for the Account configured via [WithAccountID].
+//
+// Unlike [AccountService.Details], this method does not include full pending Order,
+// open Trade, and Position representations, making it more lightweight.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/summary
-//
-// Unlike AccountDetails, this method does not include full pending Order, open Trade,
-// and Position representations, making it more lightweight for cases where only
-// account-level summary information is needed.
-//
-// Parameters:
-//   - ctx: Context for the request.
-//   - id: The Account identifier to retrieve the summary for.
-//
-// Returns:
-//   - *AccountSummary: Summary account information without full trade/position details.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
 func (s *AccountService) Summary(ctx context.Context) (*AccountSummaryResponse, error) {
@@ -512,6 +498,8 @@ func (s *AccountService) Summary(ctx context.Context) (*AccountSummaryResponse, 
 	return doGet[AccountSummaryResponse](s.client, ctx, path, nil)
 }
 
+// AccountConfigureRequest represents a request to update Account configuration.
+// Use [NewAccountConfigureRequest] to create one, then chain setters.
 type AccountConfigureRequest struct {
 	Alias      string        `json:"alias"`
 	MarginRate DecimalNumber `json:"marginRate"`
@@ -525,25 +513,31 @@ func (r *AccountConfigureRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// NewAccountConfigureRequest creates a new empty [AccountConfigureRequest].
 func NewAccountConfigureRequest() *AccountConfigureRequest {
 	return &AccountConfigureRequest{}
 }
 
+// SetAlias sets the client-assigned alias for the Account.
 func (r *AccountConfigureRequest) SetAlias(alias string) *AccountConfigureRequest {
 	r.Alias = alias
 	return r
 }
 
+// SetMarginRate sets the margin rate for the Account.
 func (r *AccountConfigureRequest) SetMarginRate(marginRate DecimalNumber) *AccountConfigureRequest {
 	r.MarginRate = marginRate
 	return r
 }
 
+// AccountConfigureResponse is the successful response returned by [AccountService.Configure].
 type AccountConfigureResponse struct {
 	ClientConfigureTransaction ClientConfigureTransaction `json:"clientConfigureTransaction"`
 	LastTransactionID          TransactionID              `json:"lastTransactionID"`
 }
 
+// AccountConfigureErrorResponse is the error response returned by [AccountService.Configure]
+// when the request is rejected (400 or 403).
 type AccountConfigureErrorResponse struct {
 	ClientConfigureRejectTransaction ClientConfigureRejectTransaction `json:"clientConfigureRejectTransaction"`
 	LastTransactionID                TransactionID                    `json:"lastTransactionID"`
@@ -551,10 +545,16 @@ type AccountConfigureErrorResponse struct {
 	ErrorMessage                     string                           `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r AccountConfigureErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// Configure sets the client-configurable portions of an Account (alias and margin rate).
+//
+// This corresponds to the OANDA API endpoint: PATCH /v3/accounts/{accountID}/configuration
+//
+// Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_5
 func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/configuration", s.client.accountID)
 	var body io.Reader
@@ -593,6 +593,7 @@ func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureReq
 	}
 }
 
+// AccountChangesResponse is the response returned by [AccountService.Changes].
 type AccountChangesResponse struct {
 	Changes           AccountChanges      `json:"changes"`
 	State             AccountChangesState `json:"state"`
@@ -600,25 +601,13 @@ type AccountChangesResponse struct {
 }
 
 // Changes retrieves the changes to an Account's Orders, Trades, and Positions
-// since a specified TransactionID.
-//
-// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/changes
+// since a specified TransactionID. The Account is determined by [WithAccountID].
 //
 // This endpoint is useful for polling-based synchronization. By tracking the
-// LastTransactionID from each response, you can efficiently fetch only the changes
-// that have occurred since your last request.
+// LastTransactionID from each response, you can efficiently fetch only the
+// changes that have occurred since your last request.
 //
-// Parameters:
-//   - ctx: Context for the request.
-//   - id: The Account identifier.
-//   - since: The TransactionID to get Account changes since. This should typically
-//     be the LastTransactionID returned from a previous call.
-//
-// Returns:
-//   - *AccountChanges: The changes to orders, trades, and positions since the given transaction.
-//   - *AccountChangesState: The current price-dependent state of the account.
-//   - TransactionID: The ID of the most recent transaction created for the account.
-//   - error: An error if the request fails or response cannot be decoded.
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/changes
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
 func (s *AccountService) Changes(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {

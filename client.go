@@ -14,13 +14,20 @@ import (
 )
 
 const (
-	Version                     = "0.1.0"
-	FXTradeURL                  = "https://api-fxtrade.oanda.com"
-	FXTradePracticeURL          = "https://api-fxpractice.oanda.com"
-	FXTradeStreamingURL         = "https://stream-fxtrade.oanda.com"
+	// Version is the version of the oanda-go library.
+	Version = "0.1.0"
+	// FXTradeURL is the base URL for the OANDA fxTrade REST API (live).
+	FXTradeURL = "https://api-fxtrade.oanda.com"
+	// FXTradePracticeURL is the base URL for the OANDA fxTrade REST API (practice/demo).
+	FXTradePracticeURL = "https://api-fxpractice.oanda.com"
+	// FXTradeStreamingURL is the base URL for the OANDA fxTrade Streaming API (live).
+	FXTradeStreamingURL = "https://stream-fxtrade.oanda.com"
+	// FXTradeStreamingPracticeURL is the base URL for the OANDA fxTrade Streaming API (practice/demo).
 	FXTradeStreamingPracticeURL = "https://stream-fxpractice.oanda.com"
 )
 
+// HTTPClient is an interface for executing HTTP requests.
+// It is satisfied by *http.Client and can be replaced for testing.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -43,6 +50,9 @@ type clientConfig struct {
 	httpClient HTTPClient
 }
 
+// Client is the OANDA v20 REST API client. Create one with [NewClient] (live)
+// or [NewDemoClient] (practice). Each field exposes a service that maps to an
+// OANDA API endpoint group.
 type Client struct {
 	clientConfig
 	Account     *AccountService
@@ -54,26 +64,32 @@ type Client struct {
 	Price       *priceService
 }
 
+// Option configures a [Client] or [StreamClient]. Pass options to
+// [NewClient], [NewDemoClient], [NewStreamClient], or [NewDemoStreamClient].
 type Option func(*clientConfig)
 
+// WithBaseURL overrides the default OANDA API base URL.
 func WithBaseURL(baseURL string) Option {
 	return func(c *clientConfig) {
 		c.baseURL = baseURL
 	}
 }
 
+// WithUserAgent overrides the default User-Agent header sent with every request.
 func WithUserAgent(userAgent string) Option {
 	return func(c *clientConfig) {
 		c.userAgent = userAgent
 	}
 }
 
+// WithAccountID sets the default account ID used by account-scoped API calls.
 func WithAccountID(id AccountID) Option {
 	return func(c *clientConfig) {
 		c.accountID = id
 	}
 }
 
+// WithHTTPClient replaces the default HTTP client used for API requests.
 func WithHTTPClient(client *http.Client) Option {
 	return func(c *clientConfig) {
 		c.httpClient = client
@@ -104,6 +120,7 @@ func buildClient(baseURL, apiKey string) *Client {
 	return client
 }
 
+// NewClient creates a new OANDA v20 REST API client for the live environment.
 func NewClient(apiKey string, opts ...Option) *Client {
 	client := buildClient(FXTradeURL, apiKey)
 	for _, opt := range opts {
@@ -112,6 +129,7 @@ func NewClient(apiKey string, opts ...Option) *Client {
 	return client
 }
 
+// NewDemoClient creates a new OANDA v20 REST API client for the practice/demo environment.
 func NewDemoClient(apiKey string, opts ...Option) *Client {
 	client := buildClient(FXTradePracticeURL, apiKey)
 	for _, opt := range opts {
@@ -138,6 +156,7 @@ func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
+// Request is implemented by types that can serialize themselves into an HTTP request body.
 type Request interface {
 	body() (*bytes.Buffer, error)
 }
@@ -209,6 +228,8 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 	return c.httpClient.Do(req)
 }
 
+// StreamClient is the OANDA v20 Streaming API client. Create one with
+// [NewStreamClient] (live) or [NewDemoStreamClient] (practice).
 type StreamClient struct {
 	clientConfig
 	Transaction *transactionStreamService
@@ -224,6 +245,7 @@ func buildStreamClient(baseURL string, apiKey string) *StreamClient {
 	return client
 }
 
+// NewStreamClient creates a new OANDA v20 Streaming API client for the live environment.
 func NewStreamClient(apiKey string, opts ...Option) *StreamClient {
 	client := buildStreamClient(FXTradeStreamingURL, apiKey)
 	for _, opt := range opts {
@@ -232,6 +254,7 @@ func NewStreamClient(apiKey string, opts ...Option) *StreamClient {
 	return client
 }
 
+// NewDemoStreamClient creates a new OANDA v20 Streaming API client for the practice/demo environment.
 func NewDemoStreamClient(apiKey string, opts ...Option) *StreamClient {
 	client := buildStreamClient(FXTradeStreamingPracticeURL, apiKey)
 	for _, opt := range opts {
