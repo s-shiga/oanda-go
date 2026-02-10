@@ -295,8 +295,12 @@ type TradeListResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// List retrieves a list of Trades for an Account.
-// See: https://developer.oanda.com/rest-live-v20/trade-ep/
+// List retrieves a list of Trades for the Account configured via [WithAccountID].
+// Use [NewTradeListRequest] to create and configure filter parameters.
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/trades
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_2
 func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades", s.client.accountID)
 	v, err := req.values()
@@ -314,8 +318,11 @@ func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeL
 	return &resp, nil
 }
 
-// ListOpen retrieves a list of all currently open Trades for an Account.
-// See: https://developer.oanda.com/rest-live-v20/trade-ep/
+// ListOpen retrieves all currently open Trades for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/openTrades
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_3
 func (s *tradeService) ListOpen(ctx context.Context) (*TradeListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/openTrades", s.client.accountID)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
@@ -329,13 +336,17 @@ func (s *tradeService) ListOpen(ctx context.Context) (*TradeListResponse, error)
 	return &resp, nil
 }
 
+// TradeDetailsResponse is the response returned by [tradeService.Details].
 type TradeDetailsResponse struct {
 	Trade             Trade         `json:"trade"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
-// Details retrieves the details of a specific Trade in an Account.
-// See: https://developer.oanda.com/rest-live-v20/trade-ep/
+// Details retrieves the details of a specific Trade for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/trades/{tradeSpecifier}
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_4
 func (s *tradeService) Details(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", s.client.accountID, specifier)
 	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
@@ -349,6 +360,8 @@ func (s *tradeService) Details(ctx context.Context, specifier TradeSpecifier) (*
 	return &resp, nil
 }
 
+// TradeCloseRequest represents a request to close (fully or partially) a Trade.
+// Use [NewTradeCloseRequest] or [NewTradeCloseALLRequest] to create one.
 type TradeCloseRequest struct {
 	// Units is indication of how much of the Trade to close. Either the string “ALL”
 	// (indicating that all of the Trade should be closed), or a DecimalNumber
@@ -367,14 +380,17 @@ func (r TradeCloseRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// NewTradeCloseRequest creates a request to partially close a Trade by the specified number of units.
 func NewTradeCloseRequest(units DecimalNumber) TradeCloseRequest {
 	return TradeCloseRequest{Units: units}
 }
 
+// NewTradeCloseALLRequest creates a request to fully close a Trade.
 func NewTradeCloseALLRequest() TradeCloseRequest {
 	return TradeCloseRequest{Units: "ALL"}
 }
 
+// TradeCloseResponse is the successful response returned by [Client.TradeClose].
 type TradeCloseResponse struct {
 	OrderCreateTransaction MarketOrderTransaction  `json:"orderCreateTransaction"`
 	OrderFillTransaction   OrderFillTransaction    `json:"orderFillTransaction"`
@@ -383,16 +399,19 @@ type TradeCloseResponse struct {
 	LastTransactionID      TransactionID           `json:"lastTransactionID"`
 }
 
+// TradeCloseBadRequestResponse is the error response returned by [Client.TradeClose] on a 400 status.
 type TradeCloseBadRequestResponse struct {
 	OrderRejectTransaction MarketOrderRejectTransaction `json:"orderRejectTransaction"`
 	ErrorCode              string                       `json:"errorCode"`
 	ErrorMessage           string                       `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r TradeCloseBadRequestResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// TradeCloseNotFoundResponse is the error response returned by [Client.TradeClose] on a 404 status.
 type TradeCloseNotFoundResponse struct {
 	OrderRejectTransaction MarketOrderRejectTransaction `json:"orderRejectTransaction"`
 	LastTransactionID      TransactionID                `json:"lastTransactionID"`
@@ -401,10 +420,16 @@ type TradeCloseNotFoundResponse struct {
 	ErrorMessage           string                       `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r TradeCloseNotFoundResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// TradeClose closes (fully or partially) a specific Trade for the Account configured via [WithAccountID].
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/trades/{tradeSpecifier}/close
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_5
 func (c *Client) TradeClose(ctx context.Context, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", c.accountID, specifier)
 	body, err := req.body()
@@ -440,6 +465,7 @@ func (c *Client) TradeClose(ctx context.Context, specifier TradeSpecifier, req T
 	}
 }
 
+// TradeUpdateClientExtensionsRequest is the request body for updating client extensions on a Trade.
 type TradeUpdateClientExtensionsRequest struct {
 	ClientExtensions ClientExtensions `json:"clientExtensions"`
 }
@@ -452,12 +478,14 @@ func (r TradeUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// TradeUpdateClientExtensionsResponse is the successful response returned by [tradeService.UpdateClientExtensions].
 type TradeUpdateClientExtensionsResponse struct {
 	TradeClientExtensionsModifyTransaction TradeClientExtensionsModifyTransaction `json:"tradeClientExtensionsModifyTransaction"`
 	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 	LastTransactionID                      TransactionID                          `json:"lastTransactionID"`
 }
 
+// TradeUpdateClientExtensionsErrorResponse is the error response returned by [tradeService.UpdateClientExtensions].
 type TradeUpdateClientExtensionsErrorResponse struct {
 	TradeClientExtensionsModifyRejectTransaction TradeClientExtensionsModifyRejectTransaction `json:"tradeClientExtensionsModifyRejectTransaction"`
 	LastTransactionID                            TransactionID                                `json:"lastTransactionID"`
@@ -466,10 +494,16 @@ type TradeUpdateClientExtensionsErrorResponse struct {
 	ErrorMessage                                 string                                       `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r TradeUpdateClientExtensionsErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// UpdateClientExtensions updates the client extensions for a Trade.
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/trades/{tradeSpecifier}/clientExtensions
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_6
 func (s *tradeService) UpdateClientExtensions(ctx context.Context, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", s.client.accountID, specifier)
 	body, err := req.body()
@@ -505,6 +539,8 @@ func (s *tradeService) UpdateClientExtensions(ctx context.Context, specifier Tra
 	}
 }
 
+// TradeUpdateOrdersRequest is the request body for creating, replacing, or cancelling
+// a Trade's dependent Orders (Take Profit, Stop Loss, Trailing Stop Loss, Guaranteed Stop Loss).
 type TradeUpdateOrdersRequest struct {
 	TakeProfit         *TakeProfitDetails         `json:"takeProfit,omitempty"`
 	StopLoss           *StopLossDetails           `json:"stopLoss,omitempty"`
@@ -520,6 +556,7 @@ func (r TradeUpdateOrdersRequest) body() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(jsonBody), nil
 }
 
+// TradeUpdateOrdersResponse is the successful response returned by [tradeService.UpdateOrders].
 type TradeUpdateOrdersResponse struct {
 	TakeProfitOrderCancelTransaction         *OrderCancelTransaction             `json:"takeProfitOrderCancelTransaction,omitempty"`
 	TakeProfitOrderTransaction               *TakeProfitOrderTransaction         `json:"takeProfitOrderTransaction,omitempty"`
@@ -537,6 +574,7 @@ type TradeUpdateOrdersResponse struct {
 	LastTransactionID                        TransactionID                       `json:"lastTransactionID"`
 }
 
+// TradeUpdateOrdersErrorResponse is the error response returned by [tradeService.UpdateOrders].
 type TradeUpdateOrdersErrorResponse struct {
 	TakeProfitOrderCancelRejectTransaction         *OrderCancelRejectTransaction             `json:"takeProfitOrderCancelRejectTransaction,omitempty"`
 	TakeProfitOrderRejectTransaction               *TakeProfitOrderRejectTransaction         `json:"takeProfitOrderRejectTransaction,omitempty"`
@@ -552,10 +590,17 @@ type TradeUpdateOrdersErrorResponse struct {
 	ErrorMessage                                   string                                    `json:"errorMessage"`
 }
 
+// Error implements the error interface.
 func (r TradeUpdateOrdersErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
+// UpdateOrders creates, replaces, or cancels a Trade's dependent Orders
+// (Take Profit, Stop Loss, Trailing Stop Loss, Guaranteed Stop Loss).
+//
+// This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/trades/{tradeSpecifier}/orders
+//
+// Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_7
 func (s *tradeService) UpdateOrders(ctx context.Context, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", s.client.accountID, specifier)
 	body, err := req.body()
