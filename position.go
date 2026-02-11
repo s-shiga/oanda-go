@@ -170,6 +170,10 @@ type PositionCloseRequest struct {
 	ShortClientExtensions *ClientExtensions `json:"shortClientExtensions,omitempty"`
 }
 
+func NewPositionCloseRequest() *PositionCloseRequest {
+	return &PositionCloseRequest{}
+}
+
 // SetLongAll sets the request to close all units of the long side.
 func (r *PositionCloseRequest) SetLongAll() *PositionCloseRequest {
 	v := "ALL"
