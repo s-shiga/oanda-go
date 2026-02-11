@@ -232,16 +232,12 @@ func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Read
 // [NewStreamClient] (live) or [NewDemoStreamClient] (practice).
 type StreamClient struct {
 	clientConfig
-	Transaction *transactionStreamService
-	Price       *priceStreamService
 }
 
 func buildStreamClient(baseURL string, apiKey string) *StreamClient {
 	client := &StreamClient{
 		clientConfig: defaultConfig(baseURL, apiKey),
 	}
-	client.Transaction = newTransactionStreamService(client)
-	client.Price = newPriceStreamService(client)
 	return client
 }
 

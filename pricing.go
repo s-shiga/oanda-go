@@ -377,14 +377,6 @@ func (s *priceService) Candlesticks(ctx context.Context, req *PriceCandlesticksR
 	return doGet[CandlestickResponse](s.client, ctx, path, values)
 }
 
-type priceStreamService struct {
-	client *StreamClient
-}
-
-func newPriceStreamService(client *StreamClient) *priceStreamService {
-	return &priceStreamService{client: client}
-}
-
 // PriceStreamRequest represents a request to open a pricing stream.
 // Use [NewPriceStreamRequest] to create one.
 type PriceStreamRequest struct {
@@ -437,19 +429,19 @@ type PriceStreamItem interface {
 	GetTime() DateTime
 }
 
-// Stream opens a streaming connection for pricing data. Items are sent to ch until
+// Price opens a streaming connection for pricing data. Items are sent to ch until
 // done is closed or the context is cancelled.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/pricing/stream
 //
 // Reference: https://developer.oanda.com/rest-live-v20/pricing-ep/#collapse_endpoint_3
-func (s *priceStreamService) Stream(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
-	path := fmt.Sprintf("/v3/accounts/%s/pricing/stream", s.client.accountID)
+func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
+	path := fmt.Sprintf("/v3/accounts/%s/pricing/stream", c.accountID)
 	values, err := req.values()
 	if err != nil {
 		return err
 	}
-	u, err := joinURL(s.client.baseURL, path, values)
+	u, err := joinURL(c.baseURL, path, values)
 	if err != nil {
 		return err
 	}
@@ -457,8 +449,8 @@ func (s *priceStreamService) Stream(ctx context.Context, req *PriceStreamRequest
 	if err != nil {
 		return err
 	}
-	s.client.setHeaders(httpReq)
-	httpResp, err := s.client.httpClient.Do(httpReq)
+	c.setHeaders(httpReq)
+	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send GET request: %w", err)
 	}

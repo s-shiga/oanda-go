@@ -59,7 +59,7 @@ func TestTransactionStreamService_Stream(t *testing.T) {
 		done <- struct{}{}
 	}()
 	defer close(ch)
-	if err := client.Transaction.Stream(t.Context(), ch, done); err != nil {
+	if err := client.Transaction(t.Context(), ch, done); err != nil {
 		t.Errorf("got error: %v", err)
 	}
 }

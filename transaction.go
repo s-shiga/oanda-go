@@ -2156,14 +2156,6 @@ func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionG
 	return doGet[TransactionsResponse](s.client, ctx, path, v)
 }
 
-type transactionStreamService struct {
-	client *StreamClient
-}
-
-func newTransactionStreamService(client *StreamClient) *transactionStreamService {
-	return &transactionStreamService{client}
-}
-
 // TransactionStreamItem is an interface for items received from a Transaction stream.
 type TransactionStreamItem interface {
 	GetType() string
@@ -2171,14 +2163,14 @@ type TransactionStreamItem interface {
 	GetTime() DateTime
 }
 
-// Stream opens a streaming connection for Transactions on the Account configured via [WithAccountID].
+// Transaction opens a streaming connection for Transactions on the Account configured via [WithAccountID].
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/stream
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_5
-func (s *transactionStreamService) Stream(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
-	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", s.client.accountID)
-	u, err := joinURL(s.client.baseURL, path, nil)
+func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
+	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", c.accountID)
+	u, err := joinURL(c.baseURL, path, nil)
 	if err != nil {
 		return err
 	}
@@ -2186,8 +2178,8 @@ func (s *transactionStreamService) Stream(ctx context.Context, ch chan<- Transac
 	if err != nil {
 		return err
 	}
-	s.client.setHeaders(httpReq)
-	httpResp, err := s.client.httpClient.Do(httpReq)
+	c.setHeaders(httpReq)
+	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to send GET request: %w", err)
 	}

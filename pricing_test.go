@@ -40,7 +40,7 @@ func TestPriceStreamService_Stream(t *testing.T) {
 		done <- struct{}{}
 	}()
 	defer close(ch)
-	if err := client.Price.Stream(t.Context(), req, ch, done); err != nil {
+	if err := client.Price(t.Context(), req, ch, done); err != nil {
 		t.Errorf("got error: %v", err)
 	}
 }
