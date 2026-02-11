@@ -25,7 +25,7 @@ func TestPriceService_Information(t *testing.T) {
 	debugResponse(resp)
 }
 
-func TestPriceStreamService_Stream(t *testing.T) {
+func TestStreamClient_Price(t *testing.T) {
 	client := setupStreamClient(t)
 	req := NewPriceStreamRequest("USD_JPY")
 	ch := make(chan PriceStreamItem)
