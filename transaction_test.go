@@ -1,51 +1,64 @@
 package oanda
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
 
-func TestTransactionService_List(t *testing.T) {
+func TestTransactionService(t *testing.T) {
 	client := setupClient(t)
-	req := NewTransactionListRequest()
-	resp, err := client.Transaction.List(t.Context(), req)
-	if err != nil {
-		t.Errorf("failed to list transactions: %v", err)
-	}
-	debugResponse(resp)
+	var lastTransactionID TransactionID
+
+	t.Run("list", func(t *testing.T) {
+		req := NewTransactionListRequest()
+		resp, err := client.Transaction.List(t.Context(), req)
+		if err != nil {
+			t.Errorf("failed to list transactions: %v", err)
+		}
+		debugResponse(resp)
+		lastTransactionID = resp.LastTransactionID
+	})
+
+	t.Run("details", func(t *testing.T) {
+		resp, err := client.Transaction.Details(t.Context(), lastTransactionID)
+		if err != nil {
+			t.Errorf("failed to get details: %v", err)
+		}
+		debugResponse(resp)
+	})
+
+	t.Run("get by ID range", func(t *testing.T) {
+		id, err := strconv.Atoi(lastTransactionID)
+		if err != nil {
+			t.Errorf("failed to convert last transaction id to int: %v", err)
+		}
+		from := strconv.Itoa(id - 20)
+		to := strconv.Itoa(id - 10)
+		req := NewTransactionGetByIDRangeRequest(from, to)
+		resp, err := client.Transaction.GetByIDRange(t.Context(), req)
+		if err != nil {
+			t.Errorf("failed to get transactions by ID range: %v", err)
+		}
+		debugResponse(resp)
+	})
+
+	t.Run("get by since ID", func(t *testing.T) {
+		id, err := strconv.Atoi(lastTransactionID)
+		if err != nil {
+			t.Errorf("failed to convert last transaction id to int: %v", err)
+		}
+		since := strconv.Itoa(id - 10)
+		req := NewTransactionGetBySinceIDRequest(since)
+		resp, err := client.Transaction.GetBySinceID(t.Context(), req)
+		if err != nil {
+			t.Errorf("failed to get transactions by since ID: %v", err)
+		}
+		debugResponse(resp)
+	})
 }
 
-func TestTransactionService_Details(t *testing.T) {
-	client := setupClient(t)
-	transactionID := "533"
-	resp, err := client.Transaction.Details(t.Context(), transactionID)
-	if err != nil {
-		t.Errorf("failed to get details: %v", err)
-	}
-	debugResponse(resp)
-}
-
-func TestTransactionService_GetByIDRange(t *testing.T) {
-	client := setupClient(t)
-	req := NewTransactionGetByIDRangeRequest("500", "510")
-	resp, err := client.Transaction.GetByIDRange(t.Context(), req)
-	if err != nil {
-		t.Errorf("failed to get transactions by ID range: %v", err)
-	}
-	debugResponse(resp)
-}
-
-func TestTransactionService_GetBySinceID(t *testing.T) {
-	client := setupClient(t)
-	req := NewTransactionGetBySinceIDRequest("520")
-	resp, err := client.Transaction.GetBySinceID(t.Context(), req)
-	if err != nil {
-		t.Errorf("failed to get transactions by since ID: %v", err)
-	}
-	debugResponse(resp)
-}
-
-func TestTransactionStreamService_Stream(t *testing.T) {
+func TestStreamClient_Transaction(t *testing.T) {
 	client := setupStreamClient(t)
 	ch := make(chan TransactionStreamItem)
 	done := make(chan struct{}, 1)
