@@ -170,6 +170,7 @@ type PositionCloseRequest struct {
 	ShortClientExtensions *ClientExtensions `json:"shortClientExtensions,omitempty"`
 }
 
+// NewPositionCloseRequest creates a new request with empty fields.
 func NewPositionCloseRequest() *PositionCloseRequest {
 	return &PositionCloseRequest{}
 }
