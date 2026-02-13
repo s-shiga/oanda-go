@@ -114,7 +114,7 @@ type PriceBucket struct {
 	// Price is the price offered.
 	Price PriceValue `json:"price"`
 	// Liquidity is the amount of liquidity offered.
-	Liquidity string `json:"liquidity"`
+	Liquidity int `json:"liquidity"`
 }
 
 // ---------------------------------------------------------------
@@ -464,25 +464,29 @@ func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch ch
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			var typeOnly struct {
-				Type string `json:"type"`
-			}
-			if err := dec.Decode(&typeOnly); err != nil {
+			var raw json.RawMessage
+			if err := dec.Decode(&raw); err != nil {
 				if err == io.EOF {
 					break
 				}
 				return fmt.Errorf("failed to decode JSON response: %w", err)
 			}
+			var typeOnly struct {
+				Type string `json:"type"`
+			}
+			if err := json.Unmarshal(raw, &typeOnly); err != nil {
+				return fmt.Errorf("failed to unmarshal type: %w", err)
+			}
 			switch typeOnly.Type {
 			case "PRICE":
 				var price ClientPrice
-				if err := dec.Decode(&price); err != nil {
+				if err := json.Unmarshal(raw, &price); err != nil {
 					return err
 				}
 				ch <- price
 			case "HEARTBEAT":
 				var heartbeat PricingHeartbeat
-				if err := dec.Decode(&heartbeat); err != nil {
+				if err := json.Unmarshal(raw, &heartbeat); err != nil {
 					return err
 				}
 				ch <- heartbeat

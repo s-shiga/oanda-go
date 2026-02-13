@@ -511,7 +511,7 @@ type LimitOrderTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -519,21 +519,21 @@ type LimitOrderTransaction struct {
 	// Reason is the reason that the Limit Order was created.
 	Reason LimitOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 }
 
 // LimitOrderRejectTransaction represents a Transaction that rejects the creation of a Limit Order.
@@ -548,7 +548,7 @@ type LimitOrderRejectTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -556,19 +556,19 @@ type LimitOrderRejectTransaction struct {
 	// Reason is the reason that the Limit Order was created.
 	Reason LimitOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -587,7 +587,7 @@ type StopOrderTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -595,21 +595,21 @@ type StopOrderTransaction struct {
 	// Reason is the reason that the Stop Order was created.
 	Reason StopOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 }
 
 // StopOrderRejectTransaction represents a Transaction that rejects the creation of a Stop Order.
@@ -626,7 +626,7 @@ type StopOrderRejectTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -634,19 +634,19 @@ type StopOrderRejectTransaction struct {
 	// Reason is the reason that the Stop Order was created.
 	Reason StopOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -665,7 +665,7 @@ type MarketIfTouchedOrderTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TriggerCondition specifies which price component should be used for triggering.
@@ -673,21 +673,21 @@ type MarketIfTouchedOrderTransaction struct {
 	// Reason is the reason that the Market If Touched Order was created.
 	Reason MarketIfTouchedOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 }
 
 // MarketIfTouchedOrderRejectTransaction represents a Transaction that rejects the creation of a Market If Touched Order.
@@ -712,19 +712,19 @@ type MarketIfTouchedOrderRejectTransaction struct {
 	// Reason is the reason that the Market If Touched Order was created.
 	Reason MarketIfTouchedOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -776,9 +776,9 @@ type TakeProfitOrderRejectTransaction struct {
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -800,20 +800,16 @@ type StopLossOrderTransaction struct {
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// Guaranteed is deprecated. Indicates if the Stop Loss Order is guaranteed.
-	Guaranteed bool `json:"guaranteed"`
-	// GuaranteedExecutionPremium is the fee charged if the Stop Loss Order is guaranteed.
-	GuaranteedExecutionPremium DecimalNumber `json:"guaranteedExecutionPremium"`
 	// Reason is the reason that the Stop Loss Order was created.
 	Reason StopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
-	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
+	CancellingTransactionID *TransactionID `json:"cancellingTransactionID,omitempty"`
 }
 
 // StopLossOrderRejectTransaction represents a Transaction that rejects the creation of a Stop Loss Order.
@@ -833,16 +829,14 @@ type StopLossOrderRejectTransaction struct {
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used for triggering.
 	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
-	// Guaranteed is deprecated. Indicates if the Stop Loss Order is guaranteed.
-	Guaranteed bool `json:"guaranteed"`
 	// Reason is the reason that the Stop Loss Order was created.
 	Reason StopLossOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -871,9 +865,9 @@ type GuaranteedStopLossOrderTransaction struct {
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
 	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
 }
@@ -900,9 +894,9 @@ type GuaranteedStopLossOrderRejectTransaction struct {
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -927,9 +921,9 @@ type TrailingStopLossOrderTransaction struct {
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// ReplacesOrderID is the ID of the Order that this Order replaces.
-	ReplacesOrderID OrderID `json:"replacesOrderID"`
+	ReplacesOrderID *OrderID `json:"replacesOrderID,omitempty"`
 	// CancellingTransactionID is the ID of the Transaction that cancels the replaced Order.
 	CancellingTransactionID TransactionID `json:"cancellingTransactionID"`
 }
@@ -954,9 +948,9 @@ type TrailingStopLossOrderRejectTransaction struct {
 	// ClientExtensions are the client extensions for the Order.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// OrderFillTransactionID is the ID of the OrderFill Transaction that caused this Order to be created.
-	OrderFillTransactionID TransactionID `json:"orderFillTransactionID"`
+	OrderFillTransactionID *TransactionID `json:"orderFillTransactionID,omitempty"`
 	// IntendedReplacesOrderID is the ID of the Order that this Order was intended to replace.
-	IntendedReplacesOrderID OrderID `json:"intendedReplacesOrderID"`
+	IntendedReplacesOrderID *OrderID `json:"intendedReplacesOrderID,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -2509,182 +2503,185 @@ func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStr
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			var typeOnly struct {
-				Type TransactionType `json:"type"`
-			}
-			if err := dec.Decode(&typeOnly); err != nil {
+			var raw json.RawMessage
+			if err := dec.Decode(&raw); err != nil {
 				if err == io.EOF {
 					break
 				}
 				return fmt.Errorf("failed to decode JSON response: %w", err)
 			}
+			var typeOnly struct {
+				Type TransactionType `json:"type"`
+			}
+			if err := json.Unmarshal(raw, &typeOnly); err != nil {
+				return fmt.Errorf("failed to unmarshal type: %w", err)
+			}
 			switch typeOnly.Type {
 			case "CREATE":
-				if err := decodeItem[CreateTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[CreateTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "CLOSE":
-				if err := decodeItem[CloseTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[CloseTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "REOPEN":
-				if err := decodeItem[ReopenTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[ReopenTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "CLIENT_CONFIGURE":
-				if err := decodeItem[ClientConfigureTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[ClientConfigureTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "CLIENT_CONFIGURE_REJECT":
-				if err := decodeItem[ClientConfigureRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[ClientConfigureRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRANSFER_FUNDS":
-				if err := decodeItem[TransferFundsTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TransferFundsTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRANSFER_FUNDS_REJECT":
-				if err := decodeItem[TransferFundsRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TransferFundsRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARKET_ORDER":
-				if err := decodeItem[MarketOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarketOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARKET_ORDER_REJECT":
-				if err := decodeItem[MarketOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarketOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "FIXED_PRICE_ORDER":
-				if err := decodeItem[FixedPriceOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[FixedPriceOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "LIMIT_ORDER":
-				if err := decodeItem[LimitOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[LimitOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "LIMIT_ORDER_REJECT":
-				if err := decodeItem[LimitOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[LimitOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "STOP_ORDER":
-				if err := decodeItem[StopOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[StopOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "STOP_ORDER_REJECT":
-				if err := decodeItem[StopOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[StopOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARKET_IF_TOUCHED_ORDER":
-				if err := decodeItem[MarketIfTouchedOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarketIfTouchedOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARKET_IF_TOUCHED_ORDER_REJECT":
-				if err := decodeItem[MarketIfTouchedOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarketIfTouchedOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TAKE_PROFIT_ORDER":
-				if err := decodeItem[TakeProfitOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TakeProfitOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TAKE_PROFIT_ORDER_REJECT":
-				if err := decodeItem[TakeProfitOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TakeProfitOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "STOP_LOSS_ORDER":
-				if err := decodeItem[StopLossOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[StopLossOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "STOP_LOSS_ORDER_REJECT":
-				if err := decodeItem[StopLossOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[StopLossOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "GUARANTEED_STOP_LOSS_ORDER":
-				if err := decodeItem[GuaranteedStopLossOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[GuaranteedStopLossOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "GUARANTEED_STOP_LOSS_ORDER_REJECT":
-				if err := decodeItem[GuaranteedStopLossOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[GuaranteedStopLossOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRAILING_STOP_LOSS_ORDER":
-				if err := decodeItem[TrailingStopLossOrderTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TrailingStopLossOrderTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRAILING_STOP_LOSS_ORDER_REJECT":
-				if err := decodeItem[TrailingStopLossOrderRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TrailingStopLossOrderRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "ORDER_FILL":
-				if err := decodeItem[OrderFillTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[OrderFillTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "ORDER_CANCEL":
-				if err := decodeItem[OrderCancelTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[OrderCancelTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "ORDER_CANCEL_REJECT":
-				if err := decodeItem[OrderCancelRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[OrderCancelRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "ORDER_CLIENT_EXTENSIONS_MODIFY":
-				if err := decodeItem[OrderClientExtensionsModifyTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[OrderClientExtensionsModifyTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT":
-				if err := decodeItem[OrderClientExtensionsModifyRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[OrderClientExtensionsModifyRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRADE_CLIENT_EXTENSIONS_MODIFY":
-				if err := decodeItem[TradeClientExtensionsModifyTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TradeClientExtensionsModifyTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT":
-				if err := decodeItem[TradeClientExtensionsModifyRejectTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[TradeClientExtensionsModifyRejectTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARGIN_CALL_ENTER":
-				if err := decodeItem[MarginCallEnterTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarginCallEnterTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARGIN_CALL_EXTEND":
-				if err := decodeItem[MarginCallExtendTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarginCallExtendTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "MARGIN_CALL_EXIT":
-				if err := decodeItem[MarginCallExitTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[MarginCallExitTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "DELAYED_TRADE_CLOSURE":
-				if err := decodeItem[DelayedTradeClosureTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[DelayedTradeClosureTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "DAILY_FINANCING":
-				if err := decodeItem[DailyFinancingTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[DailyFinancingTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "DIVIDEND_ADJUSTMENT":
-				if err := decodeItem[DividendAdjustmentTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[DividendAdjustmentTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "RESET_RESETTABLE_PL":
-				if err := decodeItem[ResetResettablePLTransaction](dec, ch); err != nil {
+				if err := unmarshalItem[ResetResettablePLTransaction](raw, ch); err != nil {
 					return err
 				}
 			case "HEARTBEAT":
-				if err := decodeItem[TransactionHeartbeat](dec, ch); err != nil {
+				if err := unmarshalItem[TransactionHeartbeat](raw, ch); err != nil {
 					return err
 				}
 			}
-
 		}
 	}
 }
 
-func decodeItem[R TransactionStreamItem](dec *json.Decoder, ch chan<- TransactionStreamItem) error {
+func unmarshalItem[R TransactionStreamItem](raw json.RawMessage, ch chan<- TransactionStreamItem) error {
 	var t R
-	if err := dec.Decode(&t); err != nil {
-		return fmt.Errorf("failed to decode JSON response: %w", err)
+	if err := json.Unmarshal(raw, &t); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON response: %w", err)
 	}
 	ch <- t
 	return nil
