@@ -467,7 +467,7 @@ func (s *tradeService) Close(ctx context.Context, specifier TradeSpecifier, req 
 
 // TradeUpdateClientExtensionsRequest is the request body for updating client extensions on a Trade.
 type TradeUpdateClientExtensionsRequest struct {
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions"`
 }
 
 func (r TradeUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
