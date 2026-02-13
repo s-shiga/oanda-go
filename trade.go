@@ -425,18 +425,18 @@ func (r TradeCloseNotFoundResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
-// TradeClose closes (fully or partially) a specific Trade for the Account configured via [WithAccountID].
+// Close closes (fully or partially) a specific Trade for the Account configured via [WithAccountID].
 //
 // This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/trades/{tradeSpecifier}/close
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_5
-func (c *Client) TradeClose(ctx context.Context, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", c.accountID, specifier)
+func (s *tradeService) Close(ctx context.Context, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPutRequest(ctx, path, body)
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}
