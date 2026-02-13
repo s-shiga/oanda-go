@@ -348,7 +348,7 @@ type ClientConfigureTransaction struct {
 	// Alias is the client-provided alias for the Account.
 	Alias string `json:"alias"`
 	// MarginRate is the margin rate override for the Account.
-	MarginRate DecimalNumber `json:"marginRate"`
+	MarginRate *DecimalNumber `json:"marginRate,omitempty"`
 }
 
 // ClientConfigureRejectTransaction represents a Transaction that rejects the configuration of an Account's
@@ -404,7 +404,7 @@ type MarketOrderTransaction struct {
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TradeClose details the Trade requested to be closed.
-	TradeClose MarketOrderTradeClose `json:"tradeClose"`
+	TradeClose *MarketOrderTradeClose `json:"tradeClose,omitempty"`
 	// LongPositionCloseout details the long Position to closeout.
 	LongPositionCloseout *MarketOrderPositionCloseout `json:"longPositionCloseout,omitempty"`
 	// ShortPositionCloseout details the short Position to closeout.
@@ -443,7 +443,7 @@ type MarketOrderRejectTransaction struct {
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TradeClose details the Trade requested to be closed.
-	TradeClose MarketOrderTradeClose `json:"tradeClose"`
+	TradeClose *MarketOrderTradeClose `json:"tradeClose,omitempty"`
 	// LongPositionCloseout details the long Position to closeout.
 	LongPositionCloseout *MarketOrderPositionCloseout `json:"longPositionCloseout,omitempty"`
 	// ShortPositionCloseout details the short Position to closeout.
@@ -1024,7 +1024,7 @@ type OrderCancelTransaction struct {
 	// Reason is the reason that the Order was cancelled.
 	Reason OrderCancelReason `json:"reason"`
 	// ReplacedByOrderID is the ID of the Order that replaced this Order.
-	ReplacedByOrderID OrderID `json:"replacedByOrderID"`
+	ReplacedByOrderID *OrderID `json:"replacedByOrderID,omitempty"`
 }
 
 // OrderCancelRejectTransaction represents a Transaction that rejects the cancellation of an Order.

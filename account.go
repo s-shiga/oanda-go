@@ -23,7 +23,7 @@ type Account struct {
 	// ID is the Account's identifier.
 	ID AccountID `json:"id"`
 	// Alias is the client-assigned alias for the Account. Only provided if the Account has an alias.
-	Alias string `json:"alias"`
+	Alias *string `json:"alias,omitempty"`
 	// Currency is the home currency of the Account.
 	Currency Currency `json:"currency"`
 	// CreatedByUserID is the ID of the user that created the Account.
@@ -145,9 +145,9 @@ type AccountProperties struct {
 	ID AccountID `json:"id"`
 	// MT4AccountID is the Account's associated MT4 Account ID. This field will not be present
 	// if the Account is not an MT4 account.
-	MT4AccountID int `json:"mt4AccountID"`
+	MT4AccountID *int `json:"mt4AccountID,omitempty"`
 	// Tags is the Account's tags. Tags are user-defined labels that can be applied to Accounts.
-	Tags []string `json:"tags"`
+	Tags []string `json:"tags,omitempty"`
 }
 
 // GuaranteedStopLossOrderParameters contains the current mutability and hedging settings related
@@ -308,15 +308,15 @@ type AccountChangesState struct {
 	MarginCloseoutPercent DecimalNumber `json:"marginCloseoutPercent"`
 	// MarginCloseoutPositionValue is the value of the Account's open positions as used for margin
 	// closeout calculations represented in the Account's home currency.
-	MarginCloseoutPositionValue DecimalNumber `json:"marginCloseoutPositionValue"`
+	MarginCloseoutPositionValue *DecimalNumber `json:"marginCloseoutPositionValue,omitempty"`
 	// WithdrawalLimit is the current WithdrawalLimit for the account which will be zero or a
 	// positive value indicating how much can be withdrawn from the account.
 	WithdrawalLimit AccountUnits `json:"withdrawalLimit"`
 	// MarginCallMarginUsed is the Account's margin call margin used.
-	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed"`
+	MarginCallMarginUsed *AccountUnits `json:"marginCallMarginUsed,omitempty"`
 	// MarginCallPercent is the Account's margin call percentage. When this value is 1.0 or above
 	// the Account is in a margin call situation.
-	MarginCallPercent DecimalNumber `json:"marginCallPercent"`
+	MarginCallPercent *DecimalNumber `json:"marginCallPercent,omitempty"`
 	// Balance is the current balance of the Account.
 	Balance AccountUnits `json:"balance"`
 	// PL is the total profit/loss realized over the lifetime of the Account.
@@ -325,12 +325,12 @@ type AccountChangesState struct {
 	// the client.
 	ResettablePL AccountUnits `json:"resettablePL"`
 	// Financing is the total amount of financing paid/collected over the lifetime of the Account.
-	Financing AccountUnits `json:"financing"`
+	Financing *AccountUnits `json:"financing,omitempty"`
 	// Commission is the total amount of commission paid over the lifetime of the Account.
 	Commission AccountUnits `json:"commission"`
 	// DividendAdjustment is the total amount of dividend adjustment paid or collected over the
 	// lifetime of the Account in the Account's home currency.
-	DividendAdjustment AccountUnits `json:"dividendAdjustment"`
+	DividendAdjustment *AccountUnits `json:"dividendAdjustment,omitempty"`
 	// GuaranteedExecutionFees is the total amount of fees charged over the lifetime of the Account
 	// for the execution of guaranteed Stop Loss Orders.
 	GuaranteedExecutionFees AccountUnits `json:"guaranteedExecutionFees"`

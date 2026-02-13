@@ -49,11 +49,11 @@ type Trade struct {
 	// 0.0 as the Trade is closed.
 	CurrentUnits DecimalNumber `json:"currentUnits"`
 	// RealizedPL is the total profit/loss realized on the closed portion of the Trade.
-	RealizedPL AccountUnits `json:"realizedPL"`
+	RealizedPL *AccountUnits `json:"realizedPL,omitempty"`
 	// UnrealizedPL is the unrealized profit/loss on the open portion of the Trade.
-	UnrealizedPL AccountUnits `json:"unrealizedPL"`
+	UnrealizedPL *AccountUnits `json:"unrealizedPL,omitempty"`
 	// MarginUsed is the margin currently used by the Trade.
-	MarginUsed AccountUnits `json:"marginUsed"`
+	MarginUsed *AccountUnits `json:"marginUsed,omitempty"`
 	// AverageClosePrice is the average closing price of the Trade. Only present if the Trade has
 	// been closed or reduced at least once.
 	AverageClosePrice *PriceValue `json:"averageClosePrice,omitempty"`
@@ -106,9 +106,9 @@ type TradeSummary struct {
 	// RealizedPL is the total profit/loss realized on the closed portion of the Trade.
 	RealizedPL AccountUnits `json:"realizedPL"`
 	// UnrealizedPL is the unrealized profit/loss on the open portion of the Trade.
-	UnrealizedPL AccountUnits `json:"unrealizedPL"`
+	UnrealizedPL *AccountUnits `json:"unrealizedPL,omitempty"`
 	// MarginUsed is the margin currently used by the Trade.
-	MarginUsed AccountUnits `json:"marginUsed"`
+	MarginUsed *AccountUnits `json:"marginUsed,omitempty"`
 	// AverageClosePrice is the average closing price of the Trade. Only present if the Trade has
 	// been closed or reduced at least once.
 	AverageClosePrice PriceValue `json:"averageClosePrice"`
@@ -126,15 +126,15 @@ type TradeSummary struct {
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOrderID is the ID of the Trade's Take Profit Order, only provided if such an
 	// Order exists.
-	TakeProfitOrderID OrderID `json:"takeProfitOrderID"`
+	TakeProfitOrderID *OrderID `json:"takeProfitOrderID,omitempty"`
 	// StopLossOrderID is the ID of the Trade's Stop Loss Order, only provided if such an Order exists.
-	StopLossOrderID OrderID `json:"stopLossOrderID"`
+	StopLossOrderID *OrderID `json:"stopLossOrderID,omitempty"`
 	// GuaranteedStopLossOrderID is the ID of the Trade's Guaranteed Stop Loss Order, only provided
 	// if such an Order exists.
-	GuaranteedStopLossOrderID OrderID `json:"guaranteedStopLossOrderID,omitempty"`
+	GuaranteedStopLossOrderID *OrderID `json:"guaranteedStopLossOrderID,omitempty"`
 	// TrailingStopLossOrderID is the ID of the Trade's Trailing Stop Loss Order, only provided if
 	// such an Order exists.
-	TrailingStopLossOrderID OrderID `json:"trailingStopLossOrderID,omitempty"`
+	TrailingStopLossOrderID *OrderID `json:"trailingStopLossOrderID,omitempty"`
 }
 
 // CalculatedTradeState represents the dynamic (calculated) state of an open Trade.

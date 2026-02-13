@@ -20,9 +20,9 @@ type Position struct {
 	// PL (profit/loss) realized by the Position over the lifetime of the Account.
 	PL AccountUnits `json:"pl"`
 	// UnrealizedPL of all open Trades that contribute to this Position.
-	UnrealizedPL AccountUnits `json:"unrealizedPL"`
+	UnrealizedPL *AccountUnits `json:"unrealizedPL,omitempty"`
 	// MarginUsed is margin currently used by the Position.
-	MarginUsed AccountUnits `json:"marginUsed"`
+	MarginUsed *AccountUnits `json:"marginUsed,omitempty"`
 	// ResettablePL is Profit/loss realized by the Position since the Account’s resettablePL was
 	// last reset by the client.
 	ResettablePL AccountUnits `json:"resettablePL"`
@@ -35,7 +35,7 @@ type Position struct {
 	DividendAdjustment AccountUnits `json:"dividendAdjustment"`
 	// GuaranteedExecutionsFees is the total amount of fees charged over the lifetime of the Account
 	// for the execution of guaranteed Stop Loss Orders attached to Trades for this Position.
-	GuaranteedExecutionsFees AccountUnits `json:"guaranteedExecutionsFees"`
+	GuaranteedExecutionsFees *AccountUnits `json:"guaranteedExecutionsFees,omitempty"`
 	// Long is the details of the long side of the Position.
 	Long PositionSide `json:"long"`
 	// Short is the details of the short side of the Position.
@@ -49,13 +49,13 @@ type PositionSide struct {
 	Units DecimalNumber `json:"units"`
 	// AveragePrice is the volume-weighted average of the underlying Trade open prices for
 	// the Position.
-	AveragePrice PriceValue `json:"averagePrice"`
+	AveragePrice *PriceValue `json:"averagePrice,omitempty"`
 	// TradeIDs is the list of the open Trade IDs which contribute to the open Position.
 	TradeIDs []TradeID `json:"tradeIDs,omitempty"`
 	// PL is the profit/loss realized by the PositionSide over the lifetime of the Account.
 	PL AccountUnits `json:"pl"`
 	// UnrealizedPL is the unrealized profit/loss of all open Trades that contribute to this PositionSide.
-	UnrealizedPL AccountUnits `json:"unrealizedPL"`
+	UnrealizedPL *AccountUnits `json:"unrealizedPL,omitempty"`
 	// ResettablePL is the profit/loss realized by the PositionSide since the Account's resettablePL
 	// was last reset by the client.
 	ResettablePL AccountUnits `json:"resettablePL"`
