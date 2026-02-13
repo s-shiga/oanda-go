@@ -117,6 +117,28 @@ type PriceBucket struct {
 	Liquidity int `json:"liquidity"`
 }
 
+func (p *PriceBucket) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Price     PriceValue `json:"price"`
+		Liquidity any        `json:"liquidity"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	p.Price = raw.Price
+	switch raw.Liquidity.(type) {
+	case string:
+		v, err := strconv.Atoi(raw.Liquidity.(string))
+		if err != nil {
+			return err
+		}
+		p.Liquidity = v
+	case float64:
+		p.Liquidity = int(raw.Liquidity.(float64))
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------
 // Endpoints https://developer.oanda.com/rest-live-v20/pricing-ep/
 // ---------------------------------------------------------------
