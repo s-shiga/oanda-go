@@ -94,7 +94,7 @@ func TestTradeService(t *testing.T) {
 
 	t.Run("close", func(t *testing.T) {
 		req := NewTradeCloseALLRequest()
-		resp, err := client.TradeClose(t.Context(), tradeID, req)
+		resp, err := client.Trade.Close(t.Context(), tradeID, req)
 		if err != nil {
 			t.Errorf("failed to close trade: %s", err)
 		}
