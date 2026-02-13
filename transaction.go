@@ -275,7 +275,7 @@ func unmarshalTransaction(rawTransaction json.RawMessage) (Transaction, error) {
 }
 
 func unmarshalTransactions(src []json.RawMessage) ([]Transaction, error) {
-	dest := make([]Transaction, len(src))
+	dest := make([]Transaction, 0, len(src))
 	for _, rawTransaction := range src {
 		transaction, err := unmarshalTransaction(rawTransaction)
 		if err != nil {
