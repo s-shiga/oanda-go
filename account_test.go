@@ -1,7 +1,6 @@
 package oanda
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 )
@@ -24,7 +23,6 @@ func TestAccountService(t *testing.T) {
 		if err != nil {
 			t.Errorf("failed to get account details: %v", err)
 		}
-		fmt.Printf("%+v\n", resp)
 		lastTransactionID = resp.LastTransactionID
 		debugResponse(resp.Account)
 	})
