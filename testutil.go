@@ -7,10 +7,6 @@ import (
 	"testing"
 )
 
-func init() {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
-}
-
 func getAPIKey(t *testing.T) string {
 	t.Helper()
 	apiKey, ok := os.LookupEnv("OANDA_API_KEY_DEMO")
