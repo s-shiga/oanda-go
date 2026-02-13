@@ -2025,8 +2025,8 @@ func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*O
 
 // OrderUpdateClientExtensionsRequest is the request body for updating client extensions on an Order.
 type OrderUpdateClientExtensionsRequest struct {
-	ClientExtensions      ClientExtensions `json:"clientExtensions,omitempty"`
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions,omitempty"`
+	ClientExtensions      *ClientExtensions `json:"clientExtensions,omitempty"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
 func (r *OrderUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
