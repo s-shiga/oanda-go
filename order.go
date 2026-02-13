@@ -1727,14 +1727,14 @@ type OrderErrorResponse struct {
 	ErrorMessage           string          `json:"errorMessage"`
 }
 
-func (r *OrderErrorResponse) UnmarshalJSON(b []byte) error {
+func (r OrderErrorResponse) UnmarshalJSON(b []byte) error {
 	type Alias OrderErrorResponse
 
 	aux := &struct {
-		*Alias
+		Alias
 		OrderRejectTransaction json.RawMessage `json:"orderRejectTransaction"`
 	}{
-		Alias: (*Alias)(r),
+		Alias: (Alias)(r),
 	}
 
 	if err := json.Unmarshal(b, aux); err != nil {
@@ -1750,8 +1750,8 @@ func (r *OrderErrorResponse) UnmarshalJSON(b []byte) error {
 }
 
 // Error implements the error interface.
-func (e OrderErrorResponse) Error() string {
-	return fmt.Sprintf("%s: %s", e.ErrorCode, e.ErrorMessage)
+func (r OrderErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
 }
 
 func unmarshalOrderErrorResponse(resp *http.Response) (*OrderErrorResponse, error) {
