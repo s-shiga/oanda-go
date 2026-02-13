@@ -67,11 +67,7 @@ func TestTradeService(t *testing.T) {
 
 	t.Run("update client extensions", func(t *testing.T) {
 		req := TradeUpdateClientExtensionsRequest{
-			ClientExtensions{
-				ID:      "test ID",
-				Tag:     "test Tag",
-				Comment: "test Comment",
-			},
+			NewClientExtensions().SetID("test ID").SetTag("test tag").SetComment("test Comment"),
 		}
 		resp, err := client.Trade.UpdateClientExtensions(t.Context(), tradeID, req)
 		if err != nil {
