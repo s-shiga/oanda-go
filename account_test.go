@@ -2,53 +2,65 @@ package oanda
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 )
 
-func TestAccountService_List(t *testing.T) {
-	client := setupClientWithoutAccountID(t)
-	resp, err := client.Account.List(t.Context())
-	if err != nil {
-		t.Errorf("failed to list accounts: %v", err)
-	}
-	debugResponse(resp)
-}
-
-func TestAccountService_Details(t *testing.T) {
+func TestAccountService(t *testing.T) {
 	client := setupClient(t)
-	resp, err := client.Account.Details(t.Context())
-	if err != nil {
-		t.Errorf("failed to get account details: %v", err)
-	}
-	fmt.Printf("%+v\n", resp)
-	debugResponse(resp.Account)
-}
+	var lastTransactionID TransactionID
 
-func TestAccountService_Summary(t *testing.T) {
-	client := setupClient(t)
-	resp, err := client.Account.Summary(t.Context())
-	if err != nil {
-		t.Errorf("failed to get account summary: %v", err)
-	}
-	debugResponse(resp)
-}
+	t.Run("list", func(t *testing.T) {
+		client := setupClientWithoutAccountID(t)
+		resp, err := client.Account.List(t.Context())
+		if err != nil {
+			t.Errorf("failed to list accounts: %v", err)
+		}
+		debugResponse(resp)
+	})
 
-func TestAccountService_Configure(t *testing.T) {
-	client := setupClient(t)
-	req := NewAccountConfigureRequest().SetAlias("TestAlias")
-	resp, err := client.Account.Configure(t.Context(), req)
-	if err != nil {
-		t.Errorf("failed to set account configuration: %v", err)
-	}
-	debugResponse(resp)
-}
+	t.Run("details", func(t *testing.T) {
+		resp, err := client.Account.Details(t.Context())
+		if err != nil {
+			t.Errorf("failed to get account details: %v", err)
+		}
+		fmt.Printf("%+v\n", resp)
+		lastTransactionID = resp.LastTransactionID
+		debugResponse(resp.Account)
+	})
 
-func TestAccountService_Changes(t *testing.T) {
-	client := setupClient(t)
-	transactionID := "500"
-	resp, err := client.Account.Changes(t.Context(), transactionID)
-	if err != nil {
-		t.Errorf("failed to get account changes: %v", err)
-	}
-	debugResponse(resp)
+	t.Run("summary", func(t *testing.T) {
+		resp, err := client.Account.Summary(t.Context())
+		if err != nil {
+			t.Errorf("failed to get account summary: %v", err)
+		}
+		debugResponse(resp)
+	})
+
+	t.Run("configure", func(t *testing.T) {
+		req := NewAccountConfigureRequest().SetAlias("TestAlias")
+		resp, err := client.Account.Configure(t.Context(), req)
+		if err != nil {
+			t.Errorf("failed to set account configuration: %v", err)
+		}
+		debugResponse(resp)
+	})
+
+	t.Run("changes", func(t *testing.T) {
+		var transactionID TransactionID
+		id, err := strconv.Atoi(lastTransactionID)
+		if err != nil {
+			t.Errorf("failed to parse last transaction id: %v", err)
+		}
+		if id > 10 {
+			transactionID = strconv.Itoa(id - 10)
+		} else {
+			transactionID = lastTransactionID
+		}
+		resp, err := client.Account.Changes(t.Context(), transactionID)
+		if err != nil {
+			t.Errorf("failed to get account changes: %v", err)
+		}
+		debugResponse(resp)
+	})
 }
