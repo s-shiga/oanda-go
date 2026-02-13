@@ -2002,12 +2002,54 @@ func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*
 type OrderReplaceResponse struct {
 	OrderCancelTransaction          OrderCancelTransaction `json:"orderCancelTransaction"`
 	OrderCreateTransaction          Transaction            `json:"orderCreateTransaction"`
-	OrderFillTransaction            OrderFillTransaction   `json:"orderFillTransaction"`
-	OrderReissueTransaction         Transaction            `json:"orderReissueTransaction"`
-	OrderReissueRejectTransaction   Transaction            `json:"orderReissueRejectTransaction"`
-	ReplacingOrderCancelTransaction OrderCancelTransaction `json:"replacingOrderCancelTransaction"`
+	OrderFillTransaction            *OrderFillTransaction  `json:"orderFillTransaction,omitempty"`
+	OrderReissueTransaction         Transaction            `json:"orderReissueTransaction,omitempty"`
+	OrderReissueRejectTransaction   Transaction            `json:"orderReissueRejectTransaction,omitempty"`
+	ReplacingOrderCancelTransaction OrderCancelTransaction `json:"replacingOrderCancelTransaction,omitempty"`
 	RelatedTransactionIDs           []TransactionID        `json:"relatedTransactionIDs"`
 	LastTransactionID               TransactionID          `json:"lastTransactionID"`
+}
+
+func (r *OrderReplaceResponse) UnmarshalJSON(b []byte) error {
+	type Alias OrderReplaceResponse
+
+	aux := &struct {
+		*Alias
+		OrderCreateTransaction        json.RawMessage `json:"orderCreateTransaction"`
+		OrderReissueTransaction       json.RawMessage `json:"orderReissueTransaction"`
+		OrderReissueRejectTransaction json.RawMessage `json:"orderReissueRejectTransaction"`
+	}{
+		Alias: (*Alias)(r),
+	}
+
+	if err := json.Unmarshal(b, &aux); err != nil {
+		return err
+	}
+
+	orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
+	if err != nil {
+		return err
+	}
+	r.OrderCreateTransaction = orderCreateTransaction
+	if aux.OrderReissueTransaction != nil {
+		orderReissueTransaction, err := unmarshalTransaction(aux.OrderReissueTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderReissueTransaction = orderReissueTransaction
+	} else {
+		r.OrderReissueTransaction = nil
+	}
+	if aux.OrderReissueRejectTransaction != nil {
+		orderReissueRejectTransaction, err := unmarshalTransaction(aux.OrderReissueRejectTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderReissueRejectTransaction = orderReissueRejectTransaction
+	} else {
+		r.OrderReissueRejectTransaction = nil
+	}
+	return nil
 }
 
 // OrderReplace cancels and replaces an existing Order with a new one.
