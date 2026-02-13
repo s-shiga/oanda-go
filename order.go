@@ -232,7 +232,7 @@ type MarketOrder struct {
 	// IOC for a MarketOrder
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the MarketOrder filled at.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	PositionClosingDetails
 	OrdersOnFill
 	FillingDetails
@@ -367,7 +367,7 @@ type StopOrder struct {
 	// PriceBound is the worst market price that may be used to fill this Stop Order. If the market
 	// gaps and crosses through both the price and the priceBound, the Stop Order will be cancelled
 	// instead of being filled.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
@@ -423,7 +423,7 @@ type MarketIfTouchedOrder struct {
 	// Limit or a Stop Order.
 	Price PriceValue `json:"price"`
 	// PriceBound is the worst market price that may be used to fill this Market If Touched Order.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
@@ -522,7 +522,7 @@ type StopLossOrder struct {
 	// Distance specifies the distance (in price units) from the Account's current price to use as
 	// the Stop Loss Order price. If the Trade is long the Order's price will be the bid price minus
 	// the distance. If the Trade is short the Order's price will be the ask price plus the distance.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
@@ -578,7 +578,7 @@ type GuaranteedStopLossOrder struct {
 	// the Guaranteed Stop Loss Order price. If the Trade is long the Order's price will be the bid
 	// price minus the distance. If the Trade is short the Order's price will be the ask price plus
 	// the distance.
-	Distance DecimalNumber `json:"distance"`
+	Distance *DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system.
 	TimeInForce TimeInForce `json:"timeInForce"`
@@ -690,7 +690,7 @@ type MarketOrderRequest struct {
 	// Default is FOK.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
-	PriceBound PriceValue `json:"priceBound,omitempty"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -739,7 +739,7 @@ func (r *MarketOrderRequest) SetIOC() *MarketOrderRequest {
 
 // SetPriceBound sets the worst price that the client is willing to have the Market Order filled at.
 func (r *MarketOrderRequest) SetPriceBound(priceBound PriceValue) *MarketOrderRequest {
-	r.PriceBound = priceBound
+	r.PriceBound = &priceBound
 	return r
 }
 
@@ -925,12 +925,12 @@ type StopOrderRequest struct {
 	// PriceBound is the worst market price that may be used to fill this Stop Order. If the market
 	// gaps and crosses through both the price and the priceBound, the Stop Order will be cancelled
 	// instead of being filled.
-	PriceBound PriceValue `json:"priceBound,omitempty"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -980,14 +980,14 @@ func NewStopOrderRequest(instrument InstrumentName, units DecimalNumber, price P
 
 // SetPriceBound sets the worst market price that may be used to fill this Stop Order.
 func (r *StopOrderRequest) SetPriceBound(priceBound PriceValue) *StopOrderRequest {
-	r.PriceBound = priceBound
+	r.PriceBound = &priceBound
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *StopOrderRequest) SetGTD(date DateTime) *StopOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1062,12 +1062,12 @@ type MarketIfTouchedOrderRequest struct {
 	// Limit or a Stop Order.
 	Price PriceValue `json:"price"`
 	// PriceBound is the worst market price that may be used to fill this Market If Touched Order.
-	PriceBound PriceValue `json:"priceBound,omitempty"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
 	PositionFill OrderPositionFill `json:"positionFill"`
@@ -1117,14 +1117,14 @@ func NewMarketIfTouchedOrderRequest(instrument InstrumentName, units DecimalNumb
 
 // SetPriceBound sets the worst market price that may be used to fill this Order.
 func (r *MarketIfTouchedOrderRequest) SetPriceBound(priceBound PriceValue) *MarketIfTouchedOrderRequest {
-	r.PriceBound = priceBound
+	r.PriceBound = &priceBound
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *MarketIfTouchedOrderRequest) SetGTD(date DateTime) *MarketIfTouchedOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1201,7 +1201,7 @@ type TakeProfitOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Take Profit Order. The associated Trade will be
 	// closed by a market price that is equal to or better than this threshold.
 	Price PriceValue `json:"price"`
@@ -1209,7 +1209,7 @@ type TakeProfitOrderRequest struct {
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1237,14 +1237,14 @@ func NewTakeProfitOrderRequest(tradeID TradeID, price PriceValue) *TakeProfitOrd
 
 // SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *TakeProfitOrderRequest) SetClientTradeID(clientID ClientID) *TakeProfitOrderRequest {
-	r.ClientTradeID = clientID
+	r.ClientTradeID = &clientID
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *TakeProfitOrderRequest) SetGTD(date DateTime) *TakeProfitOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1273,21 +1273,21 @@ type StopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Stop Loss Order. The associated Trade will be
 	// closed by a market price that is equal to or worse than this threshold. Either price or distance
 	// may be specified, but not both.
-	Price PriceValue `json:"price,omitempty"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Account's current price to use as
 	// the Stop Loss Order price. If the Trade is long the Order's price will be the bid price minus
 	// the distance. If the Trade is short the Order's price will be the ask price plus the distance.
 	// Either price or distance may be specified, but not both.
-	Distance DecimalNumber `json:"distance,omitempty"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1299,30 +1299,51 @@ type StopLossOrderRequest struct {
 }
 
 func (r *StopLossOrderRequest) body() (*bytes.Buffer, error) {
+	if r.Price == nil && r.Distance == nil {
+		return nil, errors.New("price or distance must be set")
+	}
+	if r.Price != nil && r.Distance != nil {
+		return nil, errors.New("price and distance cannot be set at the same time")
+	}
 	return orderRequestWrapper(r)
 }
 
 // NewStopLossOrderRequest creates a new StopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
-func NewStopLossOrderRequest(tradeID TradeID, price PriceValue) *StopLossOrderRequest {
+func NewStopLossOrderRequest(tradeID TradeID) *StopLossOrderRequest {
 	return &StopLossOrderRequest{
 		Type:             OrderTypeStopLoss,
 		TradeID:          tradeID,
-		Price:            price,
+		Price:            nil,
+		Distance:         nil,
 		TimeInForce:      TimeInForceGTC,
+		GtdTime:          nil,
 		TriggerCondition: OrderTriggerConditionDefault,
+		ClientExtensions: nil,
 	}
 }
 
 // SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *StopLossOrderRequest) SetClientTradeID(clientID ClientID) *StopLossOrderRequest {
-	r.ClientTradeID = clientID
+	r.ClientTradeID = &clientID
+	return r
+}
+
+// SetPrice sets the price for StopLossOrder.
+func (r *StopLossOrderRequest) SetPrice(price PriceValue) *StopLossOrderRequest {
+	r.Price = &price
+	return r
+}
+
+// SetDistance sets the distance from the Account's current price to use as the StopLossOrder price.
+func (r *StopLossOrderRequest) SetDistance(distance DecimalNumber) *StopLossOrderRequest {
+	r.Distance = &distance
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *StopLossOrderRequest) SetGTD(date DateTime) *StopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1352,20 +1373,20 @@ type GuaranteedStopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Price is the price threshold specified for the Guaranteed Stop Loss Order. The associated Trade
 	// will be closed at this price. Either price or distance may be specified, but not both.
-	Price PriceValue `json:"price,omitempty"`
+	Price *PriceValue `json:"price,omitempty"`
 	// Distance specifies the distance (in price units) from the Account's current price to use as
 	// the Guaranteed Stop Loss Order price. If the Trade is long the Order's price will be the bid
 	// price minus the distance. If the Trade is short the Order's price will be the ask price plus
 	// the distance. Either price or distance may be specified, but not both.
-	Distance DecimalNumber `json:"distance,omitempty"`
+	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1385,22 +1406,31 @@ func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *Guara
 	return &GuaranteedStopLossOrderRequest{
 		Type:             OrderTypeGuaranteedStopLoss,
 		TradeID:          tradeID,
-		Price:            price,
 		TimeInForce:      TimeInForceGTC,
 		TriggerCondition: OrderTriggerConditionDefault,
 	}
 }
 
+func (r *GuaranteedStopLossOrderRequest) SetPrice(price PriceValue) *GuaranteedStopLossOrderRequest {
+	r.Price = &price
+	return r
+}
+
+func (r *GuaranteedStopLossOrderRequest) SetDistance(distance DecimalNumber) *GuaranteedStopLossOrderRequest {
+	r.Distance = &distance
+	return r
+}
+
 // SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *GuaranteedStopLossOrderRequest) SetClientTradeID(clientID ClientID) *GuaranteedStopLossOrderRequest {
-	r.ClientTradeID = clientID
+	r.ClientTradeID = &clientID
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *GuaranteedStopLossOrderRequest) SetGTD(date DateTime) *GuaranteedStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1430,14 +1460,14 @@ type TrailingStopLossOrderRequest struct {
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed when the price threshold is breached.
-	ClientTradeID ClientID `json:"clientTradeID,omitempty"`
+	ClientTradeID *ClientID `json:"clientTradeID,omitempty"`
 	// Distance is the price distance (in price units) specified for the Trailing Stop Loss Order.
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
-	GtdTime DateTime `json:"gtdTime,omitempty"`
+	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
@@ -1465,14 +1495,14 @@ func NewTrailingStopLossOrderRequest(tradeID TradeID, distance DecimalNumber) *T
 
 // SetClientTradeID sets the client Trade ID of the Trade to be closed.
 func (r *TrailingStopLossOrderRequest) SetClientTradeID(clientID ClientID) *TrailingStopLossOrderRequest {
-	r.ClientTradeID = clientID
+	r.ClientTradeID = &clientID
 	return r
 }
 
 // SetGTD sets the TimeInForce to GTD (Good Till Date) with the specified expiry time.
 func (r *TrailingStopLossOrderRequest) SetGTD(date DateTime) *TrailingStopLossOrderRequest {
 	r.TimeInForce = TimeInForceGTD
-	r.GtdTime = date
+	r.GtdTime = &date
 	return r
 }
 
@@ -1640,8 +1670,8 @@ type OrderCreateResponse struct {
 	OrderCreateTransaction        Transaction             `json:"orderCreateTransaction"`
 	OrderFillTransaction          *OrderFillTransaction   `json:"orderFillTransaction,omitempty"`
 	OrderCancelTransaction        *OrderCancelTransaction `json:"orderCancelTransaction,omitempty"`
-	OrderReissueTransaction       *Transaction            `json:"orderReissueTransaction,omitempty"`
-	OrderReissueRejectTransaction *Transaction            `json:"orderReissueRejectTransaction,omitempty"`
+	OrderReissueTransaction       Transaction             `json:"orderReissueTransaction,omitempty"`
+	OrderReissueRejectTransaction Transaction             `json:"orderReissueRejectTransaction,omitempty"`
 	RelatedTransactionIDs         []TransactionID         `json:"relatedTransactionIDs"`
 	LastTransactionID             TransactionID           `json:"lastTransactionID"`
 }

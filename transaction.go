@@ -39,8 +39,8 @@ type Transaction struct {
 	Type TransactionType `json:"type"`
 }
 
-func (t Transaction) GetType() string {
-	return string(t.Type)
+func (t Transaction) GetType() TransactionType {
+	return t.Type
 }
 
 func (t Transaction) GetID() TransactionID {
@@ -134,33 +134,33 @@ type MarketOrderTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TradeClose details the Trade requested to be closed.
 	TradeClose MarketOrderTradeClose `json:"tradeClose"`
 	// LongPositionCloseout details the long Position to closeout.
-	LongPositionCloseout MarketOrderPositionCloseout `json:"longPositionCloseout"`
+	LongPositionCloseout *MarketOrderPositionCloseout `json:"longPositionCloseout,omitempty"`
 	// ShortPositionCloseout details the short Position to closeout.
-	ShortPositionCloseout MarketOrderPositionCloseout `json:"shortPositionCloseout"`
+	ShortPositionCloseout *MarketOrderPositionCloseout `json:"shortPositionCloseout,omitempty"`
 	// MarginCloseout details the Margin Closeout that this Market Order was created for.
-	MarginCloseout MarketOrderMarginCloseout `json:"marginCloseout"`
+	MarginCloseout *MarketOrderMarginCloseout `json:"marginCloseout,omitempty"`
 	// DelayedTradeClose details the delayed Trade close that this Market Order was created for.
-	DelayedTradeClose MarketOrderDelayedTradeClose `json:"delayedTradeClose"`
+	DelayedTradeClose *MarketOrderDelayedTradeClose `json:"delayedTradeClose,omitempty"`
 	// Reason is the reason that the Market Order was created.
 	Reason MarketOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
 // MarketOrderRejectTransaction represents a Transaction that rejects the creation of a Market Order.
@@ -173,33 +173,33 @@ type MarketOrderRejectTransaction struct {
 	// TimeInForce specifies how long the Order should remain pending.
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
-	PriceBound PriceValue `json:"priceBound"`
+	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	PositionFill OrderPositionFill `json:"positionFill"`
 	// TradeClose details the Trade requested to be closed.
 	TradeClose MarketOrderTradeClose `json:"tradeClose"`
 	// LongPositionCloseout details the long Position to closeout.
-	LongPositionCloseout MarketOrderPositionCloseout `json:"longPositionCloseout"`
+	LongPositionCloseout *MarketOrderPositionCloseout `json:"longPositionCloseout,omitempty"`
 	// ShortPositionCloseout details the short Position to closeout.
-	ShortPositionCloseout MarketOrderPositionCloseout `json:"shortPositionCloseout"`
+	ShortPositionCloseout *MarketOrderPositionCloseout `json:"shortPositionCloseout,omitempty"`
 	// MarginCloseout details the Margin Closeout that this Market Order was created for.
-	MarginCloseout MarketOrderMarginCloseout `json:"marginCloseout"`
+	MarginCloseout *MarketOrderMarginCloseout `json:"marginCloseout,omitempty"`
 	// DelayedTradeClose details the delayed Trade close that this Market Order was created for.
-	DelayedTradeClose MarketOrderDelayedTradeClose `json:"delayedTradeClose"`
+	DelayedTradeClose *MarketOrderDelayedTradeClose `json:"delayedTradeClose,omitempty"`
 	// Reason is the reason that the Market Order was created.
 	Reason MarketOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 	// RejectReason is the reason that the Reject Transaction was created.
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 }
@@ -220,17 +220,17 @@ type FixedPriceOrderTransaction struct {
 	// Reason is the reason that the Fixed Price Order was created.
 	Reason FixedPriceOrderReason `json:"reason"`
 	// ClientExtensions are the client extensions for the Order.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// TakeProfitOnFill specifies the Take Profit Order details.
-	TakeProfitOnFill TakeProfitDetails `json:"takeProfitOnFill"`
+	TakeProfitOnFill *TakeProfitDetails `json:"takeProfitOnFill,omitempty"`
 	// StopLossOnFill specifies the Stop Loss Order details.
-	StopLossOnFill StopLossDetails `json:"stopLossOnFill"`
+	StopLossOnFill *StopLossDetails `json:"stopLossOnFill,omitempty"`
 	// GuaranteedStopLossOnFill specifies the Guaranteed Stop Loss Order details.
-	GuaranteedStopLossOnFill GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill"`
+	GuaranteedStopLossOnFill *GuaranteedStopLossDetails `json:"guaranteedStopLossOnFill,omitempty"`
 	// TrailingStopLossOnFill specifies the Trailing Stop Loss Order details.
-	TrailingStopLossOnFill TrailingStopLossDetails `json:"trailingStopLossOnFill"`
+	TrailingStopLossOnFill *TrailingStopLossDetails `json:"trailingStopLossOnFill,omitempty"`
 	// TradeClientExtensions are the client extensions for the Trade.
-	TradeClientExtensions ClientExtensions `json:"tradeClientExtensions"`
+	TradeClientExtensions *ClientExtensions `json:"tradeClientExtensions,omitempty"`
 }
 
 // LimitOrderTransaction represents a Transaction that creates a Limit Order.
@@ -1496,7 +1496,7 @@ type TradeOpen struct {
 	// QuoteGuaranteedExecutionFee is the fee in quote currency.
 	QuoteGuaranteedExecutionFee DecimalNumber `json:"quoteGuaranteedExecutionFee"`
 	// ClientExtensions are the client extensions for the Trade.
-	ClientExtensions ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 	// HalfSpreadCost is the half spread cost for the Trade.
 	HalfSpreadCost AccountUnits `json:"halfSpreadCost"`
 	// InitialMarginRequired is the margin required at the time the Trade was created.
@@ -1518,9 +1518,9 @@ type TradeReduce struct {
 	// BaseFinancing is the financing in the base currency.
 	BaseFinancing DecimalNumber `json:"baseFinancing"`
 	// QuoteFinancing is the financing in the quote currency.
-	QuoteFinancing DecimalNumber `json:"quoteFinancing"`
+	QuoteFinancing *DecimalNumber `json:"quoteFinancing,omitempty"`
 	// FinancingRate is the financing rate in effect for the Instrument.
-	FinancingRate DecimalNumber `json:"financingRate"`
+	FinancingRate *DecimalNumber `json:"financingRate,omitempty"`
 	// GuaranteedExecutionFee is the fee charged for closing the Trade.
 	GuaranteedExecutionFee AccountUnits `json:"guaranteedExecutionFee"`
 	// QuoteGuaranteedExecutionFee is the fee in quote currency.
@@ -1897,7 +1897,7 @@ const (
 // TransactionHeartbeat represents a heartbeat message sent for a Transaction stream.
 type TransactionHeartbeat struct {
 	// Type is the string "HEARTBEAT".
-	Type string `json:"type"`
+	Type TransactionType `json:"type"`
 	// LastTransactionID is the ID of the most recent Transaction created for the Account.
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 	// Time is the date/time when the TransactionHeartbeat was created.
@@ -1905,12 +1905,12 @@ type TransactionHeartbeat struct {
 }
 
 // GetType returns the type of the heartbeat message.
-func (t TransactionHeartbeat) GetType() string {
+func (t TransactionHeartbeat) GetType() TransactionType {
 	return t.Type
 }
 
 // GetID returns the last Transaction ID.
-func (t TransactionHeartbeat) GetID() string {
+func (t TransactionHeartbeat) GetID() TransactionID {
 	return t.LastTransactionID
 }
 
@@ -2158,7 +2158,7 @@ func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionG
 
 // TransactionStreamItem is an interface for items received from a Transaction stream.
 type TransactionStreamItem interface {
-	GetType() string
+	GetType() TransactionType
 	GetID() TransactionID
 	GetTime() DateTime
 }
@@ -2194,7 +2194,7 @@ func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStr
 			return ctx.Err()
 		default:
 			var typeOnly struct {
-				Type string `json:"type"`
+				Type TransactionType `json:"type"`
 			}
 			if err := dec.Decode(&typeOnly); err != nil {
 				if err == io.EOF {
