@@ -1676,6 +1676,48 @@ type OrderCreateResponse struct {
 	LastTransactionID             TransactionID           `json:"lastTransactionID"`
 }
 
+func (r *OrderCreateResponse) UnmarshalJSON(b []byte) error {
+	type Alias OrderCreateResponse
+
+	aux := &struct {
+		*Alias
+		OrderCreateTransaction        json.RawMessage  `json:"orderCreateTransaction"`
+		OrderReissueTransaction       *json.RawMessage `json:"orderReissueTransaction"`
+		OrderReissueRejectTransaction *json.RawMessage `json:"orderReissueRejectTransaction"`
+	}{
+		Alias: (*Alias)(r),
+	}
+
+	if err := json.Unmarshal(b, aux); err != nil {
+		return err
+	}
+
+	orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
+	if err != nil {
+		return err
+	}
+	r.OrderCreateTransaction = orderCreateTransaction
+	if aux.OrderReissueTransaction != nil {
+		orderReissueTransaction, err := unmarshalTransaction(*aux.OrderReissueTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderReissueTransaction = orderReissueTransaction
+	} else {
+		r.OrderReissueTransaction = nil
+	}
+	if aux.OrderReissueRejectTransaction != nil {
+		orderReissueRejectTransaction, err := unmarshalTransaction(*aux.OrderReissueRejectTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderReissueRejectTransaction = orderReissueRejectTransaction
+	} else {
+		r.OrderReissueRejectTransaction = nil
+	}
+	return nil
+}
+
 // OrderErrorResponse is the error response returned by order endpoints when a request is rejected.
 type OrderErrorResponse struct {
 	OrderRejectTransaction Transaction     `json:"orderRejectTransaction"`
@@ -1683,6 +1725,28 @@ type OrderErrorResponse struct {
 	LastTransactionID      TransactionID   `json:"lastTransactionID"`
 	ErrorCode              string          `json:"errorCode"`
 	ErrorMessage           string          `json:"errorMessage"`
+}
+
+func (r *OrderErrorResponse) UnmarshalJSON(b []byte) error {
+	type Alias OrderErrorResponse
+
+	aux := &struct {
+		*Alias
+		OrderRejectTransaction json.RawMessage `json:"orderRejectTransaction"`
+	}{
+		Alias: (*Alias)(r),
+	}
+
+	if err := json.Unmarshal(b, aux); err != nil {
+		return err
+	}
+
+	orderRejectTransaction, err := unmarshalTransaction(aux.OrderRejectTransaction)
+	if err != nil {
+		return err
+	}
+	r.OrderRejectTransaction = orderRejectTransaction
+	return nil
 }
 
 // Error implements the error interface.
