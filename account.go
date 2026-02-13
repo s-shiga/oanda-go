@@ -368,6 +368,7 @@ func (c *AccountChanges) UnmarshalJSON(data []byte) error {
 		OrdersCancelled []json.RawMessage `json:"ordersCancelled"`
 		OrdersFilled    []json.RawMessage `json:"ordersFilled"`
 		OrdersTriggered []json.RawMessage `json:"ordersTriggered"`
+		Transactions    []json.RawMessage `json:"transactions"`
 	}{
 		Alias: (*Alias)(c),
 	}
@@ -396,6 +397,11 @@ func (c *AccountChanges) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	c.OrdersTriggered = ordersTriggered
+	transactions, err := unmarshalTransactions(aux.Transactions)
+	if err != nil {
+		return err
+	}
+	c.Transactions = transactions
 
 	return nil
 }

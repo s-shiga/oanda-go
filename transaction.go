@@ -20,8 +20,274 @@ import (
 
 // Transactions
 
-// Transaction represents the base specification for all Transactions.
-type Transaction struct {
+type Transaction interface {
+	GetID() TransactionID
+	GetTime() DateTime
+	GetType() TransactionType
+}
+
+func unmarshalTransaction(rawTransaction json.RawMessage) (Transaction, error) {
+	var typeOnly struct {
+		Type TransactionType `json:"type"`
+	}
+	if err := json.Unmarshal(rawTransaction, &typeOnly); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal transaction type: %w", err)
+	}
+
+	var transaction Transaction
+	switch typeOnly.Type {
+	case TransactionTypeOrderFill:
+		var orderFillTransaction OrderFillTransaction
+		if err := json.Unmarshal(rawTransaction, &orderFillTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal order fill transaction: %w", err)
+		}
+		transaction = &orderFillTransaction
+	case TransactionTypeOrderCancel:
+		var orderCancelTransaction OrderCancelTransaction
+		if err := json.Unmarshal(rawTransaction, &orderCancelTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal order cancel transaction: %w", err)
+		}
+		transaction = &orderCancelTransaction
+	case TransactionTypeOrderCancelReject:
+		var orderCancelRejectTransaction OrderCancelRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &orderCancelRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal order cancel reject transaction: %w", err)
+		}
+		transaction = &orderCancelRejectTransaction
+	case TransactionTypeOrderClientExtensionsModify:
+		var orderClientExtensionsModifyTransaction OrderClientExtensionsModifyTransaction
+		if err := json.Unmarshal(rawTransaction, &orderClientExtensionsModifyTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal order client extensions modify transaction: %w", err)
+		}
+		transaction = &orderClientExtensionsModifyTransaction
+	case TransactionTypeOrderClientExtensionsModifyReject:
+		var orderClientExtensionsModifyRejectTransaction OrderClientExtensionsModifyRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &orderClientExtensionsModifyRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal order client extensions modify reject transaction: %w", err)
+		}
+		transaction = &orderClientExtensionsModifyRejectTransaction
+	case TransactionTypeCreate:
+		var createTransaction CreateTransaction
+		if err := json.Unmarshal(rawTransaction, &createTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal create transaction: %w", err)
+		}
+		transaction = &createTransaction
+	case TransactionTypeClose:
+		var closeTransaction CloseTransaction
+		if err := json.Unmarshal(rawTransaction, &closeTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal close transaction: %w", err)
+		}
+		transaction = &closeTransaction
+	case TransactionTypeReopen:
+		var reopenTransaction ReopenTransaction
+		if err := json.Unmarshal(rawTransaction, &reopenTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal reopen transaction: %w", err)
+		}
+		transaction = &reopenTransaction
+	case TransactionTypeClientConfigure:
+		var clientConfigureTransaction ClientConfigureTransaction
+		if err := json.Unmarshal(rawTransaction, &clientConfigureTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal client configuration transaction: %w", err)
+		}
+		transaction = &clientConfigureTransaction
+	case TransactionTypeClientConfigureReject:
+		var clientConfigureRejectTransaction ClientConfigureRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &clientConfigureRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal client configuration reject transaction: %w", err)
+		}
+		transaction = &clientConfigureRejectTransaction
+	case TransactionTypeTransferFunds:
+		var transferFundsTransaction TransferFundsTransaction
+		if err := json.Unmarshal(rawTransaction, &transferFundsTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal transfer funds transaction: %w", err)
+		}
+		transaction = &transferFundsTransaction
+	case TransactionTypeTransferFundsReject:
+		var transferFundsRejectTransaction TransferFundsRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &transferFundsRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal transfer funds reject transaction: %w", err)
+		}
+		transaction = &transferFundsRejectTransaction
+	case TransactionTypeMarketOrder:
+		var marketOrderTransaction MarketOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &marketOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market order transaction: %w", err)
+		}
+		transaction = &marketOrderTransaction
+	case TransactionTypeMarketOrderReject:
+		var marketOrderRejectTransaction MarketOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &marketOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market order reject transaction: %w", err)
+		}
+		transaction = &marketOrderRejectTransaction
+	case TransactionTypeFixedPriceOrder:
+		var fixedPriceOrderTransaction FixedPriceOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &fixedPriceOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal fixed price order transaction: %w", err)
+		}
+		transaction = &fixedPriceOrderTransaction
+	case TransactionTypeLimitOrder:
+		var limitOrderTransaction LimitOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &limitOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal limit order transaction: %w", err)
+		}
+		transaction = &limitOrderTransaction
+	case TransactionTypeLimitOrderReject:
+		var limitOrderRejectTransaction LimitOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &limitOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal limit order reject transaction: %w", err)
+		}
+		transaction = &limitOrderRejectTransaction
+	case TransactionTypeStopOrder:
+		var stopOrderTransaction StopOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &stopOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop order transaction: %w", err)
+		}
+		transaction = &stopOrderTransaction
+	case TransactionTypeStopOrderReject:
+		var stopOrderRejectTransaction StopOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &stopOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop order reject transaction: %w", err)
+		}
+		transaction = &stopOrderRejectTransaction
+	case TransactionTypeMarketIfTouchedOrder:
+		var marketIfTouchedOrderTransaction MarketIfTouchedOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &marketIfTouchedOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market if touched order transaction: %w", err)
+		}
+		transaction = &marketIfTouchedOrderTransaction
+	case TransactionTypeMarketIfTouchedOrderReject:
+		var marketIfTouchedOrderRejectTransaction MarketIfTouchedOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &marketIfTouchedOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal market if touched order reject transaction: %w", err)
+		}
+		transaction = &marketIfTouchedOrderRejectTransaction
+	case TransactionTypeTakeProfitOrder:
+		var takeProfitOrderTransaction TakeProfitOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &takeProfitOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal take profit order transaction: %w", err)
+		}
+		transaction = &takeProfitOrderTransaction
+	case TransactionTypeTakeProfitOrderReject:
+		var takeProfitOrderRejectTransaction TakeProfitOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &takeProfitOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal take profit order reject transaction: %w", err)
+		}
+		transaction = &takeProfitOrderRejectTransaction
+	case TransactionTypeStopLossOrder:
+		var stopLossOrderTransaction StopLossOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &stopLossOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop loss order transaction: %w", err)
+		}
+		transaction = &stopLossOrderTransaction
+	case TransactionTypeStopLossOrderReject:
+		var stopLossOrderRejectTransaction StopLossOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &stopLossOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stop loss order reject transaction: %w", err)
+		}
+		transaction = &stopLossOrderRejectTransaction
+	case TransactionTypeGuaranteedStopLossOrder:
+		var guaranteedStopLossOrderTransaction GuaranteedStopLossOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &guaranteedStopLossOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order transaction: %w", err)
+		}
+		transaction = &guaranteedStopLossOrderTransaction
+	case TransactionTypeGuaranteedStopLossOrderReject:
+		var guaranteedStopLossOrderRejectTransaction GuaranteedStopLossOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &guaranteedStopLossOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order reject transaction: %w", err)
+		}
+		transaction = &guaranteedStopLossOrderRejectTransaction
+	case TransactionTypeTrailingStopLossOrder:
+		var trailingStopLossOrderTransaction TrailingStopLossOrderTransaction
+		if err := json.Unmarshal(rawTransaction, &trailingStopLossOrderTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order transaction: %w", err)
+		}
+		transaction = &trailingStopLossOrderTransaction
+	case TransactionTypeTrailingStopLossOrderReject:
+		var trailingStopLossOrderRejectTransaction TrailingStopLossOrderRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &trailingStopLossOrderRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order reject transaction: %w", err)
+		}
+		transaction = &trailingStopLossOrderRejectTransaction
+	case TransactionTypeTradeClientExtensionsModify:
+		var tradeClientExtensionsModifyTransaction TradeClientExtensionsModifyTransaction
+		if err := json.Unmarshal(rawTransaction, &tradeClientExtensionsModifyTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trade client extensions modify transaction: %w", err)
+		}
+		transaction = &tradeClientExtensionsModifyTransaction
+	case TransactionTypeTradeClientExtensionsModifyReject:
+		var tradeClientExtensionsModifyRejectTransaction TradeClientExtensionsModifyRejectTransaction
+		if err := json.Unmarshal(rawTransaction, &tradeClientExtensionsModifyRejectTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trade client extensions modify reject transaction: %w", err)
+		}
+		transaction = &tradeClientExtensionsModifyRejectTransaction
+	case TransactionTypeMarginCallEnter:
+		var marginCallEnterTransaction MarginCallEnterTransaction
+		if err := json.Unmarshal(rawTransaction, &marginCallEnterTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal margin call enter transaction: %w", err)
+		}
+		transaction = &marginCallEnterTransaction
+	case TransactionTypeMarginCallExtend:
+		var marginCallExtendTransaction MarginCallExtendTransaction
+		if err := json.Unmarshal(rawTransaction, &marginCallExtendTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal margin call extend transaction: %w", err)
+		}
+		transaction = &marginCallExtendTransaction
+	case TransactionTypeMarginCallExit:
+		var marginCallExitTransaction MarginCallExitTransaction
+		if err := json.Unmarshal(rawTransaction, &marginCallExitTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal margin call exit transaction: %w", err)
+		}
+		transaction = &marginCallExitTransaction
+	case TransactionTypeDelayedTradeClosure:
+		var delayedTradeClosureTransaction DelayedTradeClosureTransaction
+		if err := json.Unmarshal(rawTransaction, &delayedTradeClosureTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal delayed trade closure transaction: %w", err)
+		}
+		transaction = &delayedTradeClosureTransaction
+	case TransactionTypeDailyFinancing:
+		var dailyFinancingTransaction DailyFinancingTransaction
+		if err := json.Unmarshal(rawTransaction, &dailyFinancingTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal daily financing transaction: %w", err)
+		}
+		transaction = &dailyFinancingTransaction
+	case TransactionTypeDividendAdjustment:
+		var dividendAdjustmentTransaction DividendAdjustmentTransaction
+		if err := json.Unmarshal(rawTransaction, &dividendAdjustmentTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal dividend adjustment transaction: %w", err)
+		}
+		transaction = &dividendAdjustmentTransaction
+	case TransactionTypeResetResettablePL:
+		var resetResettablePLTransaction ResetResettablePLTransaction
+		if err := json.Unmarshal(rawTransaction, &resetResettablePLTransaction); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal reset resettable pl transaction: %w", err)
+		}
+		transaction = &resetResettablePLTransaction
+	case TransactionTypeHeartbeat:
+		var heartbeat TransactionHeartbeat
+		if err := json.Unmarshal(rawTransaction, &heartbeat); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal heartbeat transaction: %w", err)
+		}
+		transaction = &heartbeat
+	}
+	return transaction, nil
+}
+
+func unmarshalTransactions(src []json.RawMessage) ([]Transaction, error) {
+	dest := make([]Transaction, len(src))
+	for _, rawTransaction := range src {
+		transaction, err := unmarshalTransaction(rawTransaction)
+		if err != nil {
+			return nil, err
+		}
+		dest = append(dest, transaction)
+	}
+	return dest, nil
+}
+
+// TransactionBase represents the base specification for all Transactions.
+type TransactionBase struct {
 	// ID is the Transaction's Identifier.
 	ID TransactionID `json:"id"`
 	// Time is the date/time when the Transaction was created.
@@ -39,21 +305,21 @@ type Transaction struct {
 	Type TransactionType `json:"type"`
 }
 
-func (t Transaction) GetType() TransactionType {
+func (t TransactionBase) GetType() TransactionType {
 	return t.Type
 }
 
-func (t Transaction) GetID() TransactionID {
+func (t TransactionBase) GetID() TransactionID {
 	return t.ID
 }
 
-func (t Transaction) GetTime() DateTime {
+func (t TransactionBase) GetTime() DateTime {
 	return t.Time
 }
 
 // CreateTransaction represents a Transaction that creates an Account.
 type CreateTransaction struct {
-	Transaction
+	TransactionBase
 	// DivisionID is the ID of the Division that the Account is in.
 	DivisionID int `json:"divisionID"`
 	// SiteID is the ID of the Site that the Account was created at.
@@ -68,17 +334,17 @@ type CreateTransaction struct {
 
 // CloseTransaction represents a Transaction that closes an Account.
 type CloseTransaction struct {
-	Transaction
+	TransactionBase
 }
 
 // ReopenTransaction represents a Transaction that reopens a closed Account.
 type ReopenTransaction struct {
-	Transaction
+	TransactionBase
 }
 
 // ClientConfigureTransaction represents a Transaction that modifies an Account's client-provided configuration.
 type ClientConfigureTransaction struct {
-	Transaction
+	TransactionBase
 	// Alias is the client-provided alias for the Account.
 	Alias string `json:"alias"`
 	// MarginRate is the margin rate override for the Account.
@@ -88,7 +354,7 @@ type ClientConfigureTransaction struct {
 // ClientConfigureRejectTransaction represents a Transaction that rejects the configuration of an Account's
 // client-provided settings.
 type ClientConfigureRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Alias is the client-provided alias for the Account.
 	Alias string `json:"alias"`
 	// MarginRate is the margin rate override for the Account.
@@ -99,7 +365,7 @@ type ClientConfigureRejectTransaction struct {
 
 // TransferFundsTransaction represents a Transaction that transfers funds between accounts.
 type TransferFundsTransaction struct {
-	Transaction
+	TransactionBase
 	// Amount is the amount to deposit/withdraw from the Account in the Account's home currency.
 	// A positive value indicates a deposit, a negative value indicates a withdrawal.
 	Amount AccountUnits `json:"amount"`
@@ -113,7 +379,7 @@ type TransferFundsTransaction struct {
 
 // TransferFundsRejectTransaction represents a Transaction that rejects the transfer of funds.
 type TransferFundsRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Amount is the amount to deposit/withdraw from the Account in the Account's home currency.
 	Amount AccountUnits `json:"amount"`
 	// FundingReason is the reason that an Account is being funded.
@@ -126,7 +392,7 @@ type TransferFundsRejectTransaction struct {
 
 // MarketOrderTransaction represents a Transaction that creates a Market Order.
 type MarketOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Market Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Market Order.
@@ -165,7 +431,7 @@ type MarketOrderTransaction struct {
 
 // MarketOrderRejectTransaction represents a Transaction that rejects the creation of a Market Order.
 type MarketOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Market Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Market Order.
@@ -206,7 +472,7 @@ type MarketOrderRejectTransaction struct {
 
 // FixedPriceOrderTransaction represents a Transaction that creates a Fixed Price Order.
 type FixedPriceOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Fixed Price Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Fixed Price Order.
@@ -235,7 +501,7 @@ type FixedPriceOrderTransaction struct {
 
 // LimitOrderTransaction represents a Transaction that creates a Limit Order.
 type LimitOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Limit Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Limit Order.
@@ -272,7 +538,7 @@ type LimitOrderTransaction struct {
 
 // LimitOrderRejectTransaction represents a Transaction that rejects the creation of a Limit Order.
 type LimitOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Limit Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Limit Order.
@@ -309,7 +575,7 @@ type LimitOrderRejectTransaction struct {
 
 // StopOrderTransaction represents a Transaction that creates a Stop Order.
 type StopOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Stop Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Stop Order.
@@ -348,7 +614,7 @@ type StopOrderTransaction struct {
 
 // StopOrderRejectTransaction represents a Transaction that rejects the creation of a Stop Order.
 type StopOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Stop Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Stop Order.
@@ -387,7 +653,7 @@ type StopOrderRejectTransaction struct {
 
 // MarketIfTouchedOrderTransaction represents a Transaction that creates a Market If Touched Order.
 type MarketIfTouchedOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Market If Touched Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Market If Touched Order.
@@ -426,7 +692,7 @@ type MarketIfTouchedOrderTransaction struct {
 
 // MarketIfTouchedOrderRejectTransaction represents a Transaction that rejects the creation of a Market If Touched Order.
 type MarketIfTouchedOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the Market If Touched Order's Instrument.
 	Instrument InstrumentName `json:"instrument"`
 	// Units is the quantity requested to be filled by the Market If Touched Order.
@@ -465,7 +731,7 @@ type MarketIfTouchedOrderRejectTransaction struct {
 
 // TakeProfitOrderTransaction represents a Transaction that creates a Take Profit Order.
 type TakeProfitOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -492,7 +758,7 @@ type TakeProfitOrderTransaction struct {
 
 // TakeProfitOrderRejectTransaction represents a Transaction that rejects the creation of a Take Profit Order.
 type TakeProfitOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -519,7 +785,7 @@ type TakeProfitOrderRejectTransaction struct {
 
 // StopLossOrderTransaction represents a Transaction that creates a Stop Loss Order.
 type StopLossOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -552,7 +818,7 @@ type StopLossOrderTransaction struct {
 
 // StopLossOrderRejectTransaction represents a Transaction that rejects the creation of a Stop Loss Order.
 type StopLossOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -583,7 +849,7 @@ type StopLossOrderRejectTransaction struct {
 
 // GuaranteedStopLossOrderTransaction represents a Transaction that creates a Guaranteed Stop Loss Order.
 type GuaranteedStopLossOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -614,7 +880,7 @@ type GuaranteedStopLossOrderTransaction struct {
 
 // GuaranteedStopLossOrderRejectTransaction represents a Transaction that rejects the creation of a Guaranteed Stop Loss Order.
 type GuaranteedStopLossOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -643,7 +909,7 @@ type GuaranteedStopLossOrderRejectTransaction struct {
 
 // TrailingStopLossOrderTransaction represents a Transaction that creates a Trailing Stop Loss Order.
 type TrailingStopLossOrderTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -670,7 +936,7 @@ type TrailingStopLossOrderTransaction struct {
 
 // TrailingStopLossOrderRejectTransaction represents a Transaction that rejects the creation of a Trailing Stop Loss Order.
 type TrailingStopLossOrderRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade to close when the price threshold is breached.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the client ID of the Trade to be closed.
@@ -697,7 +963,7 @@ type TrailingStopLossOrderRejectTransaction struct {
 
 // OrderFillTransaction represents a Transaction that fills an Order.
 type OrderFillTransaction struct {
-	Transaction
+	TransactionBase
 	// OrderID is the ID of the Order filled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order filled.
@@ -750,7 +1016,7 @@ type OrderFillTransaction struct {
 
 // OrderCancelTransaction represents a Transaction that cancels an Order.
 type OrderCancelTransaction struct {
-	Transaction
+	TransactionBase
 	// OrderID is the ID of the Order cancelled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order cancelled.
@@ -763,7 +1029,7 @@ type OrderCancelTransaction struct {
 
 // OrderCancelRejectTransaction represents a Transaction that rejects the cancellation of an Order.
 type OrderCancelRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// OrderID is the ID of the Order intended to be cancelled.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the client Order ID of the Order intended to be cancelled.
@@ -774,7 +1040,7 @@ type OrderCancelRejectTransaction struct {
 
 // OrderClientExtensionsModifyTransaction represents a Transaction that modifies an Order's client extensions.
 type OrderClientExtensionsModifyTransaction struct {
-	Transaction
+	TransactionBase
 	// OrderID is the ID of the Order whose client extensions are to be modified.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the original client Order ID of the Order.
@@ -787,7 +1053,7 @@ type OrderClientExtensionsModifyTransaction struct {
 
 // OrderClientExtensionsModifyRejectTransaction represents a Transaction that rejects the modification of an Order's client extensions.
 type OrderClientExtensionsModifyRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// OrderID is the ID of the Order whose client extensions are to be modified.
 	OrderID OrderID `json:"orderID"`
 	// ClientOrderID is the original client Order ID of the Order.
@@ -802,7 +1068,7 @@ type OrderClientExtensionsModifyRejectTransaction struct {
 
 // TradeClientExtensionsModifyTransaction represents a Transaction that modifies a Trade's client extensions.
 type TradeClientExtensionsModifyTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade whose client extensions are to be modified.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the original client Trade ID of the Trade.
@@ -813,7 +1079,7 @@ type TradeClientExtensionsModifyTransaction struct {
 
 // TradeClientExtensionsModifyRejectTransaction represents a Transaction that rejects the modification of a Trade's client extensions.
 type TradeClientExtensionsModifyRejectTransaction struct {
-	Transaction
+	TransactionBase
 	// TradeID is the ID of the Trade whose client extensions are to be modified.
 	TradeID TradeID `json:"tradeID"`
 	// ClientTradeID is the original client Trade ID of the Trade.
@@ -824,24 +1090,24 @@ type TradeClientExtensionsModifyRejectTransaction struct {
 	RejectReason TransactionRejectReason `json:"rejectReason"`
 } // MarginCallEnterTransaction represents a Transaction that indicates an Account has entered a margin call state.
 type MarginCallEnterTransaction struct {
-	Transaction
+	TransactionBase
 }
 
 // MarginCallExtendTransaction represents a Transaction that indicates a margin call state has been extended.
 type MarginCallExtendTransaction struct {
-	Transaction
+	TransactionBase
 	// ExtensionNumber is the number of the extension within the current margin call.
 	ExtensionNumber int `json:"extensionNumber"`
 }
 
 // MarginCallExitTransaction represents a Transaction that indicates an Account has exited a margin call state.
 type MarginCallExitTransaction struct {
-	Transaction
+	TransactionBase
 }
 
 // DelayedTradeClosureTransaction represents a Transaction that indicates a delayed trade closure.
 type DelayedTradeClosureTransaction struct {
-	Transaction
+	TransactionBase
 	// Reason is the reason for the delayed trade closure.
 	Reason MarketOrderReason `json:"reason"`
 	// TradeIDs are the IDs of the Trades that will be closed.
@@ -850,7 +1116,7 @@ type DelayedTradeClosureTransaction struct {
 
 // DailyFinancingTransaction represents a Transaction that accounts for daily financing charges.
 type DailyFinancingTransaction struct {
-	Transaction
+	TransactionBase
 	// Financing is the amount of financing paid or collected for the Account.
 	Financing AccountUnits `json:"financing"`
 	// AccountBalance is the Account's balance after daily financing.
@@ -863,7 +1129,7 @@ type DailyFinancingTransaction struct {
 
 // DividendAdjustmentTransaction represents a Transaction that accounts for dividend adjustments.
 type DividendAdjustmentTransaction struct {
-	Transaction
+	TransactionBase
 	// Instrument is the name of the Instrument for the dividend adjustment.
 	Instrument InstrumentName `json:"instrument"`
 	// DividendAdjustment is the total dividend adjustment for the Account.
@@ -880,7 +1146,7 @@ type DividendAdjustmentTransaction struct {
 
 // ResetResettablePLTransaction represents a Transaction that resets the Account's resettable PL counters.
 type ResetResettablePLTransaction struct {
-	Transaction
+	TransactionBase
 }
 
 // Transaction-related Definitions
@@ -968,6 +1234,8 @@ const (
 	TransactionTypeDividendAdjustment TransactionType = "DIVIDEND_ADJUSTMENT"
 	// TransactionTypeResetResettablePL represents the resetting of the Account's resettable PL counters.
 	TransactionTypeResetResettablePL TransactionType = "RESET_RESETTABLE_PL"
+	// TransactionTypeHeartbeat represents a heartbeat from transaction stream.
+	TransactionTypeHeartbeat TransactionType = "HEARTBEAT"
 )
 
 // FundingReason represents the reason that an Account is being funded.
@@ -1263,20 +1531,35 @@ type ClientComment string
 type ClientExtensions struct {
 	// ID is a client-provided identifier, used by clients to refer to their Orders or Trades
 	// with an identifier that they have provided.
-	ID ClientID `json:"id,omitempty"`
+	ID *ClientID `json:"id,omitempty"`
 	// Tag is a client-provided tag that can be associated with an Order or Trade.
-	Tag ClientTag `json:"tag,omitempty"`
+	Tag *ClientTag `json:"tag,omitempty"`
 	// Comment is a client-provided comment that can be associated with an Order or Trade.
-	Comment ClientComment `json:"comment,omitempty"`
+	Comment *ClientComment `json:"comment,omitempty"`
 }
 
 // NewClientExtensions creates a new [ClientExtensions] with the given ID, tag, and comment.
-func NewClientExtensions(id ClientID, tag ClientTag, comment ClientComment) *ClientExtensions {
+func NewClientExtensions() *ClientExtensions {
 	return &ClientExtensions{
-		ID:      id,
-		Tag:     tag,
-		Comment: comment,
+		ID:      nil,
+		Tag:     nil,
+		Comment: nil,
 	}
+}
+
+func (e *ClientExtensions) SetID(id ClientID) *ClientExtensions {
+	e.ID = &id
+	return e
+}
+
+func (e *ClientExtensions) SetTag(tag ClientTag) *ClientExtensions {
+	e.Tag = &tag
+	return e
+}
+
+func (e *ClientExtensions) SetComment(comment ClientComment) *ClientExtensions {
+	e.Comment = &comment
+	return e
 }
 
 // TakeProfitDetails specifies the details of a Take Profit Order to be created on behalf of a
@@ -1338,9 +1621,6 @@ type StopLossDetails struct {
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Stop Loss Order when created.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
-	// Guaranteed is deprecated. Flag indicating that the Stop Loss Order is guaranteed. The default
-	// value depends on the GuaranteedStopLossOrderMode of the account.
-	Guaranteed bool `json:"guaranteed"`
 }
 
 // NewStopLossDetails creates a new [StopLossDetails] with GTC time in force.
@@ -2043,6 +2323,24 @@ type TransactionDetailsResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+func (r *TransactionDetailsResponse) UnmarshalJSON(bytes []byte) error {
+	var raw struct {
+		Transaction       json.RawMessage `json:"transaction"`
+		LastTransactionID TransactionID   `json:"lastTransactionID"`
+	}
+	if err := json.Unmarshal(bytes, &raw); err != nil {
+		return err
+	}
+
+	transaction, err := unmarshalTransaction(raw.Transaction)
+	if err != nil {
+		return err
+	}
+	r.Transaction = transaction
+	r.LastTransactionID = raw.LastTransactionID
+	return nil
+}
+
 // Details retrieves the details of a single Transaction for the Account configured via [WithAccountID].
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/{transactionID}
@@ -2095,6 +2393,24 @@ type TransactionsResponse struct {
 	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
+func (r *TransactionsResponse) UnmarshalJSON(bytes []byte) error {
+	var raw struct {
+		Transactions      []json.RawMessage `json:"transactions"`
+		LastTransactionID TransactionID     `json:"lastTransactionID"`
+	}
+	if err := json.Unmarshal(bytes, &raw); err != nil {
+		return err
+	}
+
+	transactions, err := unmarshalTransactions(raw.Transactions)
+	if err != nil {
+		return err
+	}
+	r.Transactions = transactions
+	r.LastTransactionID = raw.LastTransactionID
+	return nil
+}
+
 // GetByIDRange retrieves Transactions in a given ID range for the Account configured via [WithAccountID].
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/idrange
@@ -2131,7 +2447,7 @@ func (r *TransactionGetBySinceIDRequest) SetFilters(filters ...TransactionFilter
 
 func (r *TransactionGetBySinceIDRequest) values() (url.Values, error) {
 	values := url.Values{}
-	values.Set("id", string(r.ID))
+	values.Set("id", r.ID)
 	if len(r.Type) > 0 {
 		var s []string
 		for _, t := range r.Type {
