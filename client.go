@@ -55,8 +55,8 @@ type clientConfig struct {
 // OANDA API endpoint group.
 type Client struct {
 	clientConfig
-	Account     *AccountService
-	Instrument  *InstrumentService
+	Account     *accountService
+	Instrument  *instrumentService
 	Order       *orderService
 	Trade       *tradeService
 	Position    *positionService

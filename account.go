@@ -38,7 +38,7 @@ type Account struct {
 	// ResettablePLTime is the date/time that the Account's resettablePL was last reset.
 	ResettablePLTime *DateTime `json:"resettablePLTime,omitempty"`
 	// MarginRate is the current financing margin rate used for financing calculations for the Account.
-	MarginRate DecimalNumber `json:"marginRate,omitempty"`
+	MarginRate DecimalNumber `json:"marginRate"`
 	// OpenTradeCount is the number of Trades currently open in the Account.
 	OpenTradeCount int `json:"openTradeCount"`
 	// OpenPositionCount is the number of Positions currently open in the Account.
@@ -200,7 +200,7 @@ type AccountSummary struct {
 	// ID is the Account's identifier.
 	ID AccountID `json:"id"`
 	// Alias is the client-assigned alias for the Account. Only provided if the Account has an alias.
-	Alias string `json:"alias,omitempty"`
+	Alias *string `json:"alias,omitempty"`
 	// Currency is the home currency of the Account.
 	Currency Currency `json:"currency"`
 	// CreatedByUserID is the ID of the user that created the Account.
@@ -215,7 +215,7 @@ type AccountSummary struct {
 	// ResettablePLTime is the date/time that the Account's resettablePL was last reset.
 	ResettablePLTime *DateTime `json:"resettablePLTime,omitempty"`
 	// MarginRate is the current financing margin rate used for financing calculations for the Account.
-	MarginRate DecimalNumber `json:"marginRate,omitempty"`
+	MarginRate DecimalNumber `json:"marginRate"`
 	// OpenTradeCount is the number of Trades currently open in the Account.
 	OpenTradeCount int `json:"openTradeCount"`
 	// OpenPositionCount is the number of Positions currently open in the Account.
@@ -251,10 +251,10 @@ type AccountSummary struct {
 	// positive value indicating how much can be withdrawn from the account.
 	WithdrawalLimit AccountUnits `json:"withdrawalLimit"`
 	// MarginCallMarginUsed is the Account's margin call margin used.
-	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed,omitempty"`
+	MarginCallMarginUsed AccountUnits `json:"marginCallMarginUsed"`
 	// MarginCallPercent is the Account's margin call percentage. When this value is 1.0 or above
 	// the Account is in a margin call situation.
-	MarginCallPercent DecimalNumber `json:"marginCallPercent,omitempty"`
+	MarginCallPercent DecimalNumber `json:"marginCallPercent"`
 	// Balance is the current balance of the Account.
 	Balance AccountUnits `json:"balance"`
 	// PL is the total profit/loss realized over the lifetime of the Account.
@@ -441,17 +441,17 @@ const (
 // Endpoints https://developer.oanda.com/rest-live-v20/account-ep/
 // ---------------------------------------------------------------
 
-// AccountService handles communication with the Account related endpoints of the
+// accountService handles communication with the Account related endpoints of the
 // OANDA v20 REST API.
-type AccountService struct {
+type accountService struct {
 	client *Client
 }
 
-func newAccountService(client *Client) *AccountService {
-	return &AccountService{client}
+func newAccountService(client *Client) *accountService {
+	return &accountService{client}
 }
 
-// AccountListResponse is the response returned by [AccountService.List].
+// AccountListResponse is the response returned by [accountService.List].
 type AccountListResponse struct {
 	Accounts []AccountProperties `json:"accounts"`
 }
@@ -465,11 +465,11 @@ type AccountListResponse struct {
 //   - error: An error if the request fails or response cannot be decoded.
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_1
-func (s *AccountService) List(ctx context.Context) (*AccountListResponse, error) {
+func (s *accountService) List(ctx context.Context) (*AccountListResponse, error) {
 	return doGet[AccountListResponse](s.client, ctx, "/v3/accounts", nil)
 }
 
-// AccountDetailsResponse is the response returned by [AccountService.Details].
+// AccountDetailsResponse is the response returned by [accountService.Details].
 type AccountDetailsResponse struct {
 	Account           Account       `json:"account"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
@@ -480,12 +480,12 @@ type AccountDetailsResponse struct {
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
-func (s *AccountService) Details(ctx context.Context) (*AccountDetailsResponse, error) {
+func (s *accountService) Details(ctx context.Context) (*AccountDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v", s.client.accountID)
 	return doGet[AccountDetailsResponse](s.client, ctx, path, nil)
 }
 
-// AccountSummaryResponse is the response returned by [AccountService.Summary].
+// AccountSummaryResponse is the response returned by [accountService.Summary].
 type AccountSummaryResponse struct {
 	Account           AccountSummary `json:"account"`
 	LastTransactionID TransactionID  `json:"lastTransactionID"`
@@ -493,13 +493,13 @@ type AccountSummaryResponse struct {
 
 // Summary retrieves a summary for the Account configured via [WithAccountID].
 //
-// Unlike [AccountService.Details], this method does not include full pending Order,
+// Unlike [accountService.Details], this method does not include full pending Order,
 // open Trade, and Position representations, making it more lightweight.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/summary
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
-func (s *AccountService) Summary(ctx context.Context) (*AccountSummaryResponse, error) {
+func (s *accountService) Summary(ctx context.Context) (*AccountSummaryResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/summary", s.client.accountID)
 	return doGet[AccountSummaryResponse](s.client, ctx, path, nil)
 }
@@ -536,13 +536,13 @@ func (r *AccountConfigureRequest) SetMarginRate(marginRate DecimalNumber) *Accou
 	return r
 }
 
-// AccountConfigureResponse is the successful response returned by [AccountService.Configure].
+// AccountConfigureResponse is the successful response returned by [accountService.Configure].
 type AccountConfigureResponse struct {
 	ClientConfigureTransaction ClientConfigureTransaction `json:"clientConfigureTransaction"`
 	LastTransactionID          TransactionID              `json:"lastTransactionID"`
 }
 
-// AccountConfigureErrorResponse is the error response returned by [AccountService.Configure]
+// AccountConfigureErrorResponse is the error response returned by [accountService.Configure]
 // when the request is rejected (400 or 403).
 type AccountConfigureErrorResponse struct {
 	ClientConfigureRejectTransaction ClientConfigureRejectTransaction `json:"clientConfigureRejectTransaction"`
@@ -561,7 +561,7 @@ func (r AccountConfigureErrorResponse) Error() string {
 // This corresponds to the OANDA API endpoint: PATCH /v3/accounts/{accountID}/configuration
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_5
-func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
+func (s *accountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/configuration", s.client.accountID)
 	var body io.Reader
 	var err error
@@ -599,7 +599,7 @@ func (s *AccountService) Configure(ctx context.Context, req *AccountConfigureReq
 	}
 }
 
-// AccountChangesResponse is the response returned by [AccountService.Changes].
+// AccountChangesResponse is the response returned by [accountService.Changes].
 type AccountChangesResponse struct {
 	Changes           AccountChanges      `json:"changes"`
 	State             AccountChangesState `json:"state"`
@@ -616,7 +616,7 @@ type AccountChangesResponse struct {
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/changes
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
-func (s *AccountService) Changes(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
+func (s *accountService) Changes(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/changes", s.client.accountID)
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
