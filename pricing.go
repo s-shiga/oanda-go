@@ -358,6 +358,72 @@ type PriceCandlesticksRequest struct {
 	units *int
 }
 
+// Mid adds mid-based candlestick data to the request.
+func (req *PriceCandlesticksRequest) Mid() *PriceCandlesticksRequest {
+	req.CandlesticksRequest.Mid()
+	return req
+}
+
+// Bid adds bid-based candlestick data to the request.
+func (req *PriceCandlesticksRequest) Bid() *PriceCandlesticksRequest {
+	req.CandlesticksRequest.Bid()
+	return req
+}
+
+// Ask adds ask-based candlestick data to the request.
+func (req *PriceCandlesticksRequest) Ask() *PriceCandlesticksRequest {
+	req.CandlesticksRequest.Ask()
+	return req
+}
+
+// SetCount sets the number of candlesticks to return. Maximum value is 5000.
+func (req *PriceCandlesticksRequest) SetCount(count int) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetCount(count)
+	return req
+}
+
+// SetFrom sets the start of the time range to fetch candlesticks for.
+func (req *PriceCandlesticksRequest) SetFrom(from time.Time) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetFrom(from)
+	return req
+}
+
+// SetTo sets the end of the time range to fetch candlesticks for.
+func (req *PriceCandlesticksRequest) SetTo(to time.Time) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetTo(to)
+	return req
+}
+
+// SetSmooth enables smoothing, which uses the previous candle's close as the open price.
+func (req *PriceCandlesticksRequest) SetSmooth() *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetSmooth()
+	return req
+}
+
+// SetExcludeFirst excludes the candlestick covered by the from time from the results.
+func (req *PriceCandlesticksRequest) SetExcludeFirst() *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetExcludeFirst()
+	return req
+}
+
+// SetDailyAlignment sets the hour of the day (0-23) used for granularities that have daily alignment.
+func (req *PriceCandlesticksRequest) SetDailyAlignment(dailyAlignment int) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetDailyAlignment(dailyAlignment)
+	return req
+}
+
+// SetAlignmentTimezone sets the timezone to use for the dailyAlignment parameter.
+func (req *PriceCandlesticksRequest) SetAlignmentTimezone(alignmentTimezone string) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetAlignmentTimezone(alignmentTimezone)
+	return req
+}
+
+// SetWeeklyAlignment sets the day of the week used for granularities that have weekly alignment.
+func (req *PriceCandlesticksRequest) SetWeeklyAlignment(weeklyAlignment WeeklyAlignment) *PriceCandlesticksRequest {
+	req.CandlesticksRequest.SetWeeklyAlignment(weeklyAlignment)
+	return req
+}
+
 // NewPriceCandlesticksRequest creates a new [PriceCandlesticksRequest] with the given instrument and granularity.
 func NewPriceCandlesticksRequest(instrument InstrumentName, granularity CandlestickGranularity) *PriceCandlesticksRequest {
 	return &PriceCandlesticksRequest{
@@ -366,21 +432,21 @@ func NewPriceCandlesticksRequest(instrument InstrumentName, granularity Candlest
 }
 
 // Units sets the number of units used to calculate the volume-weighted average bid and ask prices.
-func (r *PriceCandlesticksRequest) Units(units int) *PriceCandlesticksRequest {
-	r.units = &units
-	return r
+func (req *PriceCandlesticksRequest) Units(units int) *PriceCandlesticksRequest {
+	req.units = &units
+	return req
 }
 
-func (r *PriceCandlesticksRequest) values() (url.Values, error) {
-	values, err := r.CandlesticksRequest.values()
+func (req *PriceCandlesticksRequest) values() (url.Values, error) {
+	values, err := req.CandlesticksRequest.values()
 	if err != nil {
 		return nil, err
 	}
-	if r.units != nil {
-		if *r.units <= 0 {
+	if req.units != nil {
+		if *req.units <= 0 {
 			return nil, errors.New("units must be greater than 0")
 		}
-		values.Set("units", strconv.Itoa(*r.units))
+		values.Set("units", strconv.Itoa(*req.units))
 	}
 	return values, nil
 }
