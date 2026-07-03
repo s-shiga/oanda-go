@@ -123,7 +123,7 @@ func testLimitOrder(t *testing.T) {
 
 	t.Run("replace", func(t *testing.T) {
 		req := NewLimitOrderRequest("USD_JPY", "10000", "110.00")
-		resp, err := client.OrderReplace(t.Context(), orderID, req)
+		resp, err := client.Order.Replace(t.Context(), orderID, req)
 		if err != nil {
 			t.Errorf("failed to replace order: %v", err)
 		}

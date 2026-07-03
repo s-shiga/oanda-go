@@ -96,6 +96,10 @@ resp, err := client.Order.Create(ctx, req)
 // List pending orders
 orders, err := client.Order.ListPending(ctx)
 
+// Replace a pending order
+req := oanda.NewLimitOrderRequest("EUR_USD", "10000", "1.2600")
+resp, err := client.Order.Replace(ctx, oanda.OrderSpecifier("123"), req)
+
 // Cancel an order
 resp, err := client.Order.Cancel(ctx, oanda.OrderSpecifier("123"))
 ```
@@ -108,6 +112,9 @@ trades, err := client.Trade.ListOpen(ctx)
 
 // Get trade details
 trade, err := client.Trade.Details(ctx, "123")
+
+// Close a trade (fully or partially)
+resp, err := client.Trade.Close(ctx, "123", oanda.NewTradeCloseALLRequest())
 
 // Update dependent orders on a trade
 req := oanda.NewTradeUpdateOrdersRequest().
@@ -212,8 +219,8 @@ go func() {
 | Service | Endpoints |
 |---------|-----------|
 | Account | List, Details, Summary, Configure, Changes |
-| Order | Create, List, ListPending, Details, Cancel, UpdateClientExtensions |
-| Trade | List, ListOpen, Details, UpdateClientExtensions, UpdateOrders |
+| Order | Create, List, ListPending, Details, Replace, Cancel, UpdateClientExtensions |
+| Trade | List, ListOpen, Details, Close, UpdateClientExtensions, UpdateOrders |
 | Position | List, ListOpen, ListByInstrument, Close |
 | Pricing | Information, Candlesticks, LatestCandlesticks, Stream |
 | Instrument | List, Candlesticks |

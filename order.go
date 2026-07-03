@@ -1998,7 +1998,7 @@ func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*
 	return doGet[OrderDetailsResponse](s.client, ctx, path, nil)
 }
 
-// OrderReplaceResponse is the successful response returned by [Client.OrderReplace].
+// OrderReplaceResponse is the successful response returned by [orderService.Replace].
 type OrderReplaceResponse struct {
 	OrderCancelTransaction          OrderCancelTransaction `json:"orderCancelTransaction"`
 	OrderCreateTransaction          Transaction            `json:"orderCreateTransaction"`
@@ -2052,18 +2052,18 @@ func (r *OrderReplaceResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// OrderReplace cancels and replaces an existing Order with a new one.
+// Replace cancels an existing Order and replaces it with a new one.
 //
 // This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_5
-func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", c.accountID, specifier)
+func (s *orderService) Replace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
+	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := c.sendPutRequest(ctx, path, body)
+	httpResp, err := s.client.sendPutRequest(ctx, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
 	}
