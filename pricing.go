@@ -126,15 +126,18 @@ func (p *PriceBucket) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	p.Price = raw.Price
-	switch raw.Liquidity.(type) {
+	switch v := raw.Liquidity.(type) {
 	case string:
-		v, err := strconv.Atoi(raw.Liquidity.(string))
+		n, err := strconv.Atoi(v)
 		if err != nil {
 			return err
 		}
-		p.Liquidity = v
+		p.Liquidity = n
 	case float64:
-		p.Liquidity = int(raw.Liquidity.(float64))
+		p.Liquidity = int(v)
+	case nil:
+	default:
+		return fmt.Errorf("unexpected type %T for liquidity", v)
 	}
 	return nil
 }
