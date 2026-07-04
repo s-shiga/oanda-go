@@ -144,7 +144,7 @@ func joinURL(baseURL string, path string, query url.Values) (string, error) {
 		return "", err
 	}
 	u.Path = path
-	if query != nil && len(query) > 0 {
+	if len(query) > 0 {
 		u.RawQuery = query.Encode()
 	}
 	return u.String(), nil
