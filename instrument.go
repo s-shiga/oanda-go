@@ -350,13 +350,5 @@ func (s *instrumentService) Candlesticks(ctx context.Context, req *CandlesticksR
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := s.client.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp CandlestickResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[CandlestickResponse](s.client, ctx, path, v)
 }

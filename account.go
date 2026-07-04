@@ -578,23 +578,9 @@ func (s *accountService) Configure(ctx context.Context, req *AccountConfigureReq
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp AccountConfigureResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		var resp AccountConfigureErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
-	case http.StatusForbidden:
-		var resp AccountConfigureErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, Forbidden{HTTPError{StatusCode: httpResp.StatusCode, Message: "forbidden", Err: resp}}
+		return decodeJSON[AccountConfigureResponse](httpResp)
+	case http.StatusBadRequest, http.StatusForbidden:
+		return nil, decodeTypedError[AccountConfigureErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}

@@ -109,15 +109,7 @@ type PositionListResponse struct {
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_1
 func (s *positionService) List(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions", s.client.accountID)
-	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp PositionListResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[PositionListResponse](s.client, ctx, path, nil)
 }
 
 // ListOpen retrieves all open Positions for the Account configured via [WithAccountID].
@@ -127,15 +119,7 @@ func (s *positionService) List(ctx context.Context) (*PositionListResponse, erro
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_2
 func (s *positionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/openPositions", s.client.accountID)
-	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp PositionListResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[PositionListResponse](s.client, ctx, path, nil)
 }
 
 // PositionListByInstrumentResponse is the response returned by [positionService.ListByInstrument].
@@ -151,15 +135,7 @@ type PositionListByInstrumentResponse struct {
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_3
 func (s *positionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", s.client.accountID, instrument)
-	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp PositionListByInstrumentResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[PositionListByInstrumentResponse](s.client, ctx, path, nil)
 }
 
 // PositionCloseRequest represents a request to close (fully or partially) a Position's long and/or short side.
@@ -268,23 +244,9 @@ func (s *positionService) Close(ctx context.Context, instrument InstrumentName, 
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp PositionCloseResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		var resp PositionCloseErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
-	case http.StatusNotFound:
-		var resp PositionCloseErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
+		return decodeJSON[PositionCloseResponse](httpResp)
+	case http.StatusBadRequest, http.StatusNotFound:
+		return nil, decodeTypedError[PositionCloseErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}

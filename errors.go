@@ -22,6 +22,6 @@ type Unauthorized struct{ HTTPError }
 
 type Forbidden struct{ HTTPError }
 
-type NotFoundError struct{ HTTPError }
+type NotFound struct{ HTTPError }
 
 type MethodNotAllowed struct{ HTTPError }
