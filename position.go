@@ -269,19 +269,19 @@ func (s *positionService) Close(ctx context.Context, instrument InstrumentName, 
 	switch httpResp.StatusCode {
 	case http.StatusOK:
 		var resp PositionCloseResponse
-		if err := decodeResponse(httpResp, &resp); err != nil {
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 		return &resp, nil
 	case http.StatusBadRequest:
 		var resp PositionCloseErrorResponse
-		if err := decodeResponse(httpResp, &resp); err != nil {
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
 	case http.StatusNotFound:
 		var resp PositionCloseErrorResponse
-		if err := decodeResponse(httpResp, &resp); err != nil {
+		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}

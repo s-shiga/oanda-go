@@ -555,7 +555,7 @@ func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch ch
 			var raw json.RawMessage
 			if err := dec.Decode(&raw); err != nil {
 				if err == io.EOF {
-					break
+					return nil
 				}
 				return fmt.Errorf("failed to decode JSON response: %w", err)
 			}

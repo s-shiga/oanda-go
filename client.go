@@ -181,6 +181,7 @@ func doGet[R any](c *Client, ctx context.Context, path string, query url.Values)
 	}
 	var resp R
 	if httpResp.StatusCode != http.StatusOK {
+		defer closeBody(httpResp)
 		return nil, decodeErrorResponse(httpResp)
 	}
 	if err := decodeResponse(httpResp, &resp); err != nil {

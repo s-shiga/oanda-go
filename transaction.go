@@ -2506,7 +2506,7 @@ func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStr
 			var raw json.RawMessage
 			if err := dec.Decode(&raw); err != nil {
 				if err == io.EOF {
-					break
+					return nil
 				}
 				return fmt.Errorf("failed to decode JSON response: %w", err)
 			}

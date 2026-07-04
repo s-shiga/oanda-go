@@ -168,7 +168,7 @@ func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
 
 func (dt *DateTime) MarshalJSON() ([]byte, error) {
 	if dt.Time == nil {
-		return json.Marshal("null")
+		return []byte("null"), nil
 	}
 	return json.Marshal(dt.Format(time.RFC3339Nano))
 }
