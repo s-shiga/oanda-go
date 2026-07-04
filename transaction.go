@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -2300,15 +2297,7 @@ func (s *transactionService) List(ctx context.Context, req *TransactionListReque
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.client.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var transactionListResp TransactionListResponse
-	if err := decodeResponse(resp, &transactionListResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &transactionListResp, nil
+	return doGet[TransactionListResponse](s.client, ctx, path, v)
 }
 
 // TransactionDetailsResponse is the response returned by [transactionService.Details].
@@ -2480,209 +2469,73 @@ type TransactionStreamItem interface {
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_5
 func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", c.accountID)
-	u, err := joinURL(c.baseURL, path, nil)
-	if err != nil {
-		return err
-	}
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", u, nil)
-	if err != nil {
-		return err
-	}
-	c.setHeaders(httpReq)
-	httpResp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to send GET request: %w", err)
-	}
-	defer closeBody(httpResp)
-	dec := json.NewDecoder(httpResp.Body)
-	for {
-		select {
-		case <-done:
-			slog.Info("transaction stream closed")
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			var raw json.RawMessage
-			if err := dec.Decode(&raw); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return fmt.Errorf("failed to decode JSON response: %w", err)
-			}
-			var typeOnly struct {
-				Type TransactionType `json:"type"`
-			}
-			if err := json.Unmarshal(raw, &typeOnly); err != nil {
-				return fmt.Errorf("failed to unmarshal type: %w", err)
-			}
-			switch typeOnly.Type {
-			case "CREATE":
-				if err := unmarshalItem[CreateTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "CLOSE":
-				if err := unmarshalItem[CloseTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "REOPEN":
-				if err := unmarshalItem[ReopenTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "CLIENT_CONFIGURE":
-				if err := unmarshalItem[ClientConfigureTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "CLIENT_CONFIGURE_REJECT":
-				if err := unmarshalItem[ClientConfigureRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRANSFER_FUNDS":
-				if err := unmarshalItem[TransferFundsTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRANSFER_FUNDS_REJECT":
-				if err := unmarshalItem[TransferFundsRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARKET_ORDER":
-				if err := unmarshalItem[MarketOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARKET_ORDER_REJECT":
-				if err := unmarshalItem[MarketOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "FIXED_PRICE_ORDER":
-				if err := unmarshalItem[FixedPriceOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "LIMIT_ORDER":
-				if err := unmarshalItem[LimitOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "LIMIT_ORDER_REJECT":
-				if err := unmarshalItem[LimitOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "STOP_ORDER":
-				if err := unmarshalItem[StopOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "STOP_ORDER_REJECT":
-				if err := unmarshalItem[StopOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARKET_IF_TOUCHED_ORDER":
-				if err := unmarshalItem[MarketIfTouchedOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARKET_IF_TOUCHED_ORDER_REJECT":
-				if err := unmarshalItem[MarketIfTouchedOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TAKE_PROFIT_ORDER":
-				if err := unmarshalItem[TakeProfitOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TAKE_PROFIT_ORDER_REJECT":
-				if err := unmarshalItem[TakeProfitOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "STOP_LOSS_ORDER":
-				if err := unmarshalItem[StopLossOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "STOP_LOSS_ORDER_REJECT":
-				if err := unmarshalItem[StopLossOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "GUARANTEED_STOP_LOSS_ORDER":
-				if err := unmarshalItem[GuaranteedStopLossOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "GUARANTEED_STOP_LOSS_ORDER_REJECT":
-				if err := unmarshalItem[GuaranteedStopLossOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRAILING_STOP_LOSS_ORDER":
-				if err := unmarshalItem[TrailingStopLossOrderTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRAILING_STOP_LOSS_ORDER_REJECT":
-				if err := unmarshalItem[TrailingStopLossOrderRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "ORDER_FILL":
-				if err := unmarshalItem[OrderFillTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "ORDER_CANCEL":
-				if err := unmarshalItem[OrderCancelTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "ORDER_CANCEL_REJECT":
-				if err := unmarshalItem[OrderCancelRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "ORDER_CLIENT_EXTENSIONS_MODIFY":
-				if err := unmarshalItem[OrderClientExtensionsModifyTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT":
-				if err := unmarshalItem[OrderClientExtensionsModifyRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRADE_CLIENT_EXTENSIONS_MODIFY":
-				if err := unmarshalItem[TradeClientExtensionsModifyTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT":
-				if err := unmarshalItem[TradeClientExtensionsModifyRejectTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARGIN_CALL_ENTER":
-				if err := unmarshalItem[MarginCallEnterTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARGIN_CALL_EXTEND":
-				if err := unmarshalItem[MarginCallExtendTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "MARGIN_CALL_EXIT":
-				if err := unmarshalItem[MarginCallExitTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "DELAYED_TRADE_CLOSURE":
-				if err := unmarshalItem[DelayedTradeClosureTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "DAILY_FINANCING":
-				if err := unmarshalItem[DailyFinancingTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "DIVIDEND_ADJUSTMENT":
-				if err := unmarshalItem[DividendAdjustmentTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "RESET_RESETTABLE_PL":
-				if err := unmarshalItem[ResetResettablePLTransaction](raw, ch); err != nil {
-					return err
-				}
-			case "HEARTBEAT":
-				if err := unmarshalItem[TransactionHeartbeat](raw, ch); err != nil {
-					return err
-				}
-			}
-		}
-	}
+	return streamLoop(ctx, c, path, nil, ch, done, parseTransactionStreamItem)
 }
 
-func unmarshalItem[R TransactionStreamItem](raw json.RawMessage, ch chan<- TransactionStreamItem) error {
+var transactionStreamUnmarshalers = map[TransactionType]func(json.RawMessage) (TransactionStreamItem, error){
+	"CREATE":                                unmarshalItem[CreateTransaction],
+	"CLOSE":                                 unmarshalItem[CloseTransaction],
+	"REOPEN":                                unmarshalItem[ReopenTransaction],
+	"CLIENT_CONFIGURE":                      unmarshalItem[ClientConfigureTransaction],
+	"CLIENT_CONFIGURE_REJECT":               unmarshalItem[ClientConfigureRejectTransaction],
+	"TRANSFER_FUNDS":                        unmarshalItem[TransferFundsTransaction],
+	"TRANSFER_FUNDS_REJECT":                 unmarshalItem[TransferFundsRejectTransaction],
+	"MARKET_ORDER":                          unmarshalItem[MarketOrderTransaction],
+	"MARKET_ORDER_REJECT":                   unmarshalItem[MarketOrderRejectTransaction],
+	"FIXED_PRICE_ORDER":                     unmarshalItem[FixedPriceOrderTransaction],
+	"LIMIT_ORDER":                           unmarshalItem[LimitOrderTransaction],
+	"LIMIT_ORDER_REJECT":                    unmarshalItem[LimitOrderRejectTransaction],
+	"STOP_ORDER":                            unmarshalItem[StopOrderTransaction],
+	"STOP_ORDER_REJECT":                     unmarshalItem[StopOrderRejectTransaction],
+	"MARKET_IF_TOUCHED_ORDER":               unmarshalItem[MarketIfTouchedOrderTransaction],
+	"MARKET_IF_TOUCHED_ORDER_REJECT":        unmarshalItem[MarketIfTouchedOrderRejectTransaction],
+	"TAKE_PROFIT_ORDER":                     unmarshalItem[TakeProfitOrderTransaction],
+	"TAKE_PROFIT_ORDER_REJECT":              unmarshalItem[TakeProfitOrderRejectTransaction],
+	"STOP_LOSS_ORDER":                       unmarshalItem[StopLossOrderTransaction],
+	"STOP_LOSS_ORDER_REJECT":                unmarshalItem[StopLossOrderRejectTransaction],
+	"GUARANTEED_STOP_LOSS_ORDER":            unmarshalItem[GuaranteedStopLossOrderTransaction],
+	"GUARANTEED_STOP_LOSS_ORDER_REJECT":     unmarshalItem[GuaranteedStopLossOrderRejectTransaction],
+	"TRAILING_STOP_LOSS_ORDER":              unmarshalItem[TrailingStopLossOrderTransaction],
+	"TRAILING_STOP_LOSS_ORDER_REJECT":       unmarshalItem[TrailingStopLossOrderRejectTransaction],
+	"ORDER_FILL":                            unmarshalItem[OrderFillTransaction],
+	"ORDER_CANCEL":                          unmarshalItem[OrderCancelTransaction],
+	"ORDER_CANCEL_REJECT":                   unmarshalItem[OrderCancelRejectTransaction],
+	"ORDER_CLIENT_EXTENSIONS_MODIFY":        unmarshalItem[OrderClientExtensionsModifyTransaction],
+	"ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT": unmarshalItem[OrderClientExtensionsModifyRejectTransaction],
+	"TRADE_CLIENT_EXTENSIONS_MODIFY":        unmarshalItem[TradeClientExtensionsModifyTransaction],
+	"TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT": unmarshalItem[TradeClientExtensionsModifyRejectTransaction],
+	"MARGIN_CALL_ENTER":                     unmarshalItem[MarginCallEnterTransaction],
+	"MARGIN_CALL_EXTEND":                    unmarshalItem[MarginCallExtendTransaction],
+	"MARGIN_CALL_EXIT":                      unmarshalItem[MarginCallExitTransaction],
+	"DELAYED_TRADE_CLOSURE":                 unmarshalItem[DelayedTradeClosureTransaction],
+	"DAILY_FINANCING":                       unmarshalItem[DailyFinancingTransaction],
+	"DIVIDEND_ADJUSTMENT":                   unmarshalItem[DividendAdjustmentTransaction],
+	"RESET_RESETTABLE_PL":                   unmarshalItem[ResetResettablePLTransaction],
+	"HEARTBEAT":                             unmarshalItem[TransactionHeartbeat],
+}
+
+func parseTransactionStreamItem(raw json.RawMessage) (TransactionStreamItem, bool, error) {
+	var typeOnly struct {
+		Type TransactionType `json:"type"`
+	}
+	if err := json.Unmarshal(raw, &typeOnly); err != nil {
+		return nil, false, fmt.Errorf("failed to unmarshal type: %w", err)
+	}
+	unmarshal, ok := transactionStreamUnmarshalers[typeOnly.Type]
+	if !ok {
+		return nil, false, nil
+	}
+	item, err := unmarshal(raw)
+	if err != nil {
+		return nil, false, err
+	}
+	return item, true, nil
+}
+
+func unmarshalItem[R TransactionStreamItem](raw json.RawMessage) (TransactionStreamItem, error) {
 	var t R
 	if err := json.Unmarshal(raw, &t); err != nil {
-		return fmt.Errorf("failed to unmarshal JSON response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
 	}
-	ch <- t
-	return nil
+	return t, nil
 }

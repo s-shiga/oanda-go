@@ -130,17 +130,17 @@ type CandlestickResponse struct {
 // Endpoints https://developer.oanda.com/rest-live-v20/instrument-ep/
 // ------------------------------------------------------------------
 
-// InstrumentService handles communication with the Instrument related endpoints of the
+// instrumentService handles communication with the Instrument related endpoints of the
 // OANDA v20 REST API.
-type InstrumentService struct {
+type instrumentService struct {
 	client *Client
 }
 
-func newInstrumentService(client *Client) *InstrumentService {
-	return &InstrumentService{client}
+func newInstrumentService(client *Client) *instrumentService {
+	return &instrumentService{client}
 }
 
-// InstrumentListResponse is the response returned by [InstrumentService.List].
+// InstrumentListResponse is the response returned by [instrumentService.List].
 type InstrumentListResponse struct {
 	Instruments       []Instrument  `json:"instruments"`
 	LastTransactionID TransactionID `json:"lastTransactionID"`
@@ -153,7 +153,7 @@ type InstrumentListResponse struct {
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/instruments
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
-func (s *InstrumentService) List(ctx context.Context, instruments ...InstrumentName) (*InstrumentListResponse, error) {
+func (s *instrumentService) List(ctx context.Context, instruments ...InstrumentName) (*InstrumentListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/instruments", s.client.accountID)
 	v := url.Values{}
 	if len(instruments) != 0 {
@@ -344,19 +344,11 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 
 // Candlesticks fetches candlestick data for an instrument.
 // See: https://developer.oanda.com/rest-live-v20/instrument-ep/
-func (s *InstrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlestickResponse, error) {
+func (s *instrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlestickResponse, error) {
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := s.client.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp CandlestickResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, err
-	}
-	return &resp, nil
+	return doGet[CandlestickResponse](s.client, ctx, path, v)
 }

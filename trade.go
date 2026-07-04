@@ -307,15 +307,7 @@ func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeL
 	if err != nil {
 		return nil, err
 	}
-	httpResp, err := s.client.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp TradeListResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[TradeListResponse](s.client, ctx, path, v)
 }
 
 // ListOpen retrieves all currently open Trades for the Account configured via [WithAccountID].
@@ -325,15 +317,7 @@ func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeL
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_3
 func (s *tradeService) ListOpen(ctx context.Context) (*TradeListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/openTrades", s.client.accountID)
-	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp TradeListResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[TradeListResponse](s.client, ctx, path, nil)
 }
 
 // TradeDetailsResponse is the response returned by [tradeService.Details].
@@ -349,15 +333,7 @@ type TradeDetailsResponse struct {
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_4
 func (s *tradeService) Details(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", s.client.accountID, specifier)
-	httpResp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var resp TradeDetailsResponse
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
+	return doGet[TradeDetailsResponse](s.client, ctx, path, nil)
 }
 
 // TradeCloseRequest represents a request to close (fully or partially) a Trade.
@@ -443,23 +419,11 @@ func (s *tradeService) Close(ctx context.Context, specifier TradeSpecifier, req 
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp TradeCloseResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
+		return decodeJSON[TradeCloseResponse](httpResp)
 	case http.StatusBadRequest:
-		var resp TradeCloseBadRequestResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+		return nil, decodeTypedError[TradeCloseBadRequestResponse](httpResp)
 	case http.StatusNotFound:
-		var resp TradeCloseNotFoundResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
+		return nil, decodeTypedError[TradeCloseNotFoundResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -517,23 +481,9 @@ func (s *tradeService) UpdateClientExtensions(ctx context.Context, specifier Tra
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp TradeUpdateClientExtensionsResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		var resp TradeUpdateClientExtensionsErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
-	case http.StatusNotFound:
-		var resp TradeUpdateClientExtensionsErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, NotFoundError{HTTPError{StatusCode: httpResp.StatusCode, Message: "not found", Err: resp}}
+		return decodeJSON[TradeUpdateClientExtensionsResponse](httpResp)
+	case http.StatusBadRequest, http.StatusNotFound:
+		return nil, decodeTypedError[TradeUpdateClientExtensionsErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -614,17 +564,9 @@ func (s *tradeService) UpdateOrders(ctx context.Context, specifier TradeSpecifie
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp TradeUpdateOrdersResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
+		return decodeJSON[TradeUpdateOrdersResponse](httpResp)
 	case http.StatusBadRequest:
-		var resp TradeUpdateOrdersErrorResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return nil, BadRequest{HTTPError{StatusCode: httpResp.StatusCode, Message: "bad request", Err: resp}}
+		return nil, decodeTypedError[TradeUpdateOrdersErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
