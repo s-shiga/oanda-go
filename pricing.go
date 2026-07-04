@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -173,38 +170,38 @@ func NewPriceLatestCandlesticksRequest() *PriceLatestCandlesticksRequest {
 	}
 }
 
-// Specification adds one or more candle specifications (e.g. "EUR_USD:S10:BM") to the request.
-func (r *PriceLatestCandlesticksRequest) Specification(specs ...CandleSpecification) *PriceLatestCandlesticksRequest {
+// AddSpecifications adds one or more candle specifications (e.g. "EUR_USD:S10:BM") to the request.
+func (r *PriceLatestCandlesticksRequest) AddSpecifications(specs ...CandleSpecification) *PriceLatestCandlesticksRequest {
 	r.specifications = append(r.specifications, specs...)
 	return r
 }
 
-// Units sets the number of units used to calculate the volume-weighted average bid and ask prices.
-func (r *PriceLatestCandlesticksRequest) Units(units DecimalNumber) *PriceLatestCandlesticksRequest {
+// SetUnits sets the number of units used to calculate the volume-weighted average bid and ask prices.
+func (r *PriceLatestCandlesticksRequest) SetUnits(units DecimalNumber) *PriceLatestCandlesticksRequest {
 	r.units = &units
 	return r
 }
 
-// Smooth enables smoothing, which uses the previous candle's close as the open price.
-func (r *PriceLatestCandlesticksRequest) Smooth() *PriceLatestCandlesticksRequest {
+// SetSmooth enables smoothing, which uses the previous candle's close as the open price.
+func (r *PriceLatestCandlesticksRequest) SetSmooth() *PriceLatestCandlesticksRequest {
 	r.smooth = true
 	return r
 }
 
-// DailyAlignment sets the hour of the day (0-23) used for granularities that have daily alignment.
-func (r *PriceLatestCandlesticksRequest) DailyAlignment(dailyAlignment int) *PriceLatestCandlesticksRequest {
+// SetDailyAlignment sets the hour of the day (0-23) used for granularities that have daily alignment.
+func (r *PriceLatestCandlesticksRequest) SetDailyAlignment(dailyAlignment int) *PriceLatestCandlesticksRequest {
 	r.dailyAlignment = &dailyAlignment
 	return r
 }
 
-// AlignmentTimezone sets the timezone to use for the daily alignment parameter.
-func (r *PriceLatestCandlesticksRequest) AlignmentTimezone(alignmentTimezone string) *PriceLatestCandlesticksRequest {
+// SetAlignmentTimezone sets the timezone to use for the daily alignment parameter.
+func (r *PriceLatestCandlesticksRequest) SetAlignmentTimezone(alignmentTimezone string) *PriceLatestCandlesticksRequest {
 	r.alignmentTimezone = &alignmentTimezone
 	return r
 }
 
-// WeeklyAlignment sets the day of the week used for granularities that have weekly alignment.
-func (r *PriceLatestCandlesticksRequest) WeeklyAlignment(weeklyAlignment WeeklyAlignment) *PriceLatestCandlesticksRequest {
+// SetWeeklyAlignment sets the day of the week used for granularities that have weekly alignment.
+func (r *PriceLatestCandlesticksRequest) SetWeeklyAlignment(weeklyAlignment WeeklyAlignment) *PriceLatestCandlesticksRequest {
 	r.weeklyAlignment = &weeklyAlignment
 	return r
 }
@@ -434,8 +431,8 @@ func NewPriceCandlesticksRequest(instrument InstrumentName, granularity Candlest
 	}
 }
 
-// Units sets the number of units used to calculate the volume-weighted average bid and ask prices.
-func (req *PriceCandlesticksRequest) Units(units int) *PriceCandlesticksRequest {
+// SetUnits sets the number of units used to calculate the volume-weighted average bid and ask prices.
+func (req *PriceCandlesticksRequest) SetUnits(units int) *PriceCandlesticksRequest {
 	req.units = &units
 	return req
 }
@@ -486,14 +483,14 @@ func NewPriceStreamRequest(instruments ...InstrumentName) *PriceStreamRequest {
 	}
 }
 
-// DisableSnapShot disables the initial snapshot of prices when the stream starts.
-func (r *PriceStreamRequest) DisableSnapShot() *PriceStreamRequest {
+// DisableSnapshot disables the initial snapshot of prices when the stream starts.
+func (r *PriceStreamRequest) DisableSnapshot() *PriceStreamRequest {
 	r.snapShot = false
 	return r
 }
 
-// IncludeHomeConversion enables inclusion of home conversion factors in the stream.
-func (r *PriceStreamRequest) IncludeHomeConversion() *PriceStreamRequest {
+// SetIncludeHomeConversions enables inclusion of home conversion factors in the stream.
+func (r *PriceStreamRequest) SetIncludeHomeConversions() *PriceStreamRequest {
 	r.includeHomeConversion = true
 	return r
 }
@@ -532,56 +529,29 @@ func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch ch
 	if err != nil {
 		return err
 	}
-	u, err := joinURL(c.baseURL, path, values)
-	if err != nil {
-		return err
+	return streamLoop(ctx, c, path, values, ch, done, parsePriceStreamItem)
+}
+
+func parsePriceStreamItem(raw json.RawMessage) (PriceStreamItem, bool, error) {
+	var typeOnly struct {
+		Type string `json:"type"`
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", u, nil)
-	if err != nil {
-		return err
+	if err := json.Unmarshal(raw, &typeOnly); err != nil {
+		return nil, false, fmt.Errorf("failed to unmarshal type: %w", err)
 	}
-	c.setHeaders(httpReq)
-	httpResp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to send GET request: %w", err)
-	}
-	defer closeBody(httpResp)
-	dec := json.NewDecoder(httpResp.Body)
-	for {
-		select {
-		case <-done:
-			slog.Info("price stream closed")
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			var raw json.RawMessage
-			if err := dec.Decode(&raw); err != nil {
-				if err == io.EOF {
-					return nil
-				}
-				return fmt.Errorf("failed to decode JSON response: %w", err)
-			}
-			var typeOnly struct {
-				Type string `json:"type"`
-			}
-			if err := json.Unmarshal(raw, &typeOnly); err != nil {
-				return fmt.Errorf("failed to unmarshal type: %w", err)
-			}
-			switch typeOnly.Type {
-			case "PRICE":
-				var price ClientPrice
-				if err := json.Unmarshal(raw, &price); err != nil {
-					return err
-				}
-				ch <- price
-			case "HEARTBEAT":
-				var heartbeat PricingHeartbeat
-				if err := json.Unmarshal(raw, &heartbeat); err != nil {
-					return err
-				}
-				ch <- heartbeat
-			}
+	switch typeOnly.Type {
+	case "PRICE":
+		var price ClientPrice
+		if err := json.Unmarshal(raw, &price); err != nil {
+			return nil, false, err
 		}
+		return price, true, nil
+	case "HEARTBEAT":
+		var heartbeat PricingHeartbeat
+		if err := json.Unmarshal(raw, &heartbeat); err != nil {
+			return nil, false, err
+		}
+		return heartbeat, true, nil
 	}
+	return nil, false, nil
 }

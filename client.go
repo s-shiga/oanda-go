@@ -161,17 +161,33 @@ type Request interface {
 	body() (*bytes.Buffer, error)
 }
 
-func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
-	u, err := joinURL(c.baseURL, path, values)
+func (c *Client) sendRequest(ctx context.Context, method, path string, query url.Values, body io.Reader) (*http.Response, error) {
+	u, err := joinURL(c.baseURL, path, query)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	req, err := http.NewRequestWithContext(ctx, method, u, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	c.setHeaders(req)
 	return c.httpClient.Do(req)
+}
+
+func (c *Client) sendGetRequest(ctx context.Context, path string, values url.Values) (*http.Response, error) {
+	return c.sendRequest(ctx, http.MethodGet, path, values, nil)
+}
+
+func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	return c.sendRequest(ctx, http.MethodPost, path, nil, body)
+}
+
+func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	return c.sendRequest(ctx, http.MethodPut, path, nil, body)
+}
+
+func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
+	return c.sendRequest(ctx, http.MethodPatch, path, nil, body)
 }
 
 func doGet[R any](c *Client, ctx context.Context, path string, query url.Values) (*R, error) {
@@ -179,54 +195,11 @@ func doGet[R any](c *Client, ctx context.Context, path string, query url.Values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send GET request: %w", err)
 	}
-	var resp R
+	defer closeBody(httpResp)
 	if httpResp.StatusCode != http.StatusOK {
-		defer closeBody(httpResp)
 		return nil, decodeErrorResponse(httpResp)
 	}
-	if err := decodeResponse(httpResp, &resp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &resp, nil
-}
-
-func (c *Client) sendPostRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := joinURL(c.baseURL, path, nil)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST", u, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	c.setHeaders(req)
-	return c.httpClient.Do(req)
-}
-
-func (c *Client) sendPutRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := joinURL(c.baseURL, path, nil)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "PUT", u, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	c.setHeaders(req)
-	return c.httpClient.Do(req)
-}
-
-func (c *Client) sendPatchRequest(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	u, err := joinURL(c.baseURL, path, nil)
-	if err != nil {
-		return nil, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "PATCH", u, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	c.setHeaders(req)
-	return c.httpClient.Do(req)
+	return decodeJSON[R](httpResp)
 }
 
 // StreamClient is the OANDA v20 Streaming API client. Create one with
@@ -272,19 +245,43 @@ func closeBody(resp *http.Response) {
 	}
 }
 
-func decodeResponse(resp *http.Response, v any) error {
-	defer closeBody(resp)
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
-		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
-			return err
-		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusMethodNotAllowed:
-		return decodeErrorResponse(resp)
-	default:
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+// decodeJSON decodes an HTTP response body into a value of type R.
+// It does not close the body; callers are responsible for that.
+func decodeJSON[R any](resp *http.Response) (*R, error) {
+	var v R
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	return nil
+	return &v, nil
+}
+
+// decodeTypedError decodes an HTTP error response body into an
+// endpoint-specific error type E and wraps it in the error matching the
+// response status code. It does not close the body; callers are
+// responsible for that.
+func decodeTypedError[E error](resp *http.Response) error {
+	var e E
+	if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+	return wrapHTTPError(resp.StatusCode, e)
+}
+
+func wrapHTTPError(statusCode int, err error) error {
+	switch statusCode {
+	case http.StatusBadRequest:
+		return BadRequest{HTTPError{statusCode, "bad request", err}}
+	case http.StatusUnauthorized:
+		return Unauthorized{HTTPError{statusCode, "unauthorized", err}}
+	case http.StatusForbidden:
+		return Forbidden{HTTPError{statusCode, "forbidden", err}}
+	case http.StatusNotFound:
+		return NotFound{HTTPError{statusCode, "not found", err}}
+	case http.StatusMethodNotAllowed:
+		return MethodNotAllowed{HTTPError{statusCode, "method not allowed", err}}
+	default:
+		return err
+	}
 }
 
 func decodeErrorResponse(resp *http.Response) error {
@@ -294,19 +291,65 @@ func decodeErrorResponse(resp *http.Response) error {
 	if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
 		return fmt.Errorf("failed to decode error response body: %w", err)
 	}
-	err := errors.New(errResp.Message)
-	switch resp.StatusCode {
-	case http.StatusBadRequest:
-		return BadRequest{HTTPError{resp.StatusCode, "bad request", err}}
-	case http.StatusUnauthorized:
-		return Unauthorized{HTTPError{resp.StatusCode, "unauthorized", err}}
-	case http.StatusForbidden:
-		return Forbidden{HTTPError{resp.StatusCode, "forbidden", err}}
-	case http.StatusNotFound:
-		return NotFoundError{HTTPError{resp.StatusCode, "not found", err}}
-	case http.StatusMethodNotAllowed:
-		return MethodNotAllowed{HTTPError{resp.StatusCode, "method not allowed", err}}
-	default:
+	return wrapHTTPError(resp.StatusCode, errors.New(errResp.Message))
+}
+
+// streamLoop opens a streaming GET connection and decodes newline-delimited
+// JSON objects until done is closed, the context is cancelled, or the server
+// ends the stream. Each object is passed to parse; items it accepts are sent
+// to ch.
+func streamLoop[T any](
+	ctx context.Context,
+	c *StreamClient,
+	path string,
+	values url.Values,
+	ch chan<- T,
+	done <-chan struct{},
+	parse func(json.RawMessage) (T, bool, error),
+) error {
+	u, err := joinURL(c.baseURL, path, values)
+	if err != nil {
 		return err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return err
+	}
+	c.setHeaders(httpReq)
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to send GET request: %w", err)
+	}
+	defer closeBody(httpResp)
+	dec := json.NewDecoder(httpResp.Body)
+	for {
+		select {
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		var raw json.RawMessage
+		if err := dec.Decode(&raw); err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return fmt.Errorf("failed to decode JSON response: %w", err)
+		}
+		item, ok, err := parse(raw)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+		select {
+		case ch <- item:
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }

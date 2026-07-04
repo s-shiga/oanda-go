@@ -1727,39 +1727,32 @@ type OrderErrorResponse struct {
 	ErrorMessage           string          `json:"errorMessage"`
 }
 
-func (r OrderErrorResponse) UnmarshalJSON(b []byte) error {
+func (r *OrderErrorResponse) UnmarshalJSON(b []byte) error {
 	type Alias OrderErrorResponse
 
 	aux := &struct {
 		Alias
 		OrderRejectTransaction json.RawMessage `json:"orderRejectTransaction"`
-	}{
-		Alias: (Alias)(r),
-	}
+	}{}
 
 	if err := json.Unmarshal(b, aux); err != nil {
 		return err
 	}
+	*r = OrderErrorResponse(aux.Alias)
 
-	orderRejectTransaction, err := unmarshalTransaction(aux.OrderRejectTransaction)
-	if err != nil {
-		return err
+	if len(aux.OrderRejectTransaction) > 0 {
+		orderRejectTransaction, err := unmarshalTransaction(aux.OrderRejectTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderRejectTransaction = orderRejectTransaction
 	}
-	r.OrderRejectTransaction = orderRejectTransaction
 	return nil
 }
 
 // Error implements the error interface.
 func (r OrderErrorResponse) Error() string {
 	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
-}
-
-func unmarshalOrderErrorResponse(resp *http.Response) (*OrderErrorResponse, error) {
-	var r OrderErrorResponse
-	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal OrderErrorResponse: %w", err)
-	}
-	return &r, nil
 }
 
 func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
@@ -1791,23 +1784,9 @@ func (s *orderService) Create(ctx context.Context, req OrderRequest) (*OrderCrea
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusCreated:
-		var resp OrderCreateResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
-	case http.StatusNotFound:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
+		return decodeJSON[OrderCreateResponse](httpResp)
+	case http.StatusBadRequest, http.StatusNotFound:
+		return nil, decodeTypedError[OrderErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -1934,15 +1913,7 @@ func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.client.sendGetRequest(ctx, path, v)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderListResp OrderListResponse
-	if err := decodeResponse(resp, &orderListResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderListResp, nil
+	return doGet[OrderListResponse](s.client, ctx, path, v)
 }
 
 // ListPending retrieves all pending Orders for the Account configured via WithAccountID.
@@ -1952,15 +1923,7 @@ func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
 func (s *orderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
 	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", s.client.accountID)
-	resp, err := s.client.sendGetRequest(ctx, path, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	var orderListResp OrderListResponse
-	if err := decodeResponse(resp, &orderListResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-	return &orderListResp, nil
+	return doGet[OrderListResponse](s.client, ctx, path, nil)
 }
 
 // OrderDetailsResponse is the response returned by [orderService.Details].
@@ -2028,23 +1991,9 @@ func (c *Client) OrderReplace(ctx context.Context, specifier OrderSpecifier, req
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusCreated:
-		var resp OrderReplaceResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
-	case http.StatusNotFound:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
+		return decodeJSON[OrderReplaceResponse](httpResp)
+	case http.StatusBadRequest, http.StatusNotFound:
+		return nil, decodeTypedError[OrderErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -2071,17 +2020,9 @@ func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*O
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp OrderCancelResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
+		return decodeJSON[OrderCancelResponse](httpResp)
 	case http.StatusNotFound:
-		resp, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", resp}}
+		return nil, decodeTypedError[OrderErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -2130,23 +2071,9 @@ func (s *orderService) UpdateClientExtensions(
 	defer closeBody(httpResp)
 	switch httpResp.StatusCode {
 	case http.StatusOK:
-		var resp OrderUpdateClientExtensionsResponse
-		if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-		return &resp, nil
-	case http.StatusBadRequest:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, BadRequest{HTTPError{httpResp.StatusCode, "bad request", r}}
-	case http.StatusNotFound:
-		r, err := unmarshalOrderErrorResponse(httpResp)
-		if err != nil {
-			return nil, err
-		}
-		return nil, NotFoundError{HTTPError{httpResp.StatusCode, "not found", r}}
+		return decodeJSON[OrderUpdateClientExtensionsResponse](httpResp)
+	case http.StatusBadRequest, http.StatusNotFound:
+		return nil, decodeTypedError[OrderErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
