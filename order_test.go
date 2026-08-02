@@ -40,6 +40,9 @@ func testMarketOrder(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create market order: %v", err)
 		}
+		if resp.OrderFillTransaction == nil || resp.OrderFillTransaction.TradeOpened == nil {
+			t.Fatalf("market order was not filled (market closed?): %+v", resp)
+		}
 		tradeID = resp.OrderFillTransaction.TradeOpened.TradeID
 		debugResponse(resp)
 	})
@@ -48,7 +51,7 @@ func testMarketOrder(t *testing.T) {
 		req := NewTakeProfitOrderRequest(tradeID, "170.00")
 		resp, err := client.Order.Create(t.Context(), req)
 		if err != nil {
-			t.Errorf("failed to create take profit order: %v", err)
+			t.Fatalf("failed to create take profit order: %v", err)
 		}
 		if tp := resp.OrderCreateTransaction.GetType(); tp != TransactionTypeTakeProfitOrder {
 			t.Errorf("wrong transaction type: %v", tp)
@@ -61,7 +64,7 @@ func testMarketOrder(t *testing.T) {
 		req := NewStopLossOrderRequest(tradeID).SetDistance("10.000")
 		resp, err := client.Order.Create(t.Context(), req)
 		if err != nil {
-			t.Errorf("failed to create stop loss order: %v", err)
+			t.Fatalf("failed to create stop loss order: %v", err)
 		}
 		if tp := resp.OrderCreateTransaction.GetType(); tp != TransactionTypeStopLossOrder {
 			t.Errorf("wrong transaction type: %v", tp)
@@ -74,7 +77,7 @@ func testMarketOrder(t *testing.T) {
 		req := NewOrderListRequest().SetInstrument("USD_JPY")
 		resp, err := client.Order.List(t.Context(), req)
 		if err != nil {
-			t.Errorf("failed to list orders: %v", err)
+			t.Fatalf("failed to list orders: %v", err)
 		}
 		checkOrders(t, resp.Orders, takeProfitOrderID, stopLossOrderID)
 		debugResponse(resp)
@@ -83,7 +86,7 @@ func testMarketOrder(t *testing.T) {
 	t.Run("list pending", func(t *testing.T) {
 		resp, err := client.Order.ListPending(t.Context())
 		if err != nil {
-			t.Errorf("failed to list pending orders: %v", err)
+			t.Fatalf("failed to list pending orders: %v", err)
 		}
 		checkOrders(t, resp.Orders, takeProfitOrderID, stopLossOrderID)
 		debugResponse(resp)
@@ -125,7 +128,7 @@ func testLimitOrder(t *testing.T) {
 		req := NewLimitOrderRequest("USD_JPY", "10000", "110.00")
 		resp, err := client.Order.Replace(t.Context(), orderID, req)
 		if err != nil {
-			t.Errorf("failed to replace order: %v", err)
+			t.Fatalf("failed to replace order: %v", err)
 		}
 		orderID = resp.OrderCreateTransaction.GetID()
 		debugResponse(resp)

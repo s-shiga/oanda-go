@@ -14,6 +14,9 @@ func TestTradeService(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create order: %v", err)
 		}
+		if resp.OrderFillTransaction == nil || resp.OrderFillTransaction.TradeOpened == nil {
+			t.Fatalf("market order was not filled (market closed?): %+v", resp)
+		}
 		tradeID = resp.OrderFillTransaction.TradeOpened.TradeID
 		debugResponse(resp)
 	})
@@ -26,7 +29,7 @@ func TestTradeService(t *testing.T) {
 		req := NewTradeListRequest().SetInstrument("USD_JPY")
 		resp, err := client.Trade.List(t.Context(), req)
 		if err != nil {
-			t.Errorf("failed to list trades: %s", err)
+			t.Fatalf("failed to list trades: %s", err)
 		}
 		found := false
 		for _, trade := range resp.Trades {
@@ -43,7 +46,7 @@ func TestTradeService(t *testing.T) {
 	t.Run("list open", func(t *testing.T) {
 		resp, err := client.Trade.ListOpen(t.Context())
 		if err != nil {
-			t.Errorf("failed to list open trades: %s", err)
+			t.Fatalf("failed to list open trades: %s", err)
 		}
 		found := false
 		for _, trade := range resp.Trades {

@@ -435,7 +435,7 @@ type TradeUpdateClientExtensionsRequest struct {
 }
 
 func (r TradeUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
-	jsonBody, err := json.Marshal(r.ClientExtensions)
+	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
 	}

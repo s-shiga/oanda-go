@@ -33,9 +33,9 @@ type Position struct {
 	// DividendAdjustment is the total amount of dividend adjustments paid or collected over the
 	// lifetime of the Position in the Account's home currency.
 	DividendAdjustment AccountUnits `json:"dividendAdjustment"`
-	// GuaranteedExecutionsFees is the total amount of fees charged over the lifetime of the Account
+	// GuaranteedExecutionFees is the total amount of fees charged over the lifetime of the Account
 	// for the execution of guaranteed Stop Loss Orders attached to Trades for this Position.
-	GuaranteedExecutionsFees *AccountUnits `json:"guaranteedExecutionsFees,omitempty"`
+	GuaranteedExecutionFees *AccountUnits `json:"guaranteedExecutionFees,omitempty"`
 	// Long is the details of the long side of the Position.
 	Long PositionSide `json:"long"`
 	// Short is the details of the short side of the Position.

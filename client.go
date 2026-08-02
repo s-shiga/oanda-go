@@ -90,7 +90,9 @@ func WithAccountID(id AccountID) Option {
 }
 
 // WithHTTPClient replaces the default HTTP client used for API requests.
-func WithHTTPClient(client *http.Client) Option {
+// Any implementation of [HTTPClient] (including *http.Client) is accepted,
+// which allows injecting a fake transport in tests.
+func WithHTTPClient(client HTTPClient) Option {
 	return func(c *clientConfig) {
 		c.httpClient = client
 	}
@@ -280,16 +282,25 @@ func wrapHTTPError(statusCode int, err error) error {
 	case http.StatusMethodNotAllowed:
 		return MethodNotAllowed{HTTPError{statusCode, "method not allowed", err}}
 	default:
-		return err
+		return HTTPError{statusCode, http.StatusText(statusCode), err}
 	}
 }
 
 func decodeErrorResponse(resp *http.Response) error {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read error response body: %w", err)
+	}
 	errResp := struct {
+		Code    string `json:"errorCode"`
 		Message string `json:"errorMessage"`
 	}{}
-	if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
-		return fmt.Errorf("failed to decode error response body: %w", err)
+	if err := json.Unmarshal(body, &errResp); err != nil || errResp.Message == "" {
+		// Non-JSON body (e.g. a gateway/HTML error page): keep the raw text.
+		return wrapHTTPError(resp.StatusCode, errors.New(string(bytes.TrimSpace(body))))
+	}
+	if errResp.Code != "" {
+		return wrapHTTPError(resp.StatusCode, fmt.Errorf("%s: %s", errResp.Code, errResp.Message))
 	}
 	return wrapHTTPError(resp.StatusCode, errors.New(errResp.Message))
 }
@@ -298,6 +309,12 @@ func decodeErrorResponse(resp *http.Response) error {
 // JSON objects until done is closed, the context is cancelled, or the server
 // ends the stream. Each object is passed to parse; items it accepts are sent
 // to ch.
+//
+// ch is never closed by streamLoop; the caller detects the end of the stream
+// by streamLoop returning. done is only checked between messages, so it
+// cannot interrupt a read that is blocked waiting for data — cancel ctx to
+// abort the connection reliably. When the server ends the stream, streamLoop
+// returns ErrStreamEnded.
 func streamLoop[T any](
 	ctx context.Context,
 	c *StreamClient,
@@ -321,6 +338,9 @@ func streamLoop[T any](
 		return fmt.Errorf("failed to send GET request: %w", err)
 	}
 	defer closeBody(httpResp)
+	if httpResp.StatusCode != http.StatusOK {
+		return decodeErrorResponse(httpResp)
+	}
 	dec := json.NewDecoder(httpResp.Body)
 	for {
 		select {
@@ -332,8 +352,11 @@ func streamLoop[T any](
 		}
 		var raw json.RawMessage
 		if err := dec.Decode(&raw); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			if errors.Is(err, io.EOF) {
-				return nil
+				return ErrStreamEnded
 			}
 			return fmt.Errorf("failed to decode JSON response: %w", err)
 		}

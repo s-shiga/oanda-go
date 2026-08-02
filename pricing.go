@@ -17,8 +17,14 @@ import (
 
 // ClientPrice represents the price available for an Account at a given time.
 type ClientPrice struct {
-	Type string   `json:"type"`
-	Time DateTime `json:"time"`
+	Type string `json:"type"`
+	// Instrument is the Instrument this price applies to.
+	Instrument InstrumentName `json:"instrument"`
+	Time       DateTime       `json:"time"`
+	// Status is the status of the Price. Deprecated by OANDA; prefer Tradeable.
+	Status PriceStatus `json:"status,omitempty"`
+	// Tradeable indicates whether the Price can be used to open new positions or close existing ones.
+	Tradeable bool `json:"tradeable"`
 	// Bids are the bid prices available.
 	Bids []PriceBucket `json:"bids"`
 	// Asks are the ask prices available.
@@ -321,8 +327,8 @@ func (r *PriceInformationRequest) values() (url.Values, error) {
 	}
 	values := url.Values{}
 	values.Set("instruments", strings.Join(r.Instruments, ","))
-	if r.Since != nil {
-		values.Set("since", r.Since.String())
+	if r.Since != nil && r.Since.Time != nil {
+		values.Set("since", r.Since.Format(time.RFC3339Nano))
 	}
 	if r.IncludeHomeConversions {
 		values.Set("includeHomeConversions", "true")
@@ -502,10 +508,10 @@ func (r *PriceStreamRequest) values() (url.Values, error) {
 	}
 	values.Set("instruments", strings.Join(r.instruments, ","))
 	if !r.snapShot {
-		values.Set("snapShot", "False")
+		values.Set("snapshot", "false")
 	}
 	if r.includeHomeConversion {
-		values.Set("includeHomeConversions", "True")
+		values.Set("includeHomeConversions", "true")
 	}
 	return values, nil
 }
@@ -517,8 +523,14 @@ type PriceStreamItem interface {
 	GetTime() DateTime
 }
 
-// Price opens a streaming connection for pricing data. Items are sent to ch until
-// done is closed or the context is cancelled.
+// Price opens a streaming connection for pricing data. Items (including
+// heartbeats, sent every 5 seconds) are sent to ch until done is closed, the
+// context is cancelled, or the server ends the stream (in which case
+// [ErrStreamEnded] is returned — callers should reconnect).
+//
+// ch is never closed by this method; consumers must not range over it without
+// separately observing Price returning. done is only checked between
+// messages, so cancelling ctx is the reliable way to abort a blocked read.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/pricing/stream
 //

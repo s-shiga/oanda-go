@@ -91,6 +91,8 @@ func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
 			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order: %w", err)
 		}
 		order = trailingStopLossOrder
+	default:
+		return nil, fmt.Errorf("unknown order type %q", typeOnly.Type)
 	}
 	return order, nil
 }
@@ -781,7 +783,7 @@ func (r *MarketOrderRequest) SetTrailingStopLossOnFill(details *TrailingStopLoss
 
 // SetTradeClientExtensions sets the client extensions for the Trade created when the Order is filled.
 func (r *MarketOrderRequest) SetTradeClientExtensions(clientExtensions *ClientExtensions) *MarketOrderRequest {
-	r.ClientExtensions = clientExtensions
+	r.TradeClientExtensions = clientExtensions
 	return r
 }
 
@@ -1398,6 +1400,12 @@ type GuaranteedStopLossOrderRequest struct {
 }
 
 func (r *GuaranteedStopLossOrderRequest) body() (*bytes.Buffer, error) {
+	if r.Price == nil && r.Distance == nil {
+		return nil, errors.New("price or distance must be set")
+	}
+	if r.Price != nil && r.Distance != nil {
+		return nil, errors.New("price and distance cannot be set at the same time")
+	}
 	return orderRequestWrapper(r)
 }
 
@@ -1406,6 +1414,7 @@ func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *Guara
 	return &GuaranteedStopLossOrderRequest{
 		Type:             OrderTypeGuaranteedStopLoss,
 		TradeID:          tradeID,
+		Price:            &price,
 		TimeInForce:      TimeInForceGTC,
 		TriggerCondition: OrderTriggerConditionDefault,
 	}
@@ -1692,11 +1701,13 @@ func (r *OrderCreateResponse) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
-	if err != nil {
-		return err
+	if len(aux.OrderCreateTransaction) > 0 {
+		orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderCreateTransaction = orderCreateTransaction
 	}
-	r.OrderCreateTransaction = orderCreateTransaction
 	if aux.OrderReissueTransaction != nil {
 		orderReissueTransaction, err := unmarshalTransaction(*aux.OrderReissueTransaction)
 		if err != nil {
@@ -1989,11 +2000,13 @@ func (r *OrderReplaceResponse) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
-	if err != nil {
-		return err
+	if len(aux.OrderCreateTransaction) > 0 {
+		orderCreateTransaction, err := unmarshalTransaction(aux.OrderCreateTransaction)
+		if err != nil {
+			return err
+		}
+		r.OrderCreateTransaction = orderCreateTransaction
 	}
-	r.OrderCreateTransaction = orderCreateTransaction
 	if aux.OrderReissueTransaction != nil {
 		orderReissueTransaction, err := unmarshalTransaction(aux.OrderReissueTransaction)
 		if err != nil {
@@ -2048,6 +2061,21 @@ type OrderCancelResponse struct {
 	LastTransactionID      TransactionID          `json:"lastTransactionID"`
 }
 
+// OrderCancelErrorResponse is the error response returned by [orderService.Cancel]
+// when the Order specified does not exist.
+type OrderCancelErrorResponse struct {
+	OrderCancelRejectTransaction OrderCancelRejectTransaction `json:"orderCancelRejectTransaction"`
+	RelatedTransactionIDs        []TransactionID              `json:"relatedTransactionIDs"`
+	LastTransactionID            TransactionID                `json:"lastTransactionID"`
+	ErrorCode                    string                       `json:"errorCode"`
+	ErrorMessage                 string                       `json:"errorMessage"`
+}
+
+// Error implements the error interface.
+func (r OrderCancelErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
 // Cancel cancels a pending Order for the Account configured via WithAccountID.
 //
 // This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}/cancel
@@ -2064,7 +2092,7 @@ func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*O
 	case http.StatusOK:
 		return decodeJSON[OrderCancelResponse](httpResp)
 	case http.StatusNotFound:
-		return nil, decodeTypedError[OrderErrorResponse](httpResp)
+		return nil, decodeTypedError[OrderCancelErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -2091,6 +2119,21 @@ type OrderUpdateClientExtensionsResponse struct {
 	RelatedTransactionIDs                  []TransactionID                        `json:"relatedTransactionIDs"`
 }
 
+// OrderUpdateClientExtensionsErrorResponse is the error response returned by
+// [orderService.UpdateClientExtensions] when the request is rejected (400 or 404).
+type OrderUpdateClientExtensionsErrorResponse struct {
+	OrderClientExtensionsModifyRejectTransaction OrderClientExtensionsModifyRejectTransaction `json:"orderClientExtensionsModifyRejectTransaction"`
+	LastTransactionID                            TransactionID                                `json:"lastTransactionID"`
+	RelatedTransactionIDs                        []TransactionID                              `json:"relatedTransactionIDs"`
+	ErrorCode                                    string                                       `json:"errorCode"`
+	ErrorMessage                                 string                                       `json:"errorMessage"`
+}
+
+// Error implements the error interface.
+func (r OrderUpdateClientExtensionsErrorResponse) Error() string {
+	return fmt.Sprintf("%s: %s", r.ErrorCode, r.ErrorMessage)
+}
+
 // UpdateClientExtensions updates the client extensions for an Order.
 //
 // This corresponds to the OANDA API endpoint: PUT /v3/accounts/{accountID}/orders/{orderSpecifier}/clientExtensions
@@ -2115,7 +2158,7 @@ func (s *orderService) UpdateClientExtensions(
 	case http.StatusOK:
 		return decodeJSON[OrderUpdateClientExtensionsResponse](httpResp)
 	case http.StatusBadRequest, http.StatusNotFound:
-		return nil, decodeTypedError[OrderErrorResponse](httpResp)
+		return nil, decodeTypedError[OrderUpdateClientExtensionsErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}

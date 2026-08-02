@@ -14,7 +14,7 @@ func TestTransactionService(t *testing.T) {
 		req := NewTransactionListRequest()
 		resp, err := client.Transaction.List(t.Context(), req)
 		if err != nil {
-			t.Errorf("failed to list transactions: %v", err)
+			t.Fatalf("failed to list transactions: %v", err)
 		}
 		debugResponse(resp)
 		lastTransactionID = resp.LastTransactionID
@@ -31,7 +31,7 @@ func TestTransactionService(t *testing.T) {
 	t.Run("get by ID range", func(t *testing.T) {
 		id, err := strconv.Atoi(lastTransactionID)
 		if err != nil {
-			t.Errorf("failed to convert last transaction id to int: %v", err)
+			t.Fatalf("failed to convert last transaction id to int: %v", err)
 		}
 		from := strconv.Itoa(id - 20)
 		to := strconv.Itoa(id - 10)
@@ -46,7 +46,7 @@ func TestTransactionService(t *testing.T) {
 	t.Run("get by since ID", func(t *testing.T) {
 		id, err := strconv.Atoi(lastTransactionID)
 		if err != nil {
-			t.Errorf("failed to convert last transaction id to int: %v", err)
+			t.Fatalf("failed to convert last transaction id to int: %v", err)
 		}
 		since := strconv.Itoa(id - 10)
 		req := NewTransactionGetBySinceIDRequest(since)
@@ -61,16 +61,14 @@ func TestTransactionService(t *testing.T) {
 func TestStreamClient_Transaction(t *testing.T) {
 	client := setupStreamClient(t)
 	ch := make(chan TransactionStreamItem)
-	done := make(chan struct{}, 1)
+	done := make(chan struct{})
 	go func() {
 		for item := range ch {
 			debugResponse(item)
 		}
 	}()
-	go func() {
-		time.Sleep(10 * time.Second)
-		done <- struct{}{}
-	}()
+	timer := time.AfterFunc(10*time.Second, func() { close(done) })
+	defer timer.Stop()
 	defer close(ch)
 	if err := client.Transaction(t.Context(), ch, done); err != nil {
 		t.Errorf("got error: %v", err)

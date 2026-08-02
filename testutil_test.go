@@ -11,7 +11,7 @@ func getAPIKey(t *testing.T) string {
 	t.Helper()
 	apiKey, ok := os.LookupEnv("OANDA_API_KEY_DEMO")
 	if !ok {
-		t.Fatal("OANDA_API_KEY_DEMO not set")
+		t.Skip("OANDA_API_KEY_DEMO not set; skipping integration test")
 	}
 	return apiKey
 }
@@ -20,7 +20,7 @@ func getAccountID(t *testing.T) string {
 	t.Helper()
 	accountID, ok := os.LookupEnv("OANDA_ACCOUNT_ID_DEMO")
 	if !ok {
-		t.Fatal("OANDA_ACCOUNT_ID_DEMO not set")
+		t.Skip("OANDA_ACCOUNT_ID_DEMO not set; skipping integration test")
 	}
 	return accountID
 }
@@ -51,6 +51,7 @@ func debugResponse(resp any) {
 	b, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		slog.Error(err.Error())
+		return
 	}
 	slog.Debug(string(b))
 }

@@ -1,6 +1,14 @@
 package oanda
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+// ErrStreamEnded is returned by streaming methods when the server ends the
+// stream. OANDA routinely drops idle or slow stream connections, so callers
+// should treat this as a signal to reconnect rather than a fatal error.
+var ErrStreamEnded = errors.New("stream ended by server")
 
 type HTTPError struct {
 	StatusCode int

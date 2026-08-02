@@ -21,7 +21,7 @@ func TestAccountService(t *testing.T) {
 	t.Run("details", func(t *testing.T) {
 		resp, err := client.Account.Details(t.Context())
 		if err != nil {
-			t.Errorf("failed to get account details: %v", err)
+			t.Fatalf("failed to get account details: %v", err)
 		}
 		lastTransactionID = resp.LastTransactionID
 		debugResponse(resp.Account)
@@ -48,7 +48,7 @@ func TestAccountService(t *testing.T) {
 		var transactionID TransactionID
 		id, err := strconv.Atoi(lastTransactionID)
 		if err != nil {
-			t.Errorf("failed to parse last transaction id: %v", err)
+			t.Fatalf("failed to parse last transaction id: %v", err)
 		}
 		if id > 10 {
 			transactionID = strconv.Itoa(id - 10)

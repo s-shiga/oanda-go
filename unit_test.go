@@ -1,0 +1,392 @@
+package oanda
+
+// Unit tests that run without network access or credentials. They inject a
+// fake HTTPClient to assert on the exact requests the library builds and to
+// exercise decode and streaming paths against canned responses.
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+)
+
+// fakeHTTPClient records every request it receives and plays back canned
+// responses in order. Responses beyond the configured list default to 200 {}.
+type fakeHTTPClient struct {
+	requests  []*http.Request
+	bodies    []string
+	responses []*http.Response
+	calls     int
+}
+
+func (f *fakeHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	i := f.calls
+	f.calls++
+	f.requests = append(f.requests, req)
+	var body string
+	if req.Body != nil {
+		b, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		body = string(b)
+	}
+	f.bodies = append(f.bodies, body)
+	if i < len(f.responses) {
+		return f.responses[i], nil
+	}
+	return jsonResponse(http.StatusOK, `{}`), nil
+}
+
+func jsonResponse(status int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: status,
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+	}
+}
+
+func newFakeClient(fake *fakeHTTPClient) *Client {
+	return NewClient("test-key", WithAccountID("101-001-1234567-001"), WithHTTPClient(fake))
+}
+
+func mustTime(t *testing.T, s string) time.Time {
+	t.Helper()
+	parsed, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parsed
+}
+
+// --- Request construction ---
+
+func TestTransactionListRequestURL(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	client := newFakeClient(fake)
+	req := NewTransactionListRequest().SetPageSize(50)
+	if _, err := client.Transaction.List(t.Context(), req); err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	got := fake.requests[0].URL
+	if got.Path != "/v3/accounts/101-001-1234567-001/transactions" {
+		t.Errorf("path = %q", got.Path)
+	}
+	if got.Query().Get("pageSize") != "50" {
+		t.Errorf("query = %q, want pageSize=50", got.RawQuery)
+	}
+	if auth := fake.requests[0].Header.Get("Authorization"); auth != "Bearer test-key" {
+		t.Errorf("Authorization = %q", auth)
+	}
+}
+
+func TestPriceStreamRequestSnapshotParam(t *testing.T) {
+	values, err := NewPriceStreamRequest("EUR_USD").DisableSnapshot().values()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := values.Get("snapshot"); got != "false" {
+		t.Errorf("snapshot = %q, want %q (raw values: %v)", got, "false", values)
+	}
+}
+
+func TestPriceInformationRequestSinceParam(t *testing.T) {
+	since := mustTime(t, "2024-05-01T12:30:45.123456789Z")
+	values, err := NewPriceInformationRequest().
+		AddInstruments("EUR_USD").
+		SetSince(DateTime{&since}).
+		values()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := values.Get("since"); got != "2024-05-01T12:30:45.123456789Z" {
+		t.Errorf("since = %q, want RFC3339Nano", got)
+	}
+}
+
+func TestPriceInformationRequestZeroSince(t *testing.T) {
+	values, err := NewPriceInformationRequest().
+		AddInstruments("EUR_USD").
+		SetSince(DateTime{}). // no panic, param omitted
+		values()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := values["since"]; ok {
+		t.Errorf("zero-value since should be omitted, got %q", values.Get("since"))
+	}
+}
+
+func TestTradeUpdateClientExtensionsBody(t *testing.T) {
+	id := ClientID("my-id")
+	req := TradeUpdateClientExtensionsRequest{
+		ClientExtensions: &ClientExtensions{ID: &id},
+	}
+	body, err := req.body()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"clientExtensions":{"id":"my-id"}}`
+	if got := body.String(); got != want {
+		t.Errorf("body = %s, want %s", got, want)
+	}
+}
+
+func TestMarketOrderSetTradeClientExtensions(t *testing.T) {
+	ext := &ClientExtensions{}
+	req := NewMarketOrderRequest("EUR_USD", "100").SetTradeClientExtensions(ext)
+	if req.TradeClientExtensions != ext {
+		t.Error("TradeClientExtensions not set")
+	}
+	if req.ClientExtensions != nil {
+		t.Error("ClientExtensions must remain unset")
+	}
+}
+
+func TestNewGuaranteedStopLossOrderRequest(t *testing.T) {
+	req := NewGuaranteedStopLossOrderRequest("42", "1.2345")
+	if req.Price == nil || *req.Price != "1.2345" {
+		t.Fatalf("Price = %v, want 1.2345", req.Price)
+	}
+	if _, err := req.body(); err != nil {
+		t.Errorf("body: %v", err)
+	}
+	req.SetDistance("0.005")
+	if _, err := req.body(); err == nil {
+		t.Error("body should reject price and distance both set")
+	}
+	req.Price = nil
+	req.Distance = nil
+	if _, err := req.body(); err == nil {
+		t.Error("body should reject neither price nor distance set")
+	}
+}
+
+func TestAccountConfigurePartialBody(t *testing.T) {
+	fake := &fakeHTTPClient{responses: []*http.Response{
+		jsonResponse(http.StatusOK, `{"clientConfigureTransaction":{},"lastTransactionID":"1"}`),
+	}}
+	client := newFakeClient(fake)
+	req := NewAccountConfigureRequest().SetAlias("my-alias")
+	if _, err := client.Account.Configure(t.Context(), req); err != nil {
+		t.Fatalf("Configure: %v", err)
+	}
+	if method := fake.requests[0].Method; method != http.MethodPatch {
+		t.Errorf("method = %s, want PATCH", method)
+	}
+	want := `{"alias":"my-alias"}`
+	if got := fake.bodies[0]; got != want {
+		t.Errorf("body = %s, want %s (marginRate must be omitted)", got, want)
+	}
+}
+
+// --- Response decoding ---
+
+func TestPositionGuaranteedExecutionFeesDecode(t *testing.T) {
+	var p Position
+	if err := json.Unmarshal([]byte(`{"guaranteedExecutionFees":"1.5"}`), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.GuaranteedExecutionFees == nil || *p.GuaranteedExecutionFees != "1.5" {
+		t.Errorf("GuaranteedExecutionFees = %v, want 1.5", p.GuaranteedExecutionFees)
+	}
+}
+
+func TestClientPriceDecode(t *testing.T) {
+	raw := `{"type":"PRICE","instrument":"EUR_USD","time":"2024-05-01T12:30:45.000000000Z","tradeable":true,"status":"tradeable"}`
+	var p ClientPrice
+	if err := json.Unmarshal([]byte(raw), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Instrument != "EUR_USD" {
+		t.Errorf("Instrument = %q", p.Instrument)
+	}
+	if !p.Tradeable {
+		t.Error("Tradeable = false, want true")
+	}
+}
+
+func TestDateTimeMarshalByValue(t *testing.T) {
+	ts := mustTime(t, "2024-05-01T12:30:45.123456789Z")
+	got, err := json.Marshal(struct {
+		Time DateTime `json:"time"`
+	}{Time: DateTime{&ts}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"time":"2024-05-01T12:30:45.123456789Z"}`
+	if string(got) != want {
+		t.Errorf("marshal = %s, want %s", got, want)
+	}
+	got, err = json.Marshal(struct {
+		Time DateTime `json:"time"`
+	}{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"time":null}`; string(got) != want {
+		t.Errorf("zero marshal = %s, want %s", got, want)
+	}
+}
+
+func TestDateTimeUnmarshalZeroSentinel(t *testing.T) {
+	var dt DateTime
+	if err := json.Unmarshal([]byte(`"0"`), &dt); err != nil {
+		t.Fatal(err)
+	}
+	if dt.Time != nil {
+		t.Errorf("Time = %v, want nil for sentinel \"0\"", dt.Time)
+	}
+}
+
+func TestUnmarshalOrderUnknownType(t *testing.T) {
+	if _, err := unmarshalOrder([]byte(`{"type":"SOMETHING_NEW"}`)); err == nil {
+		t.Error("want error for unknown order type, got nil")
+	}
+}
+
+func TestUnmarshalTransactionUnknownType(t *testing.T) {
+	if _, err := unmarshalTransaction([]byte(`{"type":"SOMETHING_NEW"}`)); err == nil {
+		t.Error("want error for unknown transaction type, got nil")
+	}
+}
+
+// --- Error decoding ---
+
+func TestDecodeErrorResponseWithErrorCode(t *testing.T) {
+	resp := jsonResponse(http.StatusBadRequest, `{"errorCode":"INVALID_RANGE","errorMessage":"bad range"}`)
+	err := decodeErrorResponse(resp)
+	var badRequest BadRequest
+	if !errors.As(err, &badRequest) {
+		t.Fatalf("err = %T (%v), want BadRequest", err, err)
+	}
+	if !strings.Contains(err.Error(), "INVALID_RANGE: bad range") {
+		t.Errorf("message %q should contain errorCode and errorMessage", err.Error())
+	}
+}
+
+func TestDecodeErrorResponseNonJSON(t *testing.T) {
+	resp := jsonResponse(http.StatusBadGateway, `<html>bad gateway</html>`)
+	err := decodeErrorResponse(resp)
+	var httpErr HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("err = %T (%v), want HTTPError", err, err)
+	}
+	if httpErr.StatusCode != http.StatusBadGateway {
+		t.Errorf("StatusCode = %d, want 502", httpErr.StatusCode)
+	}
+	if !strings.Contains(err.Error(), "<html>bad gateway</html>") {
+		t.Errorf("message %q should keep the raw body", err.Error())
+	}
+}
+
+func TestWrapHTTPErrorKeepsUnmappedStatus(t *testing.T) {
+	err := wrapHTTPError(http.StatusTooManyRequests, errors.New("rate limited"))
+	var httpErr HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("err = %T, want HTTPError", err)
+	}
+	if httpErr.StatusCode != http.StatusTooManyRequests {
+		t.Errorf("StatusCode = %d, want 429", httpErr.StatusCode)
+	}
+}
+
+// --- Streaming ---
+
+func newFakeStreamClient(fake *fakeHTTPClient) *StreamClient {
+	return NewStreamClient("test-key", WithAccountID("101-001-1234567-001"), WithHTTPClient(fake))
+}
+
+func TestPriceStreamAuthFailure(t *testing.T) {
+	fake := &fakeHTTPClient{responses: []*http.Response{
+		jsonResponse(http.StatusUnauthorized, `{"errorMessage":"Insufficient authorization to perform request."}`),
+	}}
+	sc := newFakeStreamClient(fake)
+	ch := make(chan PriceStreamItem, 1)
+	err := sc.Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{}))
+	var unauthorized Unauthorized
+	if !errors.As(err, &unauthorized) {
+		t.Fatalf("err = %T (%v), want Unauthorized", err, err)
+	}
+}
+
+func TestPriceStreamServerEnd(t *testing.T) {
+	body := `{"type":"PRICE","instrument":"EUR_USD","time":"2024-05-01T12:30:45.000000000Z","tradeable":true}` + "\n" +
+		`{"type":"HEARTBEAT","time":"2024-05-01T12:30:50.000000000Z"}` + "\n"
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, body)}}
+	sc := newFakeStreamClient(fake)
+	ch := make(chan PriceStreamItem, 4)
+	err := sc.Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{}))
+	if !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("err = %v, want ErrStreamEnded", err)
+	}
+	price, ok := (<-ch).(ClientPrice)
+	if !ok || price.Instrument != "EUR_USD" {
+		t.Errorf("first item = %#v, want ClientPrice for EUR_USD", price)
+	}
+	if _, ok := (<-ch).(PricingHeartbeat); !ok {
+		t.Error("second item should be a PricingHeartbeat")
+	}
+}
+
+func TestPriceStreamSkipsUnknownTypes(t *testing.T) {
+	body := `{"type":"SOMETHING_NEW"}` + "\n" +
+		`{"type":"HEARTBEAT","time":"2024-05-01T12:30:50.000000000Z"}` + "\n"
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, body)}}
+	sc := newFakeStreamClient(fake)
+	ch := make(chan PriceStreamItem, 4)
+	err := sc.Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{}))
+	if !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("err = %v, want ErrStreamEnded", err)
+	}
+	if got := len(ch); got != 1 {
+		t.Errorf("received %d items, want 1 (unknown type skipped)", got)
+	}
+}
+
+func TestPriceStreamDoneAlreadyClosed(t *testing.T) {
+	pr, pw := io.Pipe()
+	defer func() {
+		if err := pw.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+	fake := &fakeHTTPClient{responses: []*http.Response{{StatusCode: http.StatusOK, Body: pr}}}
+	sc := newFakeStreamClient(fake)
+	ch := make(chan PriceStreamItem)
+	done := make(chan struct{})
+	close(done)
+	if err := sc.Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, done); err != nil {
+		t.Fatalf("err = %v, want nil when done is closed", err)
+	}
+}
+
+func TestPriceStreamContextCancel(t *testing.T) {
+	pr, pw := io.Pipe()
+	fake := &fakeHTTPClient{responses: []*http.Response{{StatusCode: http.StatusOK, Body: pr}}}
+	sc := newFakeStreamClient(fake)
+	ctx, cancel := context.WithCancel(t.Context())
+	ch := make(chan PriceStreamItem)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- sc.Price(ctx, NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{}))
+	}()
+	if _, err := pw.Write([]byte(`{"type":"HEARTBEAT","time":"2024-05-01T12:30:50.000000000Z"}` + "\n")); err != nil {
+		t.Fatal(err)
+	}
+	<-ch
+	cancel()
+	// The real transport aborts the body read when the request context is
+	// cancelled; the pipe stands in for that here.
+	if err := pw.CloseWithError(context.Canceled); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-errCh; !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}

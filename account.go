@@ -507,8 +507,8 @@ func (s *accountService) Summary(ctx context.Context) (*AccountSummaryResponse, 
 // AccountConfigureRequest represents a request to update Account configuration.
 // Use [NewAccountConfigureRequest] to create one, then chain setters.
 type AccountConfigureRequest struct {
-	Alias      string        `json:"alias"`
-	MarginRate DecimalNumber `json:"marginRate"`
+	Alias      *string        `json:"alias,omitempty"`
+	MarginRate *DecimalNumber `json:"marginRate,omitempty"`
 }
 
 func (r *AccountConfigureRequest) body() (*bytes.Buffer, error) {
@@ -526,13 +526,13 @@ func NewAccountConfigureRequest() *AccountConfigureRequest {
 
 // SetAlias sets the client-assigned alias for the Account.
 func (r *AccountConfigureRequest) SetAlias(alias string) *AccountConfigureRequest {
-	r.Alias = alias
+	r.Alias = &alias
 	return r
 }
 
 // SetMarginRate sets the margin rate for the Account.
 func (r *AccountConfigureRequest) SetMarginRate(marginRate DecimalNumber) *AccountConfigureRequest {
-	r.MarginRate = marginRate
+	r.MarginRate = &marginRate
 	return r
 }
 

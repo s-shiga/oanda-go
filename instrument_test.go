@@ -32,7 +32,7 @@ func TestInstrumentService_Candlesticks(t *testing.T) {
 	req := NewCandlesticksRequest("USD_JPY", M1).SetFrom(from).SetTo(to)
 	resp, err := client.Instrument.Candlesticks(t.Context(), req)
 	if err != nil {
-		t.Errorf("failed to get candlesticks: %v", err)
+		t.Fatalf("failed to get candlesticks: %v", err)
 	}
 	if len(resp.Candles) == 0 {
 		t.Errorf("got no candlesticks")

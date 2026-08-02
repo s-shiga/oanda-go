@@ -267,6 +267,8 @@ func unmarshalTransaction(rawTransaction json.RawMessage) (Transaction, error) {
 			return nil, fmt.Errorf("failed to unmarshal heartbeat transaction: %w", err)
 		}
 		transaction = &heartbeat
+	default:
+		return nil, fmt.Errorf("unknown transaction type %q", typeOnly.Type)
 	}
 	return transaction, nil
 }
@@ -2263,7 +2265,7 @@ func (req *TransactionListRequest) values() (url.Values, error) {
 		v.Set("to", req.To.Format(time.RFC3339))
 	}
 	if req.PageSize != nil {
-		v.Set("page_size", strconv.Itoa(*req.PageSize))
+		v.Set("pageSize", strconv.Itoa(*req.PageSize))
 	}
 	if len(req.Filters) > 0 {
 		var s []string
@@ -2463,6 +2465,13 @@ type TransactionStreamItem interface {
 }
 
 // Transaction opens a streaming connection for Transactions on the Account configured via [WithAccountID].
+// Items (including heartbeats, sent every 5 seconds) are sent to ch until done
+// is closed, the context is cancelled, or the server ends the stream (in which
+// case [ErrStreamEnded] is returned — callers should reconnect).
+//
+// ch is never closed by this method; consumers must not range over it without
+// separately observing Transaction returning. done is only checked between
+// messages, so cancelling ctx is the reliable way to abort a blocked read.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions/stream
 //

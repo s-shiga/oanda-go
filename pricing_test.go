@@ -29,16 +29,14 @@ func TestStreamClient_Price(t *testing.T) {
 	client := setupStreamClient(t)
 	req := NewPriceStreamRequest("USD_JPY")
 	ch := make(chan PriceStreamItem)
-	done := make(chan struct{}, 1)
+	done := make(chan struct{})
 	go func() {
 		for priceStreamItem := range ch {
 			debugResponse(priceStreamItem)
 		}
 	}()
-	go func() {
-		time.Sleep(10 * time.Second)
-		done <- struct{}{}
-	}()
+	timer := time.AfterFunc(10*time.Second, func() { close(done) })
+	defer timer.Stop()
 	defer close(ch)
 	if err := client.Price(t.Context(), req, ch, done); err != nil {
 		t.Errorf("got error: %v", err)
