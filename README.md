@@ -63,6 +63,9 @@ func main() {
 
 ## Usage
 
+The snippets below assume a configured `client` and a `context.Context` named
+`ctx`. Handle returned errors as shown in Quick Start.
+
 ### Client Initialization
 
 ```go
@@ -70,7 +73,7 @@ func main() {
 client := oanda.NewClient("YOUR_API_KEY", oanda.WithAccountID("your-account-id"))
 
 // Demo/practice environment
-client := oanda.NewDemoClient("YOUR_API_KEY", oanda.WithAccountID("your-account-id"))
+client = oanda.NewDemoClient("YOUR_API_KEY", oanda.WithAccountID("your-account-id"))
 ```
 
 #### Options
@@ -86,22 +89,22 @@ client := oanda.NewDemoClient("YOUR_API_KEY", oanda.WithAccountID("your-account-
 
 ```go
 // Place a market order
-req := oanda.NewMarketOrderRequest("EUR_USD", "10000")
-resp, err := client.Order.Create(ctx, req)
+marketReq := oanda.NewMarketOrderRequest("EUR_USD", "10000")
+marketResp, err := client.Order.Create(ctx, marketReq)
 
 // Place a limit order
-req := oanda.NewLimitOrderRequest("EUR_USD", "10000", "1.2500")
-resp, err := client.Order.Create(ctx, req)
+limitReq := oanda.NewLimitOrderRequest("EUR_USD", "10000", "1.2500")
+limitResp, err := client.Order.Create(ctx, limitReq)
 
 // List pending orders
 orders, err := client.Order.ListPending(ctx)
 
 // Replace a pending order
-req := oanda.NewLimitOrderRequest("EUR_USD", "10000", "1.2600")
-resp, err := client.Order.Replace(ctx, oanda.OrderSpecifier("123"), req)
+replaceReq := oanda.NewLimitOrderRequest("EUR_USD", "10000", "1.2600")
+replaceResp, err := client.Order.Replace(ctx, oanda.OrderSpecifier("123"), replaceReq)
 
 // Cancel an order
-resp, err := client.Order.Cancel(ctx, oanda.OrderSpecifier("123"))
+cancelResp, err := client.Order.Cancel(ctx, oanda.OrderSpecifier("123"))
 ```
 
 ### Trades
@@ -117,10 +120,15 @@ trade, err := client.Trade.Details(ctx, "123")
 resp, err := client.Trade.Close(ctx, "123", oanda.NewTradeCloseALLRequest())
 
 // Update dependent orders on a trade
-req := oanda.NewTradeUpdateOrdersRequest().
-	WithTakeProfit(oanda.NewTakeProfitDetails("1.3000")).
-	WithStopLoss(oanda.NewStopLossDetails("1.2000"))
-resp, err := client.Trade.UpdateOrders(ctx, "123", req)
+req := &oanda.TradeUpdateOrdersRequest{
+	TakeProfit: oanda.NewTakeProfitDetails("1.3000"),
+	StopLoss:   oanda.NewStopLossDetails().SetPrice("1.2000"),
+}
+updateResp, err := client.Trade.UpdateOrders(ctx, "123", req)
+
+// Cancel the take-profit order, leaving other dependent orders unchanged
+cancelReq := &oanda.TradeUpdateOrdersRequest{CancelTakeProfit: true}
+cancelResp, err := client.Trade.UpdateOrders(ctx, "123", cancelReq)
 ```
 
 ### Positions
@@ -130,7 +138,7 @@ resp, err := client.Trade.UpdateOrders(ctx, "123", req)
 positions, err := client.Position.ListOpen(ctx)
 
 // Close a position
-req := oanda.NewPositionCloseRequest().WithLongUnits("ALL")
+req := oanda.NewPositionCloseRequest().SetLongAll()
 resp, err := client.Position.Close(ctx, "EUR_USD", req)
 ```
 
@@ -138,13 +146,11 @@ resp, err := client.Position.Close(ctx, "EUR_USD", req)
 
 ```go
 // Get current prices
-req := oanda.NewPriceInformationRequest("EUR_USD", "USD_JPY")
-prices, err := client.Price.Information(ctx, req)
+priceReq := oanda.NewPriceInformationRequest().AddInstruments("EUR_USD", "USD_JPY")
+prices, err := client.Price.Information(ctx, priceReq)
 
 // Get candlestick data
-req := oanda.NewPriceCandlesticksRequest("EUR_USD").
-	WithGranularity(oanda.H1).
-	WithCount(100)
+req := oanda.NewPriceCandlesticksRequest("EUR_USD", oanda.H1).SetCount(100)
 candles, err := client.Price.Candlesticks(ctx, req)
 ```
 
@@ -155,9 +161,7 @@ candles, err := client.Price.Candlesticks(ctx, req)
 instruments, err := client.Instrument.List(ctx)
 
 // Get candlesticks for an instrument
-req := oanda.NewCandlesticksRequest("EUR_USD").
-	WithGranularity(oanda.D).
-	WithCount(30)
+req := oanda.NewCandlesticksRequest("EUR_USD", oanda.D).SetCount(30)
 candles, err := client.Instrument.Candlesticks(ctx, req)
 ```
 
@@ -165,7 +169,7 @@ candles, err := client.Instrument.Candlesticks(ctx, req)
 
 ```go
 // List transaction IDs
-req := oanda.NewTransactionListRequest(from, to)
+req := oanda.NewTransactionListRequest().SetFrom(from).SetTo(to)
 txns, err := client.Transaction.List(ctx, req)
 
 // Get transaction details
@@ -185,6 +189,7 @@ ch := make(chan oanda.PriceStreamItem)
 done := make(chan struct{})
 
 go func() {
+	defer close(ch) // The producer owns channel closure; the client does not close it.
 	err := streamClient.Price(ctx, oanda.NewPriceStreamRequest("EUR_USD"), ch, done)
 	if err != nil {
 		log.Fatal(err)
@@ -194,7 +199,9 @@ go func() {
 for item := range ch {
 	switch v := item.(type) {
 	case oanda.ClientPrice:
-		fmt.Printf("Bid: %s Ask: %s\n", v.Bids[0].Price, v.Asks[0].Price)
+		if len(v.Bids) > 0 && len(v.Asks) > 0 {
+			fmt.Printf("Bid: %s Ask: %s\n", v.Bids[0].Price, v.Asks[0].Price)
+		}
 	case oanda.PricingHeartbeat:
 		fmt.Println("Heartbeat:", v.Time)
 	}
@@ -207,11 +214,16 @@ ch := make(chan oanda.TransactionStreamItem)
 done := make(chan struct{})
 
 go func() {
+	defer close(ch)
 	err := streamClient.Transaction(ctx, ch, done)
 	if err != nil {
 		log.Fatal(err)
 	}
 }()
+
+for item := range ch {
+	fmt.Printf("%s: %s\n", item.GetID(), item.GetType())
+}
 ```
 
 ## API Coverage

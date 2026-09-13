@@ -2259,10 +2259,10 @@ func (req *TransactionListRequest) values() (url.Values, error) {
 	}
 	v := url.Values{}
 	if req.From != nil {
-		v.Set("from", req.From.Format(time.RFC3339))
+		v.Set("from", req.From.Format(time.RFC3339Nano))
 	}
 	if req.To != nil {
-		v.Set("to", req.To.Format(time.RFC3339))
+		v.Set("to", req.To.Format(time.RFC3339Nano))
 	}
 	if req.PageSize != nil {
 		v.Set("pageSize", strconv.Itoa(*req.PageSize))

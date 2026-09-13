@@ -496,6 +496,48 @@ type TradeUpdateOrdersRequest struct {
 	StopLoss           *StopLossDetails           `json:"stopLoss,omitempty"`
 	TrailingStopLoss   *TrailingStopLossDetails   `json:"trailingStopLoss,omitempty"`
 	GuaranteedStopLoss *GuaranteedStopLossDetails `json:"guaranteedStopLoss,omitempty"`
+
+	// Cancellation flags send an explicit JSON null for the corresponding order.
+	// A nil details pointer without its flag leaves the existing order unchanged.
+	// Setting both details and the corresponding cancellation flag is an error.
+	CancelTakeProfit         bool `json:"-"`
+	CancelStopLoss           bool `json:"-"`
+	CancelTrailingStopLoss   bool `json:"-"`
+	CancelGuaranteedStopLoss bool `json:"-"`
+}
+
+// MarshalJSON distinguishes an omitted order from an explicit cancellation.
+func (r TradeUpdateOrdersRequest) MarshalJSON() ([]byte, error) {
+	cancellations := []struct {
+		name       string
+		cancel     bool
+		hasDetails bool
+	}{
+		{"takeProfit", r.CancelTakeProfit, r.TakeProfit != nil},
+		{"stopLoss", r.CancelStopLoss, r.StopLoss != nil},
+		{"trailingStopLoss", r.CancelTrailingStopLoss, r.TrailingStopLoss != nil},
+		{"guaranteedStopLoss", r.CancelGuaranteedStopLoss, r.GuaranteedStopLoss != nil},
+	}
+	for _, order := range cancellations {
+		if order.cancel && order.hasDetails {
+			return nil, fmt.Errorf("cannot update and cancel %s in the same request", order.name)
+		}
+	}
+	type plain TradeUpdateOrdersRequest
+	b, err := json.Marshal(plain(r))
+	if err != nil {
+		return nil, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(b, &fields); err != nil {
+		return nil, err
+	}
+	for _, order := range cancellations {
+		if order.cancel {
+			fields[order.name] = json.RawMessage("null")
+		}
+	}
+	return json.Marshal(fields)
 }
 
 func (r TradeUpdateOrdersRequest) body() (*bytes.Buffer, error) {
