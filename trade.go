@@ -506,6 +506,32 @@ type TradeUpdateOrdersRequest struct {
 	CancelGuaranteedStopLoss bool `json:"-"`
 }
 
+// UnmarshalJSON restores cancellation flags for explicit null orders. Each
+// successful decode replaces the request, so omitted orders remain unchanged
+// on the server even when the request value is reused.
+func (r *TradeUpdateOrdersRequest) UnmarshalJSON(b []byte) error {
+	type plain TradeUpdateOrdersRequest
+	var decoded plain
+	if err := json.Unmarshal(b, &decoded); err != nil {
+		return err
+	}
+	var raw struct {
+		TakeProfit         json.RawMessage `json:"takeProfit"`
+		StopLoss           json.RawMessage `json:"stopLoss"`
+		TrailingStopLoss   json.RawMessage `json:"trailingStopLoss"`
+		GuaranteedStopLoss json.RawMessage `json:"guaranteedStopLoss"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	decoded.CancelTakeProfit = bytes.Equal(bytes.TrimSpace(raw.TakeProfit), []byte("null"))
+	decoded.CancelStopLoss = bytes.Equal(bytes.TrimSpace(raw.StopLoss), []byte("null"))
+	decoded.CancelTrailingStopLoss = bytes.Equal(bytes.TrimSpace(raw.TrailingStopLoss), []byte("null"))
+	decoded.CancelGuaranteedStopLoss = bytes.Equal(bytes.TrimSpace(raw.GuaranteedStopLoss), []byte("null"))
+	*r = TradeUpdateOrdersRequest(decoded)
+	return nil
+}
+
 // MarshalJSON distinguishes an omitted order from an explicit cancellation.
 func (r TradeUpdateOrdersRequest) MarshalJSON() ([]byte, error) {
 	cancellations := []struct {

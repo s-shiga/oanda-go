@@ -23,8 +23,19 @@ func TestDependentOrderCancellation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			encoded, err := json.Marshal(tc.req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var restored TradeUpdateOrdersRequest
+			if err := json.Unmarshal(encoded, &restored); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(restored, tc.req) {
+				t.Fatalf("round trip = %#v, want %#v", restored, tc.req)
+			}
 			fake := &fakeHTTPClient{}
-			if _, err := newFakeClient(fake).Trade.UpdateOrders(t.Context(), "42", &tc.req); err != nil {
+			if _, err := newFakeClient(fake).Trade.UpdateOrders(t.Context(), "42", &restored); err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(decodeTestJSON(t, fake.bodies[0]), decodeTestJSON(t, tc.want)) {
@@ -38,6 +49,28 @@ func TestDependentOrderCancellation(t *testing.T) {
 				t.Errorf("MarshalJSON = %s, want %s", b, tc.want)
 			}
 		})
+	}
+}
+
+func TestDependentOrderDecodeReusedRequest(t *testing.T) {
+	var req TradeUpdateOrdersRequest
+	for _, input := range []string{
+		`{"takeProfit":null,"stopLoss":null,"trailingStopLoss":null,"guaranteedStopLoss":null}`,
+		`{"takeProfit":{"price":"1.3","timeInForce":"GTC"},"stopLoss":{"price":"1.2","timeInForce":"GTC"},"trailingStopLoss":{"distance":"0.1","timeInForce":"GTC"},"guaranteedStopLoss":{"price":"1.1","timeInForce":"GTC"}}`,
+		`{}`,
+		`{"stopLoss": null }`,
+		`{}`,
+	} {
+		if err := json.Unmarshal([]byte(input), &req); err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := json.Marshal(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(decodeTestJSON(t, string(encoded)), decodeTestJSON(t, input)) {
+			t.Fatalf("reused request = %s, want %s", encoded, input)
+		}
 	}
 }
 
