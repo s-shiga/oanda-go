@@ -147,18 +147,18 @@ type DateTime struct {
 	*time.Time
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for DateTime to handle both RFC3339 format
-// and the special "0" value which represents an unset/zero time.
+// UnmarshalJSON handles RFC3339 timestamps and the null and "0" values that
+// represent an unset time.
 func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
-	var s string
+	var s *string
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
-	if s == "0" {
+	if s == nil || *s == "0" {
 		dt.Time = nil
 		return nil
 	}
-	t, err := time.Parse(time.RFC3339Nano, s)
+	t, err := time.Parse(time.RFC3339Nano, *s)
 	if err != nil {
 		return err
 	}
