@@ -1,76 +1,45 @@
 package oanda
 
-import (
-	"strconv"
-	"testing"
-	"time"
-)
+import "testing"
 
 func TestTransactionService(t *testing.T) {
-	client := setupClient(t)
-	var lastTransactionID TransactionID
-
-	t.Run("list", func(t *testing.T) {
-		req := NewTransactionListRequest()
-		resp, err := client.Transaction.List(t.Context(), req)
-		if err != nil {
-			t.Fatalf("failed to list transactions: %v", err)
-		}
-		debugResponse(resp)
-		lastTransactionID = resp.LastTransactionID
+	runEndpointTests(t, []endpointTest{
+		{
+			name:     `list`,
+			method:   `GET`,
+			path:     testAccountPath + "/transactions",
+			query:    `pageSize=50`,
+			response: `{"from":"2025-01-01T00:00:00Z","to":"2025-01-02T00:00:00Z","pageSize":50,"count":1,"lastTransactionID":"42","pages":["https://example.invalid/transactions/idrange?from=42&to=42"]}`,
+			call: func(c *Client) (any, error) {
+				return c.Transaction.List(t.Context(), NewTransactionListRequest().SetPageSize(50))
+			},
+		},
+		{
+			name:     `details`,
+			method:   `GET`,
+			path:     testAccountPath + "/transactions/42",
+			response: `{"transaction":{"id":"42","type":"ORDER_FILL","time":"2025-01-01T00:00:00.123456789Z","instrument":"USD_JPY","units":"10000","price":"150.000"},"lastTransactionID":"42"}`,
+			call:     func(c *Client) (any, error) { return c.Transaction.Details(t.Context(), "42") },
+		},
+		{
+			name:     `ID range`,
+			method:   `GET`,
+			path:     testAccountPath + "/transactions/idrange",
+			query:    `from=40&to=50`,
+			response: `{"transactions":[{"id":"42","type":"ORDER_FILL","time":"2025-01-01T00:00:00.123456789Z","instrument":"USD_JPY","units":"10000","price":"150.000"}],"lastTransactionID":"50"}`,
+			call: func(c *Client) (any, error) {
+				return c.Transaction.GetByIDRange(t.Context(), NewTransactionGetByIDRangeRequest("40", "50"))
+			},
+		},
+		{
+			name:     `since ID`,
+			method:   `GET`,
+			path:     testAccountPath + "/transactions/sinceid",
+			query:    `id=40`,
+			response: `{"transactions":[{"id":"42","type":"ORDER_FILL","time":"2025-01-01T00:00:00.123456789Z","instrument":"USD_JPY","units":"10000","price":"150.000"}],"lastTransactionID":"50"}`,
+			call: func(c *Client) (any, error) {
+				return c.Transaction.GetBySinceID(t.Context(), NewTransactionGetBySinceIDRequest("40"))
+			},
+		},
 	})
-
-	t.Run("details", func(t *testing.T) {
-		resp, err := client.Transaction.Details(t.Context(), lastTransactionID)
-		if err != nil {
-			t.Errorf("failed to get details: %v", err)
-		}
-		debugResponse(resp)
-	})
-
-	t.Run("get by ID range", func(t *testing.T) {
-		id, err := strconv.Atoi(lastTransactionID)
-		if err != nil {
-			t.Fatalf("failed to convert last transaction id to int: %v", err)
-		}
-		from := strconv.Itoa(id - 20)
-		to := strconv.Itoa(id - 10)
-		req := NewTransactionGetByIDRangeRequest(from, to)
-		resp, err := client.Transaction.GetByIDRange(t.Context(), req)
-		if err != nil {
-			t.Errorf("failed to get transactions by ID range: %v", err)
-		}
-		debugResponse(resp)
-	})
-
-	t.Run("get by since ID", func(t *testing.T) {
-		id, err := strconv.Atoi(lastTransactionID)
-		if err != nil {
-			t.Fatalf("failed to convert last transaction id to int: %v", err)
-		}
-		since := strconv.Itoa(id - 10)
-		req := NewTransactionGetBySinceIDRequest(since)
-		resp, err := client.Transaction.GetBySinceID(t.Context(), req)
-		if err != nil {
-			t.Errorf("failed to get transactions by since ID: %v", err)
-		}
-		debugResponse(resp)
-	})
-}
-
-func TestStreamClient_Transaction(t *testing.T) {
-	client := setupStreamClient(t)
-	ch := make(chan TransactionStreamItem)
-	done := make(chan struct{})
-	go func() {
-		for item := range ch {
-			debugResponse(item)
-		}
-	}()
-	timer := time.AfterFunc(10*time.Second, func() { close(done) })
-	defer timer.Stop()
-	defer close(ch)
-	if err := client.Transaction(t.Context(), ch, done); err != nil {
-		t.Errorf("got error: %v", err)
-	}
 }

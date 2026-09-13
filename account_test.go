@@ -1,64 +1,47 @@
 package oanda
 
-import (
-	"strconv"
-	"testing"
-)
+import "testing"
 
 func TestAccountService(t *testing.T) {
-	client := setupClient(t)
-	var lastTransactionID TransactionID
-
-	t.Run("list", func(t *testing.T) {
-		client := setupClientWithoutAccountID(t)
-		resp, err := client.Account.List(t.Context())
-		if err != nil {
-			t.Errorf("failed to list accounts: %v", err)
-		}
-		debugResponse(resp)
-	})
-
-	t.Run("details", func(t *testing.T) {
-		resp, err := client.Account.Details(t.Context())
-		if err != nil {
-			t.Fatalf("failed to get account details: %v", err)
-		}
-		lastTransactionID = resp.LastTransactionID
-		debugResponse(resp.Account)
-	})
-
-	t.Run("summary", func(t *testing.T) {
-		resp, err := client.Account.Summary(t.Context())
-		if err != nil {
-			t.Errorf("failed to get account summary: %v", err)
-		}
-		debugResponse(resp)
-	})
-
-	t.Run("configure", func(t *testing.T) {
-		req := NewAccountConfigureRequest().SetAlias("TestAlias")
-		resp, err := client.Account.Configure(t.Context(), req)
-		if err != nil {
-			t.Errorf("failed to set account configuration: %v", err)
-		}
-		debugResponse(resp)
-	})
-
-	t.Run("changes", func(t *testing.T) {
-		var transactionID TransactionID
-		id, err := strconv.Atoi(lastTransactionID)
-		if err != nil {
-			t.Fatalf("failed to parse last transaction id: %v", err)
-		}
-		if id > 10 {
-			transactionID = strconv.Itoa(id - 10)
-		} else {
-			transactionID = lastTransactionID
-		}
-		resp, err := client.Account.Changes(t.Context(), transactionID)
-		if err != nil {
-			t.Errorf("failed to get account changes: %v", err)
-		}
-		debugResponse(resp)
+	runEndpointTests(t, []endpointTest{
+		{
+			name:     `list`,
+			method:   `GET`,
+			path:     "/v3/accounts",
+			response: `{"accounts":[{"id":"101-001-1234567-001","tags":["demo"]}]}`,
+			call:     func(c *Client) (any, error) { return c.Account.List(t.Context()) },
+		},
+		{
+			name:     `details`,
+			method:   `GET`,
+			path:     testAccountPath + "",
+			response: `{"account":{"id":"101-001-1234567-001","balance":"1000.00","orders":[{"id":"42","type":"LIMIT","instrument":"USD_JPY","price":"100.00","state":"PENDING"}]},"lastTransactionID":"50"}`,
+			call:     func(c *Client) (any, error) { return c.Account.Details(t.Context()) },
+		},
+		{
+			name:     `summary`,
+			method:   `GET`,
+			path:     testAccountPath + "/summary",
+			response: `{"account":{"id":"101-001-1234567-001","balance":"1000.00","openTradeCount":1},"lastTransactionID":"50"}`,
+			call:     func(c *Client) (any, error) { return c.Account.Summary(t.Context()) },
+		},
+		{
+			name:     `configure`,
+			method:   `PATCH`,
+			path:     testAccountPath + "/configuration",
+			body:     `{"alias":"TestAlias"}`,
+			response: `{"clientConfigureTransaction":{"id":"51","type":"CLIENT_CONFIGURE","alias":"TestAlias"},"lastTransactionID":"51"}`,
+			call: func(c *Client) (any, error) {
+				return c.Account.Configure(t.Context(), NewAccountConfigureRequest().SetAlias("TestAlias"))
+			},
+		},
+		{
+			name:     `changes`,
+			method:   `GET`,
+			path:     testAccountPath + "/changes",
+			query:    `sinceTransactionID=40`,
+			response: `{"changes":{"ordersCreated":[{"id":"42","type":"LIMIT","price":"100.00"}],"transactions":[{"id":"42","type":"LIMIT_ORDER","price":"100.00"}]},"state":{"NAV":"1001.00"},"lastTransactionID":"50"}`,
+			call:     func(c *Client) (any, error) { return c.Account.Changes(t.Context(), "40") },
+		},
 	})
 }

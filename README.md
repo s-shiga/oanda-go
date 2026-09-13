@@ -228,12 +228,14 @@ go func() {
 
 ## Testing
 
-Tests run against the OANDA demo environment. Set the following environment variables:
+All tests run offline using an injected fake HTTP client. No API credentials or
+OANDA connection are required, and the test suite disables the default network
+transport to catch accidental API calls. Tests check request construction,
+response decoding, errors, and streaming with fixed responses.
 
 ```sh
-export OANDA_API_KEY_DEMO="your-demo-api-key"
-export OANDA_ACCOUNT_ID_DEMO="your-demo-account-id"
-go test ./...
+go test -race ./...
+go vet ./...
 ```
 
 ## Disclaimer
