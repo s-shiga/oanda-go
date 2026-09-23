@@ -17,7 +17,7 @@ import (
 
 const (
 	// Version is the version of the oanda-go library.
-	Version = "0.1.1"
+	Version = "0.2.0"
 	// FXTradeURL is the base URL for the OANDA fxTrade REST API (live).
 	FXTradeURL = "https://api-fxtrade.oanda.com"
 	// FXTradePracticeURL is the base URL for the OANDA fxTrade REST API (practice/demo).
