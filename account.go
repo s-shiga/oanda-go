@@ -495,7 +495,10 @@ type AccountDetailsResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_2
 func (s *accountService) Details(ctx context.Context) (*AccountDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v", s.client.accountID)
+	path, err := s.client.accountPath()
+	if err != nil {
+		return nil, err
+	}
 	return doGet[AccountDetailsResponse](s.client, ctx, path, nil)
 }
 
@@ -514,7 +517,10 @@ type AccountSummaryResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_3
 func (s *accountService) Summary(ctx context.Context) (*AccountSummaryResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/summary", s.client.accountID)
+	path, err := s.client.accountPath("summary")
+	if err != nil {
+		return nil, err
+	}
 	return doGet[AccountSummaryResponse](s.client, ctx, path, nil)
 }
 
@@ -576,9 +582,11 @@ func (r AccountConfigureErrorResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_5
 func (s *accountService) Configure(ctx context.Context, req *AccountConfigureRequest) (*AccountConfigureResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/configuration", s.client.accountID)
+	path, err := s.client.accountPath("configuration")
+	if err != nil {
+		return nil, err
+	}
 	var body io.Reader
-	var err error
 	if req != nil {
 		body, err = req.body()
 		if err != nil {
@@ -618,7 +626,10 @@ type AccountChangesResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_6
 func (s *accountService) Changes(ctx context.Context, since TransactionID) (*AccountChangesResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/changes", s.client.accountID)
+	path, err := s.client.accountPath("changes")
+	if err != nil {
+		return nil, err
+	}
 	v := url.Values{}
 	v.Set("sinceTransactionID", since)
 	return doGet[AccountChangesResponse](s.client, ctx, path, v)

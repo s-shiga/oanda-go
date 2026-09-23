@@ -15,6 +15,10 @@ var ErrStreamEnded = errors.New("stream ended by server")
 // optional accept nil and use the defaults instead.
 var ErrNilRequest = errors.New("request must not be nil")
 
+// ErrNoAccountID is returned, before anything is sent, by methods that act on
+// an Account when the client was created without [WithAccountID].
+var ErrNoAccountID = errors.New("no account ID configured; use WithAccountID")
+
 type HTTPError struct {
 	StatusCode int
 	Message    string

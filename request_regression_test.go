@@ -2,6 +2,8 @@ package oanda
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -127,6 +129,126 @@ func TestRequestTimePrecision(t *testing.T) {
 			query := fake.requests[0].URL.Query()
 			if query.Get("from") != "2026-09-13T10:00:00.100000001Z" || query.Get("to") != "2026-09-13T10:00:00.600000001Z" {
 				t.Errorf("lost fractional seconds: %v", query)
+			}
+		})
+	}
+}
+
+func TestOrderRequestStructLiterals(t *testing.T) {
+	price := PriceValue("1.2")
+	distance := DecimalNumber("0.01")
+	cases := []struct {
+		name string
+		req  OrderRequest
+		want string
+	}{
+		{"market", &MarketOrderRequest{Instrument: "EUR_USD", Units: "100"},
+			`{"order":{"type":"MARKET","instrument":"EUR_USD","units":"100"}}`},
+		{"limit", &LimitOrderRequest{Instrument: "EUR_USD", Units: "100", Price: "1.1"},
+			`{"order":{"type":"LIMIT","instrument":"EUR_USD","units":"100","price":"1.1"}}`},
+		{"stop", &StopOrderRequest{Instrument: "EUR_USD", Units: "100", Price: "1.1"},
+			`{"order":{"type":"STOP","instrument":"EUR_USD","units":"100","price":"1.1"}}`},
+		{"market if touched", &MarketIfTouchedOrderRequest{Instrument: "EUR_USD", Units: "100", Price: "1.1"},
+			`{"order":{"type":"MARKET_IF_TOUCHED","instrument":"EUR_USD","units":"100","price":"1.1"}}`},
+		{"take profit", &TakeProfitOrderRequest{TradeID: "42", Price: "1.2"},
+			`{"order":{"type":"TAKE_PROFIT","tradeID":"42","price":"1.2"}}`},
+		{"stop loss", &StopLossOrderRequest{TradeID: "42", Distance: &distance},
+			`{"order":{"type":"STOP_LOSS","tradeID":"42","distance":"0.01"}}`},
+		{"guaranteed stop loss", &GuaranteedStopLossOrderRequest{TradeID: "42", Price: &price},
+			`{"order":{"type":"GUARANTEED_STOP_LOSS","tradeID":"42","price":"1.2"}}`},
+		{"trailing stop loss", &TrailingStopLossOrderRequest{TradeID: "42", Distance: "0.01"},
+			`{"order":{"type":"TRAILING_STOP_LOSS","tradeID":"42","distance":"0.01"}}`},
+		{"dependent order details", &MarketOrderRequest{
+			Instrument:             "EUR_USD",
+			Units:                  "100",
+			TakeProfitOnFill:       &TakeProfitDetails{Price: "1.2"},
+			StopLossOnFill:         &StopLossDetails{Distance: &distance},
+			TrailingStopLossOnFill: &TrailingStopLossDetails{Distance: "0.01"},
+		}, `{"order":{"type":"MARKET","instrument":"EUR_USD","units":"100","takeProfitOnFill":{"price":"1.2"},"stopLossOnFill":{"distance":"0.01"},"trailingStopLossOnFill":{"distance":"0.01"}}}`},
+		{"explicit type kept", &MarketOrderRequest{Type: OrderTypeMarket, Instrument: "EUR_USD", Units: "100", TimeInForce: TimeInForceIOC},
+			`{"order":{"type":"MARKET","instrument":"EUR_USD","units":"100","timeInForce":"IOC"}}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusCreated, `{"lastTransactionID":"1"}`)}}
+			if _, err := newFakeClient(fake).Order.Create(t.Context(), tc.req); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(decodeTestJSON(t, fake.bodies[0]), decodeTestJSON(t, tc.want)) {
+				t.Errorf("body = %s, want %s", fake.bodies[0], tc.want)
+			}
+		})
+	}
+	t.Run("request not modified", func(t *testing.T) {
+		req := &MarketOrderRequest{Instrument: "EUR_USD", Units: "100"}
+		fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusCreated, `{"lastTransactionID":"1"}`)}}
+		if _, err := newFakeClient(fake).Order.Create(t.Context(), req); err != nil {
+			t.Fatal(err)
+		}
+		if req.Type != "" {
+			t.Errorf("Type = %q, want the caller's request left unchanged", req.Type)
+		}
+	})
+}
+
+func TestTradeRequestStructLiterals(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	c := newFakeClient(fake)
+	if _, err := c.Trade.Close(t.Context(), "42", TradeCloseRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Trade.UpdateClientExtensions(t.Context(), "42", TradeUpdateClientExtensionsRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	for i, body := range fake.bodies {
+		if body != "{}" {
+			t.Errorf("request %d body = %s, want {} so the API defaults apply", i, body)
+		}
+	}
+}
+
+func TestCandlesticksRequestDefaults(t *testing.T) {
+	from := mustTime(t, "2026-09-13T10:00:00Z")
+	cases := []struct {
+		name  string
+		path  string
+		query string
+		call  func(*Client) error
+	}{
+		{"instrument struct literal", "/v3/instruments/EUR_USD/candles", "", func(c *Client) error {
+			_, err := c.Instrument.Candlesticks(t.Context(), &CandlesticksRequest{Instrument: "EUR_USD"})
+			return err
+		}},
+		{"account struct literal", testAccountPath + "/instruments/EUR_USD/candles", "", func(c *Client) error {
+			_, err := c.Price.Candlesticks(t.Context(), &PriceCandlesticksRequest{CandlesticksRequest: CandlesticksRequest{Instrument: "EUR_USD"}})
+			return err
+		}},
+		{"constructor without granularity", "/v3/instruments/EUR_USD/candles", "", func(c *Client) error {
+			_, err := c.Instrument.Candlesticks(t.Context(), NewCandlesticksRequest("EUR_USD", ""))
+			return err
+		}},
+		{"non-default values", "/v3/instruments/EUR_USD/candles", "granularity=H1&from=2026-09-13T10:00:00Z&includeFirst=False&weeklyAlignment=Monday", func(c *Client) error {
+			_, err := c.Instrument.Candlesticks(t.Context(), &CandlesticksRequest{Instrument: "EUR_USD", Granularity: H1, From: &from, ExcludeFirst: true, WeeklyAlignment: WeeklyAlignmentMonday})
+			return err
+		}},
+		{"exclude first setter", "/v3/instruments/EUR_USD/candles", "granularity=H1&from=2026-09-13T10:00:00Z&includeFirst=False", func(c *Client) error {
+			_, err := c.Instrument.Candlesticks(t.Context(), NewCandlesticksRequest("EUR_USD", H1).SetFrom(from).SetExcludeFirst())
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeHTTPClient{}
+			if err := tc.call(newFakeClient(fake)); err != nil {
+				t.Fatal(err)
+			}
+			req := fake.requests[0]
+			wantQuery, err := url.ParseQuery(tc.query)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if req.URL.Path != tc.path || !reflect.DeepEqual(req.URL.Query(), wantQuery) {
+				t.Errorf("request = %s, want %s?%s", req.URL, tc.path, tc.query)
 			}
 		})
 	}

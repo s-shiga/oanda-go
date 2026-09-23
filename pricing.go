@@ -262,7 +262,10 @@ func (s *priceService) LatestCandlesticks(ctx context.Context, req *PriceLatestC
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.client.accountID)
+	path, err := s.client.accountPath("candles", "latest")
+	if err != nil {
+		return nil, err
+	}
 	values, err := req.values()
 	if err != nil {
 		return nil, err
@@ -346,7 +349,10 @@ func (s *priceService) Information(ctx context.Context, req *PriceInformationReq
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/pricing", s.client.accountID)
+	path, err := s.client.accountPath("pricing")
+	if err != nil {
+		return nil, err
+	}
 	values, err := req.values()
 	if err != nil {
 		return nil, err
@@ -463,7 +469,10 @@ func (s *priceService) Candlesticks(ctx context.Context, req *PriceCandlesticksR
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/instruments/%s/candles", s.client.accountID, req.Instrument)
+	path, err := s.client.accountPath("instruments", req.Instrument, "candles")
+	if err != nil {
+		return nil, err
+	}
 	values, err := req.values()
 	if err != nil {
 		return nil, err
@@ -539,7 +548,10 @@ func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch ch
 	if req == nil {
 		return ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/pricing/stream", c.accountID)
+	path, err := c.accountPath("pricing", "stream")
+	if err != nil {
+		return err
+	}
 	values, err := req.values()
 	if err != nil {
 		return err

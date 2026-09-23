@@ -764,12 +764,12 @@ type MarketOrderRequest struct {
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. FOK or IOC are the only valid options for Market Orders.
 	// Default is FOK.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// PriceBound is the worst price that the client is willing to have the Market Order filled at.
 	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -793,7 +793,11 @@ type MarketOrderRequest struct {
 }
 
 func (r *MarketOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeMarket
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewMarketOrderRequest creates a new MarketOrderRequest with default TimeInForce FOK and PositionFill DEFAULT.
@@ -875,17 +879,17 @@ type LimitOrderRequest struct {
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -909,7 +913,11 @@ type LimitOrderRequest struct {
 }
 
 func (r *LimitOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeLimit
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewLimitOrderRequest creates a new LimitOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
@@ -1004,17 +1012,17 @@ type StopOrderRequest struct {
 	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -1038,7 +1046,11 @@ type StopOrderRequest struct {
 }
 
 func (r *StopOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeStop
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewStopOrderRequest creates a new StopOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
@@ -1141,17 +1153,17 @@ type MarketIfTouchedOrderRequest struct {
 	PriceBound *PriceValue `json:"priceBound,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// PositionFill specifies how Positions in the Account are modified when the Order is filled.
 	// Default is DEFAULT.
-	PositionFill OrderPositionFill `json:"positionFill"`
+	PositionFill OrderPositionFill `json:"positionFill,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -1175,7 +1187,11 @@ type MarketIfTouchedOrderRequest struct {
 }
 
 func (r *MarketIfTouchedOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeMarketIfTouched
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewMarketIfTouchedOrderRequest creates a new MarketIfTouchedOrderRequest with default TimeInForce GTC, PositionFill DEFAULT, and TriggerCondition DEFAULT.
@@ -1283,21 +1299,25 @@ type TakeProfitOrderRequest struct {
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r *TakeProfitOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeTakeProfit
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewTakeProfitOrderRequest creates a new TakeProfitOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
@@ -1361,14 +1381,14 @@ type StopLossOrderRequest struct {
 	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -1381,7 +1401,11 @@ func (r *StopLossOrderRequest) body() (*bytes.Buffer, error) {
 	if r.Price != nil && r.Distance != nil {
 		return nil, errors.New("price and distance cannot be set at the same time")
 	}
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeStopLoss
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewStopLossOrderRequest creates a new StopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
@@ -1460,14 +1484,14 @@ type GuaranteedStopLossOrderRequest struct {
 	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
@@ -1480,7 +1504,11 @@ func (r *GuaranteedStopLossOrderRequest) body() (*bytes.Buffer, error) {
 	if r.Price != nil && r.Distance != nil {
 		return nil, errors.New("price and distance cannot be set at the same time")
 	}
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeGuaranteedStopLoss
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewGuaranteedStopLossOrderRequest creates a new GuaranteedStopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
@@ -1550,21 +1578,25 @@ type TrailingStopLossOrderRequest struct {
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Order should remain pending before being automatically
 	// cancelled by the execution system. Valid options are GTC, GFD, and GTD. Default is GTC.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// TriggerCondition specifies which price component should be used when determining if an Order
 	// should be triggered and filled. This allows Orders to be triggered based on the bid, ask, mid,
 	// default (ask for buy, bid for sell) or inverse (bid for buy, ask for sell) price depending on
 	// the desired behaviour. Orders are always filled using their default price component. Default is DEFAULT.
-	TriggerCondition OrderTriggerCondition `json:"triggerCondition"`
+	TriggerCondition OrderTriggerCondition `json:"triggerCondition,omitempty"`
 	// ClientExtensions are the client extensions to add to the Order. Do not set, modify, or delete
 	// clientExtensions if your account is associated with MT4.
 	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r *TrailingStopLossOrderRequest) body() (*bytes.Buffer, error) {
-	return orderRequestWrapper(r)
+	req := *r
+	if req.Type == "" {
+		req.Type = OrderTypeTrailingStopLoss
+	}
+	return orderRequestWrapper(&req)
 }
 
 // NewTrailingStopLossOrderRequest creates a new TrailingStopLossOrderRequest with default TimeInForce GTC and TriggerCondition DEFAULT.
@@ -1862,7 +1894,10 @@ func (s *orderService) Create(ctx context.Context, req OrderRequest) (*OrderCrea
 	if isNilRequest(req) {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
+	path, err := s.client.accountPath("orders")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -2002,7 +2037,10 @@ func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 	if req == nil {
 		req = NewOrderListRequest()
 	}
-	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
+	path, err := s.client.accountPath("orders")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -2016,7 +2054,10 @@ func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderL
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_3
 func (s *orderService) ListPending(ctx context.Context) (*OrderListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/pendingOrders", s.client.accountID)
+	path, err := s.client.accountPath("pendingOrders")
+	if err != nil {
+		return nil, err
+	}
 	return doGet[OrderListResponse](s.client, ctx, path, nil)
 }
 
@@ -2051,7 +2092,10 @@ func (r *OrderDetailsResponse) UnmarshalJSON(b []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_4
 func (s *orderService) Details(ctx context.Context, specifier OrderSpecifier) (*OrderDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
+	path, err := s.client.accountPath("orders", specifier)
+	if err != nil {
+		return nil, err
+	}
 	return doGet[OrderDetailsResponse](s.client, ctx, path, nil)
 }
 
@@ -2120,7 +2164,10 @@ func (s *orderService) Replace(ctx context.Context, specifier OrderSpecifier, re
 	if isNilRequest(req) {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
+	path, err := s.client.accountPath("orders", specifier)
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -2170,7 +2217,10 @@ func (r OrderCancelErrorResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_6
 func (s *orderService) Cancel(ctx context.Context, specifier OrderSpecifier) (*OrderCancelResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/cancel", s.client.accountID, specifier)
+	path, err := s.client.accountPath("orders", specifier, "cancel")
+	if err != nil {
+		return nil, err
+	}
 	httpResp, err := s.client.sendPutRequest(ctx, path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send PUT request: %w", err)
@@ -2232,7 +2282,10 @@ func (s *orderService) UpdateClientExtensions(
 	specifier OrderSpecifier,
 	req OrderUpdateClientExtensionsRequest,
 ) (*OrderUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/orders/%v/clientExtensions", s.client.accountID, specifier)
+	path, err := s.client.accountPath("orders", specifier, "clientExtensions")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err

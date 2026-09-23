@@ -154,7 +154,10 @@ type InstrumentListResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/account-ep/#collapse_endpoint_4
 func (s *instrumentService) List(ctx context.Context, instruments ...InstrumentName) (*InstrumentListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/instruments", s.client.accountID)
+	path, err := s.client.accountPath("instruments")
+	if err != nil {
+		return nil, err
+	}
 	v := url.Values{}
 	if len(instruments) != 0 {
 		v.Set("instruments", strings.Join(instruments, ","))
@@ -168,7 +171,7 @@ type CandlesticksRequest struct {
 	Instrument InstrumentName
 	// Price is the price component(s) to get candlestick data for (M for mid, B for bid, A for ask).
 	Price PricingComponent
-	// Granularity is the granularity of the candlesticks to fetch.
+	// Granularity is the granularity of the candlesticks to fetch. The API default is S5.
 	Granularity CandlestickGranularity
 	// Count is the number of candlesticks to return. Cannot be specified with both From and To.
 	// Maximum value is 5000.
@@ -180,27 +183,24 @@ type CandlesticksRequest struct {
 	// Smooth indicates whether the candlestick is "smoothed" by using the previous candle's close
 	// as the open price.
 	Smooth bool
-	// IncludeFirst indicates whether the candlestick that is covered by the from time should be
-	// included in the results.
-	IncludeFirst bool
+	// ExcludeFirst excludes the candlestick that is covered by the from time from the results.
+	// By default it is included.
+	ExcludeFirst bool
 	// DailyAlignment is the hour of the day (0-23) used for granularities that have daily alignment.
 	DailyAlignment *int
 	// AlignmentTimezone is the timezone to use for the dailyAlignment parameter.
 	AlignmentTimezone *string
 	// WeeklyAlignment is the day of the week used for granularities that have weekly alignment.
+	// The API default is Friday.
 	WeeklyAlignment WeeklyAlignment
 }
 
 // NewCandlesticksRequest creates a new CandlesticksRequest with the given instrument and granularity.
-// Default values: IncludeFirst is true, WeeklyAlignment is Friday.
+// Every other parameter uses the API default until it is set.
 func NewCandlesticksRequest(instrument InstrumentName, granularity CandlestickGranularity) *CandlesticksRequest {
 	return &CandlesticksRequest{
-		Instrument:      instrument,
-		Price:           "",
-		Granularity:     granularity,
-		Smooth:          false,
-		IncludeFirst:    true,
-		WeeklyAlignment: WeeklyAlignmentFriday,
+		Instrument:  instrument,
+		Granularity: granularity,
 	}
 }
 
@@ -254,7 +254,7 @@ func (req *CandlesticksRequest) SetSmooth() *CandlesticksRequest {
 
 // SetExcludeFirst excludes the candlestick covered by the from time from the results.
 func (req *CandlesticksRequest) SetExcludeFirst() *CandlesticksRequest {
-	req.IncludeFirst = false
+	req.ExcludeFirst = true
 	return req
 }
 
@@ -303,7 +303,7 @@ func (req *CandlesticksRequest) validate() error {
 }
 
 // values validates parameters and returns url.Values for the request.
-// Fields with default values are omitted from the result.
+// Zero-valued fields and fields set to their API default are omitted.
 func (req *CandlesticksRequest) values() (url.Values, error) {
 	if err := req.validate(); err != nil {
 		return nil, err
@@ -312,7 +312,7 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	if req.Price != "" {
 		v.Set("price", req.Price)
 	}
-	if req.Granularity != S5 {
+	if req.Granularity != "" && req.Granularity != S5 {
 		v.Set("granularity", string(req.Granularity))
 	}
 	if req.Count != nil {
@@ -327,7 +327,7 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	if req.Smooth {
 		v.Set("smooth", "True")
 	}
-	if !req.IncludeFirst {
+	if req.ExcludeFirst {
 		v.Set("includeFirst", "False")
 	}
 	if req.DailyAlignment != nil {
@@ -336,7 +336,7 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 	if req.AlignmentTimezone != nil {
 		v.Set("alignmentTimezone", *req.AlignmentTimezone)
 	}
-	if req.WeeklyAlignment != WeeklyAlignmentFriday {
+	if req.WeeklyAlignment != "" && req.WeeklyAlignment != WeeklyAlignmentFriday {
 		v.Set("weeklyAlignment", string(req.WeeklyAlignment))
 	}
 	return v, nil
@@ -348,7 +348,10 @@ func (s *instrumentService) Candlesticks(ctx context.Context, req *CandlesticksR
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
+	path, err := endpointPath("v3", "instruments", req.Instrument, "candles")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err

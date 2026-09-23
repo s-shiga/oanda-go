@@ -306,7 +306,10 @@ func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeL
 	if req == nil {
 		req = NewTradeListRequest()
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/trades", s.client.accountID)
+	path, err := s.client.accountPath("trades")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -320,7 +323,10 @@ func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeL
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_3
 func (s *tradeService) ListOpen(ctx context.Context) (*TradeListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/openTrades", s.client.accountID)
+	path, err := s.client.accountPath("openTrades")
+	if err != nil {
+		return nil, err
+	}
 	return doGet[TradeListResponse](s.client, ctx, path, nil)
 }
 
@@ -336,7 +342,10 @@ type TradeDetailsResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_4
 func (s *tradeService) Details(ctx context.Context, specifier TradeSpecifier) (*TradeDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s", s.client.accountID, specifier)
+	path, err := s.client.accountPath("trades", specifier)
+	if err != nil {
+		return nil, err
+	}
 	return doGet[TradeDetailsResponse](s.client, ctx, path, nil)
 }
 
@@ -348,8 +357,8 @@ type TradeCloseRequest struct {
 	// representing the number of units of the open Trade to Close using a
 	// TradeClose MarketOrder. The units specified must always be positive, and
 	// the magnitude of the value cannot exceed the magnitude of the Trade’s
-	// open units.
-	Units DecimalNumber `json:"units"`
+	// open units. If empty, the API default ALL is used.
+	Units DecimalNumber `json:"units,omitempty"`
 }
 
 func (r TradeCloseRequest) body() (*bytes.Buffer, error) {
@@ -415,7 +424,10 @@ func (r TradeCloseNotFoundResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_5
 func (s *tradeService) Close(ctx context.Context, specifier TradeSpecifier, req TradeCloseRequest) (*TradeCloseResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/close", s.client.accountID, specifier)
+	path, err := s.client.accountPath("trades", specifier, "close")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -439,7 +451,7 @@ func (s *tradeService) Close(ctx context.Context, specifier TradeSpecifier, req 
 
 // TradeUpdateClientExtensionsRequest is the request body for updating client extensions on a Trade.
 type TradeUpdateClientExtensionsRequest struct {
-	ClientExtensions *ClientExtensions `json:"clientExtensions"`
+	ClientExtensions *ClientExtensions `json:"clientExtensions,omitempty"`
 }
 
 func (r TradeUpdateClientExtensionsRequest) body() (*bytes.Buffer, error) {
@@ -477,7 +489,10 @@ func (r TradeUpdateClientExtensionsErrorResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_6
 func (s *tradeService) UpdateClientExtensions(ctx context.Context, specifier TradeSpecifier, req TradeUpdateClientExtensionsRequest) (*TradeUpdateClientExtensionsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/clientExtensions", s.client.accountID, specifier)
+	path, err := s.client.accountPath("trades", specifier, "clientExtensions")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err
@@ -631,7 +646,10 @@ func (s *tradeService) UpdateOrders(ctx context.Context, specifier TradeSpecifie
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", s.client.accountID, specifier)
+	path, err := s.client.accountPath("trades", specifier, "orders")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err

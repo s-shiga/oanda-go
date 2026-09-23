@@ -142,13 +142,43 @@ func NewDemoClient(apiKey string, opts ...Option) *Client {
 	return client
 }
 
+// accountPath returns the escaped path of an endpoint under the Account set
+// with [WithAccountID], built from the given segments.
+func (c *clientConfig) accountPath(segments ...string) (string, error) {
+	if c.accountID == "" {
+		return "", ErrNoAccountID
+	}
+	return endpointPath(append([]string{"v3", "accounts", c.accountID}, segments...)...)
+}
+
+// endpointPath joins segments into an absolute path, escaping each one so an
+// ID containing "/", "?" or "#" stays a single segment. An empty segment is an
+// error: it would silently address a different endpoint.
+func endpointPath(segments ...string) (string, error) {
+	var b strings.Builder
+	empty := false
+	for _, segment := range segments {
+		empty = empty || segment == ""
+		b.WriteByte('/')
+		b.WriteString(url.PathEscape(segment))
+	}
+	if empty {
+		return "", fmt.Errorf("request path %s has an empty segment", b.String())
+	}
+	return b.String(), nil
+}
+
+// joinURL appends the escaped path to baseURL, keeping any path baseURL has.
 func joinURL(baseURL string, path string, query url.Values) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
-	u.Path = strings.TrimSuffix(u.Path, "/") + path
-	u.RawPath = ""
+	rawPath := strings.TrimSuffix(u.EscapedPath(), "/") + path
+	if u.Path, err = url.PathUnescape(rawPath); err != nil {
+		return "", err
+	}
+	u.RawPath = rawPath
 	if len(query) > 0 {
 		u.RawQuery = query.Encode()
 	}

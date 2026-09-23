@@ -1631,7 +1631,7 @@ type TakeProfitDetails struct {
 	Price PriceValue `json:"price"`
 	// TimeInForce specifies how long the Take Profit Order should remain pending before being
 	// automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Take Profit Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Take Profit Order when created.
@@ -1677,7 +1677,7 @@ type StopLossDetails struct {
 	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Stop Loss Order should remain pending before being
 	// automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Stop Loss Order will be cancelled if its timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
 	// ClientExtensions are the client extensions to add to the Stop Loss Order when created.
@@ -1735,7 +1735,7 @@ type GuaranteedStopLossDetails struct {
 	Distance *DecimalNumber `json:"distance,omitempty"`
 	// TimeInForce specifies how long the Guaranteed Stop Loss Order should remain pending before
 	// being automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Guaranteed Stop Loss Order will be cancelled if its
 	// timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
@@ -1789,7 +1789,7 @@ type TrailingStopLossDetails struct {
 	Distance DecimalNumber `json:"distance"`
 	// TimeInForce specifies how long the Trailing Stop Loss Order should remain pending before
 	// being automatically cancelled by the execution system.
-	TimeInForce TimeInForce `json:"timeInForce"`
+	TimeInForce TimeInForce `json:"timeInForce,omitempty"`
 	// GtdTime is the date/time when the Trailing Stop Loss Order will be cancelled if its
 	// timeInForce is "GTD".
 	GtdTime *DateTime `json:"gtdTime,omitempty"`
@@ -2366,7 +2366,10 @@ func (s *transactionService) List(ctx context.Context, req *TransactionListReque
 	if req == nil {
 		req = NewTransactionListRequest()
 	}
-	path := fmt.Sprintf("/v3/accounts/%v/transactions", s.client.accountID)
+	path, err := s.client.accountPath("transactions")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -2404,7 +2407,10 @@ func (r *TransactionDetailsResponse) UnmarshalJSON(bytes []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_2
 func (s *transactionService) Details(ctx context.Context, transactionID TransactionID) (*TransactionDetailsResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/transactions/%v", s.client.accountID, transactionID)
+	path, err := s.client.accountPath("transactions", transactionID)
+	if err != nil {
+		return nil, err
+	}
 	return doGet[TransactionDetailsResponse](s.client, ctx, path, nil)
 }
 
@@ -2477,7 +2483,10 @@ func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionG
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/transactions/idrange", s.client.accountID)
+	path, err := s.client.accountPath("transactions", "idrange")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -2527,7 +2536,10 @@ func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionG
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%s/transactions/sinceid", s.client.accountID)
+	path, err := s.client.accountPath("transactions", "sinceid")
+	if err != nil {
+		return nil, err
+	}
 	v, err := req.values()
 	if err != nil {
 		return nil, err
@@ -2555,7 +2567,10 @@ type TransactionStreamItem interface {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_5
 func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStreamItem, done <-chan struct{}) error {
-	path := fmt.Sprintf("/v3/accounts/%s/transactions/stream", c.accountID)
+	path, err := c.accountPath("transactions", "stream")
+	if err != nil {
+		return err
+	}
 	return streamLoop(ctx, c, path, nil, ch, done, parseTransactionStreamItem)
 }
 

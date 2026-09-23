@@ -1,6 +1,9 @@
 package oanda
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPositionService(t *testing.T) {
 	runEndpointTests(t, []endpointTest{
@@ -46,9 +49,9 @@ func TestPositionCloseRequestLeavesUnselectedSideOpen(t *testing.T) {
 		req  *PositionCloseRequest
 		want string
 	}{
-		{"long only", NewPositionCloseRequest().SetLongUnits(100), `{"longUnits":"100","shortUnits":"NONE"}`},
+		{"long only", NewPositionCloseRequest().SetLongUnits("100"), `{"longUnits":"100","shortUnits":"NONE"}`},
 		{"short only", NewPositionCloseRequest().SetShortAll(), `{"longUnits":"NONE","shortUnits":"ALL"}`},
-		{"both sides", NewPositionCloseRequest().SetLongAll().SetShortUnits(50), `{"longUnits":"ALL","shortUnits":"50"}`},
+		{"both sides", NewPositionCloseRequest().SetLongAll().SetShortUnits("50"), `{"longUnits":"ALL","shortUnits":"50"}`},
 		{"direct struct", &PositionCloseRequest{}, `{"longUnits":"NONE","shortUnits":"NONE"}`},
 	}
 	for _, tt := range tests {
@@ -61,5 +64,34 @@ func TestPositionCloseRequestLeavesUnselectedSideOpen(t *testing.T) {
 				t.Errorf("body = %s, want %s", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPositionCloseUnits(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	req := NewPositionCloseRequest().SetLongUnits("0.5").SetShortUnits("1000")
+	if _, err := newFakeClient(fake).Position.Close(t.Context(), "XAU_USD", req); err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"longUnits":"0.5","shortUnits":"1000"}`; fake.bodies[0] != want {
+		t.Errorf("body = %s, want %s", fake.bodies[0], want)
+	}
+
+	for _, units := range []DecimalNumber{"0", "-10", "", "ten", "all"} {
+		for side, req := range map[string]*PositionCloseRequest{
+			"long":  NewPositionCloseRequest().SetLongUnits(units),
+			"short": NewPositionCloseRequest().SetShortUnits(units),
+		} {
+			t.Run(side+" "+string(units), func(t *testing.T) {
+				fake := &fakeHTTPClient{}
+				_, err := newFakeClient(fake).Position.Close(t.Context(), "EUR_USD", req)
+				if err == nil || !strings.Contains(err.Error(), side+" units") {
+					t.Fatalf("err = %v, want a %s units error", err, side)
+				}
+				if fake.calls != 0 {
+					t.Errorf("sent %d HTTP requests for invalid units", fake.calls)
+				}
+			})
+		}
 	}
 }

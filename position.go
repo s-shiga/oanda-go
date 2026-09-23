@@ -108,7 +108,10 @@ type PositionListResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_1
 func (s *positionService) List(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions", s.client.accountID)
+	path, err := s.client.accountPath("positions")
+	if err != nil {
+		return nil, err
+	}
 	return doGet[PositionListResponse](s.client, ctx, path, nil)
 }
 
@@ -118,7 +121,10 @@ func (s *positionService) List(ctx context.Context) (*PositionListResponse, erro
 //
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_2
 func (s *positionService) ListOpen(ctx context.Context) (*PositionListResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/openPositions", s.client.accountID)
+	path, err := s.client.accountPath("openPositions")
+	if err != nil {
+		return nil, err
+	}
 	return doGet[PositionListResponse](s.client, ctx, path, nil)
 }
 
@@ -134,7 +140,10 @@ type PositionListByInstrumentResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_3
 func (s *positionService) ListByInstrument(ctx context.Context, instrument InstrumentName) (*PositionListByInstrumentResponse, error) {
-	path := fmt.Sprintf("/v3/accounts/%v/positions/%v", s.client.accountID, instrument)
+	path, err := s.client.accountPath("positions", instrument)
+	if err != nil {
+		return nil, err
+	}
 	return doGet[PositionListByInstrumentResponse](s.client, ctx, path, nil)
 }
 
@@ -175,9 +184,9 @@ func (r *PositionCloseRequest) SetLongAll() *PositionCloseRequest {
 	return r
 }
 
-// SetLongUnits sets the number of long units to close.
-func (r *PositionCloseRequest) SetLongUnits(units uint) *PositionCloseRequest {
-	v := strconv.FormatUint(uint64(units), 10)
+// SetLongUnits sets the number of long units to close. units must be a positive decimal number.
+func (r *PositionCloseRequest) SetLongUnits(units DecimalNumber) *PositionCloseRequest {
+	v := string(units)
 	r.LongUnits = &v
 	return r
 }
@@ -195,9 +204,9 @@ func (r *PositionCloseRequest) SetShortAll() *PositionCloseRequest {
 	return r
 }
 
-// SetShortUnits sets the number of short units to close.
-func (r *PositionCloseRequest) SetShortUnits(units uint) *PositionCloseRequest {
-	v := strconv.FormatUint(uint64(units), 10)
+// SetShortUnits sets the number of short units to close. units must be a positive decimal number.
+func (r *PositionCloseRequest) SetShortUnits(units DecimalNumber) *PositionCloseRequest {
+	v := string(units)
 	r.ShortUnits = &v
 	return r
 }
@@ -208,7 +217,22 @@ func (r *PositionCloseRequest) SetShortClientExtensions(extensions *ClientExtens
 	return r
 }
 
+// validPositionCloseUnits reports whether units is "ALL", "NONE", or a positive number.
+func validPositionCloseUnits(units string) bool {
+	if units == "ALL" || units == "NONE" {
+		return true
+	}
+	n, err := strconv.ParseFloat(units, 64)
+	return err == nil && n > 0
+}
+
 func (r *PositionCloseRequest) body() (*bytes.Buffer, error) {
+	if r.LongUnits != nil && !validPositionCloseUnits(*r.LongUnits) {
+		return nil, fmt.Errorf("long units must be ALL, NONE, or a positive number, got %q", *r.LongUnits)
+	}
+	if r.ShortUnits != nil && !validPositionCloseUnits(*r.ShortUnits) {
+		return nil, fmt.Errorf("short units must be ALL, NONE, or a positive number, got %q", *r.ShortUnits)
+	}
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -252,7 +276,10 @@ func (s *positionService) Close(ctx context.Context, instrument InstrumentName, 
 	if req == nil {
 		return nil, ErrNilRequest
 	}
-	path := fmt.Sprintf("/v3/accounts/%v/positions/%v/close", s.client.accountID, instrument)
+	path, err := s.client.accountPath("positions", instrument, "close")
+	if err != nil {
+		return nil, err
+	}
 	body, err := req.body()
 	if err != nil {
 		return nil, err

@@ -450,6 +450,99 @@ func TestNilRequestsRejected(t *testing.T) {
 	})
 }
 
+func TestNoAccountID(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	c := NewClient("test-key", WithHTTPClient(fake))
+	for name, call := range map[string]func() error{
+		"account details": func() error { _, err := c.Account.Details(t.Context()); return err },
+		"account changes": func() error { _, err := c.Account.Changes(t.Context(), "40"); return err },
+		"instrument list": func() error { _, err := c.Instrument.List(t.Context()); return err },
+		"pending orders":  func() error { _, err := c.Order.ListPending(t.Context()); return err },
+		"order create": func() error {
+			_, err := c.Order.Create(t.Context(), NewMarketOrderRequest("USD_JPY", "100"))
+			return err
+		},
+		"open trades":        func() error { _, err := c.Trade.ListOpen(t.Context()); return err },
+		"positions":          func() error { _, err := c.Position.List(t.Context()); return err },
+		"transaction detail": func() error { _, err := c.Transaction.Details(t.Context(), "42"); return err },
+		"price information": func() error {
+			_, err := c.Price.Information(t.Context(), NewPriceInformationRequest().AddInstruments("USD_JPY"))
+			return err
+		},
+	} {
+		if err := call(); !errors.Is(err, ErrNoAccountID) {
+			t.Errorf("%s: err = %v, want ErrNoAccountID", name, err)
+		}
+	}
+	if fake.calls != 0 {
+		t.Errorf("sent %d HTTP requests without an account ID", fake.calls)
+	}
+
+	// Endpoints that are not scoped to an Account still work.
+	if _, err := c.Account.List(t.Context()); err != nil {
+		t.Errorf("account list: %v", err)
+	}
+	if _, err := c.Instrument.Candlesticks(t.Context(), NewCandlesticksRequest("USD_JPY", H1)); err != nil {
+		t.Errorf("instrument candlesticks: %v", err)
+	}
+
+	stream := NewStreamClient("test-key", WithHTTPClient(fake))
+	if err := stream.Transaction(t.Context(), make(chan TransactionStreamItem), make(chan struct{})); !errors.Is(err, ErrNoAccountID) {
+		t.Errorf("transaction stream: err = %v, want ErrNoAccountID", err)
+	}
+	if err := stream.Price(t.Context(), NewPriceStreamRequest("USD_JPY"), make(chan PriceStreamItem), make(chan struct{})); !errors.Is(err, ErrNoAccountID) {
+		t.Errorf("price stream: err = %v, want ErrNoAccountID", err)
+	}
+}
+
+func TestPathSegmentsEscaped(t *testing.T) {
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, `{"order":{"id":"42","type":"LIMIT"}}`)}}
+	c := newFakeClient(fake)
+	if _, err := c.Order.Details(t.Context(), "@my/strategy?x=1#a b"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Trade.Close(t.Context(), "@my/trade", NewTradeCloseALLRequest()); err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []string{
+		testAccountPath + "/orders/@my%2Fstrategy%3Fx=1%23a%20b",
+		testAccountPath + "/trades/@my%2Ftrade/close",
+	} {
+		if got := fake.requests[i].URL.EscapedPath(); got != want {
+			t.Errorf("request %d path = %s, want %s", i, got, want)
+		}
+		if fake.requests[i].URL.RawQuery != "" || fake.requests[i].URL.Fragment != "" {
+			t.Errorf("request %d = %s, want the ID kept in the path", i, fake.requests[i].URL)
+		}
+	}
+}
+
+func TestEmptyPathSegment(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	c := newFakeClient(fake)
+	for name, call := range map[string]func() error{
+		"order details": func() error { _, err := c.Order.Details(t.Context(), ""); return err },
+		"order cancel":  func() error { _, err := c.Order.Cancel(t.Context(), ""); return err },
+		"trade details": func() error { _, err := c.Trade.Details(t.Context(), ""); return err },
+		"position close": func() error {
+			_, err := c.Position.Close(t.Context(), "", NewPositionCloseRequest().SetLongAll())
+			return err
+		},
+		"transaction details": func() error { _, err := c.Transaction.Details(t.Context(), ""); return err },
+		"instrument candlesticks": func() error {
+			_, err := c.Instrument.Candlesticks(t.Context(), &CandlesticksRequest{Granularity: H1})
+			return err
+		},
+	} {
+		if err := call(); err == nil || !strings.Contains(err.Error(), "empty segment") {
+			t.Errorf("%s: err = %v, want an empty segment error", name, err)
+		}
+	}
+	if fake.calls != 0 {
+		t.Errorf("sent %d HTTP requests with an empty path segment", fake.calls)
+	}
+}
+
 // --- Error decoding ---
 
 func TestDecodeErrorResponseWithErrorCode(t *testing.T) {
