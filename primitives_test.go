@@ -89,3 +89,17 @@ func TestDateTimeUnsetIsUsable(t *testing.T) {
 		})
 	}
 }
+
+func TestIsPositiveDecimal(t *testing.T) {
+	for _, s := range []string{"1", "10", "0.125", "0.5", "1.0", "007"} {
+		if !isPositiveDecimal(s) {
+			t.Errorf("%q should be a positive decimal", s)
+		}
+	}
+	for _, s := range []string{"", "0", "0.0", "00", "-1", "+2", ".5", "5.", "1e3", "1E3", "0x10", "0b11", "0o7",
+		"0x1p3", "1p3", "1_000", "1,000", "Inf", "NaN", "1/2", " 1", "1 ", "１"} {
+		if isPositiveDecimal(s) {
+			t.Errorf("%q should not be a positive decimal", s)
+		}
+	}
+}

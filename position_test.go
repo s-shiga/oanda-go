@@ -77,7 +77,7 @@ func TestPositionCloseUnits(t *testing.T) {
 		t.Errorf("body = %s, want %s", fake.bodies[0], want)
 	}
 
-	for _, units := range []DecimalNumber{"0", "-10", "", "ten", "all"} {
+	for _, units := range []DecimalNumber{"0", "-10", "", "ten", "all", "Inf", "1e3", "0x1p3", "+2"} {
 		for side, req := range map[string]*PositionCloseRequest{
 			"long":  NewPositionCloseRequest().SetLongUnits(units),
 			"short": NewPositionCloseRequest().SetShortUnits(units),

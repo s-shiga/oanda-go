@@ -2,6 +2,8 @@ package oanda
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -12,6 +14,15 @@ import (
 // DecimalNumber is a decimal number encoded as a string. The amount of precision provided depends
 // on what the number represents.
 type DecimalNumber string
+
+var plainDecimal = regexp.MustCompile(`^[0-9]+(\.[0-9]+)?$`)
+
+// isPositiveDecimal reports whether s is a plain decimal number greater than
+// zero, such as "10" or "0.125": digits with an optional fractional part, and
+// no sign, exponent, base prefix, or digit separators.
+func isPositiveDecimal(s string) bool {
+	return plainDecimal.MatchString(s) && strings.ContainsAny(s, "123456789")
+}
 
 // AccountUnits is a quantity of an Account's home currency. This is a DecimalNumber encoded as a
 // string. The amount of precision provided depends on the Account's home currency.

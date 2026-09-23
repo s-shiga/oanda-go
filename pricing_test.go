@@ -2,6 +2,7 @@ package oanda
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 )
 
@@ -53,7 +54,7 @@ func TestPricingService(t *testing.T) {
 }
 
 func TestPriceCandlesticksInvalidUnits(t *testing.T) {
-	for _, units := range []DecimalNumber{"", "0", "-1.5", "1/2", "1e2"} {
+	for _, units := range []DecimalNumber{"", "0", "-1.5", "1/2", "1e2", "+2", "0x10", "0b11", "0o7", "1p3", "1_000"} {
 		t.Run(string(units), func(t *testing.T) {
 			_, err := NewPriceCandlesticksRequest("EUR_USD", M1).SetUnitsDecimal(units).values()
 			if err == nil {
@@ -90,5 +91,26 @@ func TestPriceBucketLiquidity(t *testing.T) {
 	var bucket PriceBucket
 	if err := json.Unmarshal([]byte(`{"price":"1.1","liquidity":"lots"}`), &bucket); err == nil {
 		t.Error("want error for non-numeric liquidity, got nil")
+	}
+}
+
+func TestPriceLatestCandlesticksUnits(t *testing.T) {
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, `{"latestCandles":[]}`)}}
+	c := newFakeClient(fake)
+	req := NewPriceLatestCandlesticksRequest().AddSpecifications("EUR_USD:M1:M").SetUnits("0.5")
+	if _, err := c.Price.LatestCandlesticks(t.Context(), req); err != nil {
+		t.Fatal(err)
+	}
+	if got := fake.requests[0].URL.Query().Get("units"); got != "0.5" {
+		t.Errorf("units = %q, want 0.5", got)
+	}
+	for _, units := range []DecimalNumber{"0", "-1", "abc", "1e3"} {
+		req := NewPriceLatestCandlesticksRequest().AddSpecifications("EUR_USD:M1:M").SetUnits(units)
+		if _, err := c.Price.LatestCandlesticks(t.Context(), req); err == nil {
+			t.Errorf("units %q should be rejected", units)
+		}
+	}
+	if fake.calls != 1 {
+		t.Errorf("sent %d HTTP requests, want 1 for the valid units only", fake.calls)
 	}
 }

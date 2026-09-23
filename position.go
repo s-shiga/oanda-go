@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 // ------------------------------------------------------------------
@@ -219,11 +218,7 @@ func (r *PositionCloseRequest) SetShortClientExtensions(extensions *ClientExtens
 
 // validPositionCloseUnits reports whether units is "ALL", "NONE", or a positive number.
 func validPositionCloseUnits(units string) bool {
-	if units == "ALL" || units == "NONE" {
-		return true
-	}
-	n, err := strconv.ParseFloat(units, 64)
-	return err == nil && n > 0
+	return units == "ALL" || units == "NONE" || isPositiveDecimal(units)
 }
 
 func (r *PositionCloseRequest) body() (*bytes.Buffer, error) {

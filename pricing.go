@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
@@ -231,6 +230,9 @@ func (r *PriceLatestCandlesticksRequest) validate() error {
 		if _, err := time.LoadLocation(*r.alignmentTimezone); err != nil {
 			return err
 		}
+	}
+	if r.units != nil && !isPositiveDecimal(string(*r.units)) {
+		return errors.New("units must be a positive decimal number")
 	}
 	return nil
 }
@@ -474,12 +476,10 @@ func (req *PriceCandlesticksRequest) values() (url.Values, error) {
 		return nil, err
 	}
 	if req.units != nil {
-		units := string(*req.units)
-		n, ok := new(big.Rat).SetString(units)
-		if !ok || strings.ContainsAny(units, "/eE") || n.Sign() <= 0 {
+		if !isPositiveDecimal(string(*req.units)) {
 			return nil, errors.New("units must be a positive decimal number")
 		}
-		values.Set("units", units)
+		values.Set("units", string(*req.units))
 	}
 	return values, nil
 }

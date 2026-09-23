@@ -76,3 +76,21 @@ func TestTradeCloseCancelled(t *testing.T) {
 		t.Errorf("OrderCancelTransaction = %#v, want reason MARKET_HALTED", resp.OrderCancelTransaction)
 	}
 }
+
+func TestTradeCloseUnits(t *testing.T) {
+	fake := &fakeHTTPClient{}
+	c := newFakeClient(fake)
+	for _, req := range []TradeCloseRequest{NewTradeCloseALLRequest(), NewTradeCloseRequest("0.5"), {}} {
+		if _, err := c.Trade.Close(t.Context(), "42", req); err != nil {
+			t.Errorf("units %q: %v", req.Units, err)
+		}
+	}
+	for _, units := range []DecimalNumber{"0", "-1", "all", "Inf", "1e3"} {
+		if _, err := c.Trade.Close(t.Context(), "42", NewTradeCloseRequest(units)); err == nil {
+			t.Errorf("units %q should be rejected", units)
+		}
+	}
+	if fake.calls != 3 {
+		t.Errorf("sent %d HTTP requests, want 3 for the valid units only", fake.calls)
+	}
+}

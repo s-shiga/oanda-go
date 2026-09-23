@@ -362,6 +362,9 @@ type TradeCloseRequest struct {
 }
 
 func (r TradeCloseRequest) body() (*bytes.Buffer, error) {
+	if r.Units != "" && r.Units != "ALL" && !isPositiveDecimal(string(r.Units)) {
+		return nil, fmt.Errorf("units must be ALL or a positive number, got %q", r.Units)
+	}
 	jsonBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
