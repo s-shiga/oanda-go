@@ -142,9 +142,10 @@ type Instrument struct {
 }
 
 // DateTime represents a date and time value in RFC 3339 format. The DateTime format is used for
-// fields representing specific points in time.
+// fields representing specific points in time. A time the API leaves unset (null or "0") is the
+// zero time; use IsZero to check for it.
 type DateTime struct {
-	*time.Time
+	time.Time
 }
 
 // UnmarshalJSON handles RFC3339 timestamps and the null and "0" values that
@@ -155,19 +156,20 @@ func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
 		return err
 	}
 	if s == nil || *s == "0" {
-		dt.Time = nil
+		dt.Time = time.Time{}
 		return nil
 	}
 	t, err := time.Parse(time.RFC3339Nano, *s)
 	if err != nil {
 		return err
 	}
-	dt.Time = &t
+	dt.Time = t
 	return nil
 }
 
+// MarshalJSON encodes the time in RFC3339 format, or null when it is unset.
 func (dt DateTime) MarshalJSON() ([]byte, error) {
-	if dt.Time == nil {
+	if dt.IsZero() {
 		return []byte("null"), nil
 	}
 	return json.Marshal(dt.Format(time.RFC3339Nano))

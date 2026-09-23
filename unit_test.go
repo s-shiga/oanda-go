@@ -99,7 +99,7 @@ func TestPriceInformationRequestSinceParam(t *testing.T) {
 	since := mustTime(t, "2024-05-01T12:30:45.123456789Z")
 	values, err := NewPriceInformationRequest().
 		AddInstruments("EUR_USD").
-		SetSince(DateTime{&since}).
+		SetSince(DateTime{since}).
 		values()
 	if err != nil {
 		t.Fatal(err)
@@ -232,7 +232,7 @@ func TestDateTimeMarshalByValue(t *testing.T) {
 	ts := mustTime(t, "2024-05-01T12:30:45.123456789Z")
 	got, err := json.Marshal(struct {
 		Time DateTime `json:"time"`
-	}{Time: DateTime{&ts}})
+	}{Time: DateTime{ts}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,8 +256,8 @@ func TestDateTimeUnmarshalZeroSentinel(t *testing.T) {
 	if err := json.Unmarshal([]byte(`"0"`), &dt); err != nil {
 		t.Fatal(err)
 	}
-	if dt.Time != nil {
-		t.Errorf("Time = %v, want nil for sentinel \"0\"", dt.Time)
+	if !dt.IsZero() {
+		t.Errorf("Time = %v, want the zero time for sentinel \"0\"", dt.Time)
 	}
 }
 
@@ -271,7 +271,7 @@ func TestUnmarshalOrderUnknownType(t *testing.T) {
 	if !ok {
 		t.Fatalf("order = %T, want UnknownOrder", order)
 	}
-	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetState() != OrderStatePending || unknown.GetCreateTime().Time == nil {
+	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetState() != OrderStatePending || unknown.GetCreateTime().IsZero() {
 		t.Errorf("common fields not decoded: %#v", unknown)
 	}
 	encoded, err := json.Marshal(unknown)
@@ -296,7 +296,7 @@ func TestUnmarshalTransactionUnknownType(t *testing.T) {
 	if !ok {
 		t.Fatalf("transaction = %T, want *UnknownTransaction", transaction)
 	}
-	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetTime().Time == nil || unknown.AccountID != "101-001-1234567-001" {
+	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetTime().IsZero() || unknown.AccountID != "101-001-1234567-001" {
 		t.Errorf("common fields not decoded: %#v", unknown)
 	}
 	encoded, err := json.Marshal(unknown)

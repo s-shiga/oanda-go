@@ -324,7 +324,7 @@ func (r *PriceInformationRequest) values() (url.Values, error) {
 	}
 	values := url.Values{}
 	values.Set("instruments", strings.Join(r.Instruments, ","))
-	if r.Since != nil && r.Since.Time != nil {
+	if r.Since != nil && !r.Since.IsZero() {
 		values.Set("since", r.Since.Format(time.RFC3339Nano))
 	}
 	if r.IncludeHomeConversions {

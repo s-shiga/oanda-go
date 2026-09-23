@@ -2,7 +2,10 @@ package oanda
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestDateTimeUnsetRoundTrip(t *testing.T) {
@@ -10,12 +13,12 @@ func TestDateTimeUnsetRoundTrip(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			// Decoding an unset value must also clear an existing timestamp.
 			ts := mustTime(t, "2026-09-13T10:00:00.123456789Z")
-			dt := DateTime{&ts}
+			dt := DateTime{ts}
 			if err := json.Unmarshal([]byte(input), &dt); err != nil {
 				t.Fatal(err)
 			}
-			if dt.Time != nil {
-				t.Fatalf("Time = %v, want nil", dt.Time)
+			if !dt.IsZero() {
+				t.Fatalf("Time = %v, want the zero time", dt.Time)
 			}
 			encoded, err := json.Marshal(dt)
 			if err != nil {
@@ -28,8 +31,8 @@ func TestDateTimeUnsetRoundTrip(t *testing.T) {
 			if err := json.Unmarshal(encoded, &restored); err != nil {
 				t.Fatal(err)
 			}
-			if restored.Time != nil {
-				t.Fatalf("round trip Time = %v, want nil", restored.Time)
+			if !restored.IsZero() {
+				t.Fatalf("round trip Time = %v, want the zero time", restored.Time)
 			}
 		})
 	}
@@ -37,7 +40,7 @@ func TestDateTimeUnsetRoundTrip(t *testing.T) {
 
 func TestDateTimeTimestampRoundTrip(t *testing.T) {
 	ts := mustTime(t, "2026-09-13T10:00:00.123456789+09:00")
-	encoded, err := json.Marshal(DateTime{&ts})
+	encoded, err := json.Marshal(DateTime{ts})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +48,7 @@ func TestDateTimeTimestampRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(encoded, &restored); err != nil {
 		t.Fatal(err)
 	}
-	if restored.Time == nil || !restored.Equal(ts) {
+	if restored.IsZero() || !restored.Equal(ts) {
 		t.Fatalf("round trip Time = %v, want %v", restored.Time, ts)
 	}
 }
@@ -54,12 +57,34 @@ func TestDateTimeInvalidJSONPreservesValue(t *testing.T) {
 	for _, input := range []string{`""`, `"invalid"`, `0`, `false`, `{}`} {
 		t.Run(input, func(t *testing.T) {
 			ts := mustTime(t, "2026-09-13T10:00:00Z")
-			dt := DateTime{&ts}
+			dt := DateTime{ts}
 			if err := json.Unmarshal([]byte(input), &dt); err == nil {
 				t.Fatal("expected invalid timestamp to be rejected")
 			}
-			if dt.Time == nil || !dt.Equal(ts) {
+			if dt.IsZero() || !dt.Equal(ts) {
 				t.Fatalf("invalid input changed Time to %v", dt.Time)
+			}
+		})
+	}
+}
+
+func TestDateTimeUnsetIsUsable(t *testing.T) {
+	for _, input := range []string{`{"type":"HEARTBEAT"}`, `{"type":"HEARTBEAT","time":null}`, `{"type":"HEARTBEAT","time":"0"}`} {
+		t.Run(input, func(t *testing.T) {
+			var heartbeat PricingHeartbeat
+			if err := json.Unmarshal([]byte(input), &heartbeat); err != nil {
+				t.Fatal(err)
+			}
+			dt := heartbeat.GetTime()
+			if !dt.IsZero() {
+				t.Fatalf("time = %v, want the zero time", dt)
+			}
+			// An unset time must behave like the zero time.Time, not panic.
+			if s := fmt.Sprint(dt, heartbeat); strings.Contains(s, "PANIC") {
+				t.Errorf("printing an unset DateTime panicked: %s", s)
+			}
+			if dt.Format(time.RFC3339) != "0001-01-01T00:00:00Z" || dt.Unix() != (time.Time{}).Unix() || !dt.Before(time.Now()) {
+				t.Errorf("unset DateTime does not behave like the zero time: %v", dt)
 			}
 		})
 	}

@@ -70,7 +70,7 @@ func TestDelayedTradeClosureTradeIDs(t *testing.T) {
 			if !ok {
 				t.Fatalf("transaction = %T, want *DelayedTradeClosureTransaction", transaction)
 			}
-			if closure.GetID() != "44" || closure.Reason != "TRADE_CLOSE" || closure.GetTime().Time == nil {
+			if closure.GetID() != "44" || closure.Reason != "TRADE_CLOSE" || closure.GetTime().IsZero() {
 				t.Errorf("common fields not decoded: %#v", closure)
 			}
 			if !reflect.DeepEqual(closure.TradeIDs, tc.want) {

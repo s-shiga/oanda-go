@@ -62,7 +62,7 @@ func TestStreamClientTransaction(t *testing.T) {
 			}
 			for _, want := range tc.wantTypes {
 				item := <-ch
-				if item.GetType() != want || item.GetID() != "42" || item.GetTime().Time == nil {
+				if item.GetType() != want || item.GetID() != "42" || item.GetTime().IsZero() {
 					t.Errorf("unexpected stream item: %#v", item)
 				}
 				if fill, ok := item.(OrderFillTransaction); ok && (fill.Instrument != "USD_JPY" || fill.Units != "10000") {
