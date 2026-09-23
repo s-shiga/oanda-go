@@ -39,7 +39,28 @@ func TestPricingService(t *testing.T) {
 				return c.Price.Candlesticks(t.Context(), NewPriceCandlesticksRequest("USD_JPY", M1).SetCount(1).SetUnits(10).Mid())
 			},
 		},
+		{
+			name:     `account candlesticks with fractional units`,
+			method:   `GET`,
+			path:     testAccountPath + "/instruments/USD_JPY/candles",
+			query:    `granularity=M1&units=0.125`,
+			response: `{"instrument":"USD_JPY","granularity":"M1","candles":[]}`,
+			call: func(c *Client) (any, error) {
+				return c.Price.Candlesticks(t.Context(), NewPriceCandlesticksRequest("USD_JPY", M1).SetUnitsDecimal("0.125"))
+			},
+		},
 	})
+}
+
+func TestPriceCandlesticksInvalidUnits(t *testing.T) {
+	for _, units := range []DecimalNumber{"", "0", "-1.5", "1/2", "1e2"} {
+		t.Run(string(units), func(t *testing.T) {
+			_, err := NewPriceCandlesticksRequest("EUR_USD", M1).SetUnitsDecimal(units).values()
+			if err == nil {
+				t.Errorf("units %q should be rejected", units)
+			}
+		})
+	}
 }
 
 func TestPriceBucketLiquidity(t *testing.T) {

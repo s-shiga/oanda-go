@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
@@ -33,6 +34,20 @@ type ClientPrice struct {
 	CloseoutBid PriceValue `json:"closeoutBid"`
 	// CloseoutAsk is the closeout ask price.
 	CloseoutAsk PriceValue `json:"closeoutAsk"`
+}
+
+// UnmarshalJSON applies the API's default PRICE type when it is omitted.
+func (p *ClientPrice) UnmarshalJSON(b []byte) error {
+	type plain ClientPrice
+	var decoded plain
+	if err := json.Unmarshal(b, &decoded); err != nil {
+		return err
+	}
+	if decoded.Type == "" {
+		decoded.Type = "PRICE"
+	}
+	*p = ClientPrice(decoded)
+	return nil
 }
 
 // GetType returns the price type string.
@@ -364,7 +379,7 @@ func (s *priceService) Information(ctx context.Context, req *PriceInformationReq
 // It extends [CandlesticksRequest] with an optional units parameter.
 type PriceCandlesticksRequest struct {
 	CandlesticksRequest
-	units *int
+	units *DecimalNumber
 }
 
 // Mid adds mid-based candlestick data to the request.
@@ -440,8 +455,15 @@ func NewPriceCandlesticksRequest(instrument InstrumentName, granularity Candlest
 	}
 }
 
-// SetUnits sets the number of units used to calculate the volume-weighted average bid and ask prices.
+// SetUnits sets a whole number of units used to calculate volume-weighted prices.
+// Use SetUnitsDecimal for fractional units.
 func (req *PriceCandlesticksRequest) SetUnits(units int) *PriceCandlesticksRequest {
+	return req.SetUnitsDecimal(DecimalNumber(strconv.Itoa(units)))
+}
+
+// SetUnitsDecimal sets the exact decimal number of units used to calculate
+// volume-weighted average bid and ask prices.
+func (req *PriceCandlesticksRequest) SetUnitsDecimal(units DecimalNumber) *PriceCandlesticksRequest {
 	req.units = &units
 	return req
 }
@@ -452,10 +474,12 @@ func (req *PriceCandlesticksRequest) values() (url.Values, error) {
 		return nil, err
 	}
 	if req.units != nil {
-		if *req.units <= 0 {
-			return nil, errors.New("units must be greater than 0")
+		units := string(*req.units)
+		n, ok := new(big.Rat).SetString(units)
+		if !ok || strings.ContainsAny(units, "/eE") || n.Sign() <= 0 {
+			return nil, errors.New("units must be a positive decimal number")
 		}
-		values.Set("units", strconv.Itoa(*req.units))
+		values.Set("units", units)
 	}
 	return values, nil
 }
@@ -562,19 +586,20 @@ func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch ch
 
 func parsePriceStreamItem(raw json.RawMessage) (PriceStreamItem, bool, error) {
 	var typeOnly struct {
-		Type string `json:"type"`
+		Type       string         `json:"type"`
+		Instrument InstrumentName `json:"instrument"`
 	}
 	if err := json.Unmarshal(raw, &typeOnly); err != nil {
 		return nil, false, fmt.Errorf("failed to unmarshal type: %w", err)
 	}
-	switch typeOnly.Type {
-	case "PRICE":
+	switch {
+	case typeOnly.Type == "PRICE" || typeOnly.Type == "" && typeOnly.Instrument != "":
 		var price ClientPrice
 		if err := json.Unmarshal(raw, &price); err != nil {
 			return nil, false, err
 		}
 		return &price, true, nil
-	case "HEARTBEAT":
+	case typeOnly.Type == "HEARTBEAT":
 		var heartbeat PricingHeartbeat
 		if err := json.Unmarshal(raw, &heartbeat); err != nil {
 			return nil, false, err

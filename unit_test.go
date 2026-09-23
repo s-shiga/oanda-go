@@ -232,6 +232,12 @@ func TestClientPriceDecode(t *testing.T) {
 	if !p.Tradeable {
 		t.Error("Tradeable = false, want true")
 	}
+	if err := json.Unmarshal([]byte(`{"instrument":"EUR_USD","time":"2024-05-01T12:30:45Z"}`), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Type != "PRICE" || p.GetType() != "PRICE" {
+		t.Errorf("omitted type = %q, want PRICE", p.Type)
+	}
 }
 
 func TestDateTimeMarshalByValue(t *testing.T) {
@@ -713,6 +719,27 @@ func TestPriceStreamServerEnd(t *testing.T) {
 	price, ok := (<-ch).(*ClientPrice)
 	if !ok || price.Instrument != "EUR_USD" {
 		t.Errorf("first item = %#v, want ClientPrice for EUR_USD", price)
+	}
+	if _, ok := (<-ch).(*PricingHeartbeat); !ok {
+		t.Error("second item should be a PricingHeartbeat")
+	}
+}
+
+func TestPriceStreamPriceWithoutType(t *testing.T) {
+	body := `{"instrument":"EUR_USD","time":"2024-05-01T12:30:45Z","tradeable":true,"bids":[{"price":"1.1000","liquidity":100}]}` + "\n" +
+		`{"type":"HEARTBEAT","time":"2024-05-01T12:30:50Z"}` + "\n"
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, body)}}
+	ch := make(chan PriceStreamItem, 2)
+	err := newFakeStreamClient(fake).Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{}))
+	if !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("err = %v, want ErrStreamEnded", err)
+	}
+	if len(ch) != 2 {
+		t.Fatalf("received %d items, want price and heartbeat", len(ch))
+	}
+	price, ok := (<-ch).(*ClientPrice)
+	if !ok || price.GetType() != "PRICE" || price.Instrument != "EUR_USD" || len(price.Bids) != 1 {
+		t.Errorf("first item = %#v, want EUR_USD price", price)
 	}
 	if _, ok := (<-ch).(*PricingHeartbeat); !ok {
 		t.Error("second item should be a PricingHeartbeat")
