@@ -311,6 +311,145 @@ func TestUnmarshalTransactionUnknownType(t *testing.T) {
 	}
 }
 
+func TestBaseURLPathPrefix(t *testing.T) {
+	for _, base := range []string{"https://proxy.example.com/oanda", "https://proxy.example.com/oanda/"} {
+		t.Run(base, func(t *testing.T) {
+			fake := &fakeHTTPClient{}
+			c := NewClient("test-key", WithBaseURL(base), WithAccountID("101-001-1234567-001"), WithHTTPClient(fake))
+			if _, err := c.Trade.List(t.Context(), NewTradeListRequest().SetInstrument("USD_JPY")); err != nil {
+				t.Fatal(err)
+			}
+			want := "https://proxy.example.com/oanda" + testAccountPath + "/trades?instrument=USD_JPY"
+			if got := fake.requests[0].URL.String(); got != want {
+				t.Errorf("REST URL = %s, want %s", got, want)
+			}
+
+			streamFake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, "")}}
+			sc := NewStreamClient("test-key", WithBaseURL(base), WithAccountID("101-001-1234567-001"), WithHTTPClient(streamFake))
+			if err := sc.Transaction(t.Context(), make(chan TransactionStreamItem), make(chan struct{})); !errors.Is(err, ErrStreamEnded) {
+				t.Fatalf("err = %v, want ErrStreamEnded", err)
+			}
+			want = "https://proxy.example.com/oanda" + testAccountPath + "/transactions/stream"
+			if got := streamFake.requests[0].URL.String(); got != want {
+				t.Errorf("stream URL = %s, want %s", got, want)
+			}
+		})
+	}
+}
+
+func TestNilListRequestsUseDefaults(t *testing.T) {
+	cases := []struct {
+		name string
+		path string
+		call func(*Client) error
+	}{
+		{"orders", testAccountPath + "/orders", func(c *Client) error {
+			_, err := c.Order.List(t.Context(), nil)
+			return err
+		}},
+		{"trades", testAccountPath + "/trades", func(c *Client) error {
+			_, err := c.Trade.List(t.Context(), nil)
+			return err
+		}},
+		{"transactions", testAccountPath + "/transactions", func(c *Client) error {
+			_, err := c.Transaction.List(t.Context(), nil)
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeHTTPClient{}
+			if err := tc.call(newFakeClient(fake)); err != nil {
+				t.Fatal(err)
+			}
+			if len(fake.requests) != 1 {
+				t.Fatalf("got %d requests, want 1", len(fake.requests))
+			}
+			if req := fake.requests[0]; req.URL.Path != tc.path || req.URL.RawQuery != "" {
+				t.Errorf("request = %s, want %s with no query", req.URL, tc.path)
+			}
+		})
+	}
+}
+
+func TestNilRequestsRejected(t *testing.T) {
+	var nilMarketOrder *MarketOrderRequest
+	cases := []struct {
+		name string
+		call func(*Client) error
+	}{
+		{"order create", func(c *Client) error {
+			_, err := c.Order.Create(t.Context(), nil)
+			return err
+		}},
+		{"order create typed nil", func(c *Client) error {
+			_, err := c.Order.Create(t.Context(), nilMarketOrder)
+			return err
+		}},
+		{"order replace", func(c *Client) error {
+			_, err := c.Order.Replace(t.Context(), "42", nil)
+			return err
+		}},
+		{"order replace typed nil", func(c *Client) error {
+			_, err := c.Order.Replace(t.Context(), "42", nilMarketOrder)
+			return err
+		}},
+		{"trade dependent orders", func(c *Client) error {
+			_, err := c.Trade.UpdateOrders(t.Context(), "42", nil)
+			return err
+		}},
+		{"position close", func(c *Client) error {
+			_, err := c.Position.Close(t.Context(), "USD_JPY", nil)
+			return err
+		}},
+		{"transactions by ID range", func(c *Client) error {
+			_, err := c.Transaction.GetByIDRange(t.Context(), nil)
+			return err
+		}},
+		{"transactions since ID", func(c *Client) error {
+			_, err := c.Transaction.GetBySinceID(t.Context(), nil)
+			return err
+		}},
+		{"price information", func(c *Client) error {
+			_, err := c.Price.Information(t.Context(), nil)
+			return err
+		}},
+		{"latest candlesticks", func(c *Client) error {
+			_, err := c.Price.LatestCandlesticks(t.Context(), nil)
+			return err
+		}},
+		{"account candlesticks", func(c *Client) error {
+			_, err := c.Price.Candlesticks(t.Context(), nil)
+			return err
+		}},
+		{"instrument candlesticks", func(c *Client) error {
+			_, err := c.Instrument.Candlesticks(t.Context(), nil)
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := &fakeHTTPClient{}
+			if err := tc.call(newFakeClient(fake)); !errors.Is(err, ErrNilRequest) {
+				t.Fatalf("err = %v, want ErrNilRequest", err)
+			}
+			if fake.calls != 0 {
+				t.Errorf("sent %d HTTP requests for a nil request", fake.calls)
+			}
+		})
+	}
+	t.Run("price stream", func(t *testing.T) {
+		fake := &fakeHTTPClient{}
+		err := newFakeStreamClient(fake).Price(t.Context(), nil, make(chan PriceStreamItem), make(chan struct{}))
+		if !errors.Is(err, ErrNilRequest) {
+			t.Fatalf("err = %v, want ErrNilRequest", err)
+		}
+		if fake.calls != 0 {
+			t.Errorf("sent %d HTTP requests for a nil request", fake.calls)
+		}
+	})
+}
+
 // --- Error decoding ---
 
 func TestDecodeErrorResponseWithErrorCode(t *testing.T) {
@@ -349,6 +488,98 @@ func TestWrapHTTPErrorKeepsUnmappedStatus(t *testing.T) {
 	if httpErr.StatusCode != http.StatusTooManyRequests {
 		t.Errorf("StatusCode = %d, want 429", httpErr.StatusCode)
 	}
+}
+
+func TestTypedErrorNonJSONBody(t *testing.T) {
+	cases := []struct {
+		name   string
+		status int
+		call   func(*Client) error
+	}{
+		{"account configure", http.StatusForbidden, func(c *Client) error {
+			_, err := c.Account.Configure(t.Context(), NewAccountConfigureRequest().SetAlias("alias"))
+			return err
+		}},
+		{"order create", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Order.Create(t.Context(), NewMarketOrderRequest("USD_JPY", "10000"))
+			return err
+		}},
+		{"order replace", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Order.Replace(t.Context(), "42", NewLimitOrderRequest("USD_JPY", "10000", "110.00"))
+			return err
+		}},
+		{"order replace missing order", http.StatusNotFound, func(c *Client) error {
+			_, err := c.Order.Replace(t.Context(), "42", NewLimitOrderRequest("USD_JPY", "10000", "110.00"))
+			return err
+		}},
+		{"order cancel", http.StatusNotFound, func(c *Client) error {
+			_, err := c.Order.Cancel(t.Context(), "42")
+			return err
+		}},
+		{"order client extensions", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Order.UpdateClientExtensions(t.Context(), "42", OrderUpdateClientExtensionsRequest{ClientExtensions: NewClientExtensions().SetID("order-id")})
+			return err
+		}},
+		{"trade close", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Trade.Close(t.Context(), "42", NewTradeCloseALLRequest())
+			return err
+		}},
+		{"trade close missing trade", http.StatusNotFound, func(c *Client) error {
+			_, err := c.Trade.Close(t.Context(), "42", NewTradeCloseALLRequest())
+			return err
+		}},
+		{"trade client extensions", http.StatusNotFound, func(c *Client) error {
+			_, err := c.Trade.UpdateClientExtensions(t.Context(), "42", TradeUpdateClientExtensionsRequest{ClientExtensions: NewClientExtensions().SetID("trade-id")})
+			return err
+		}},
+		{"trade dependent orders", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Trade.UpdateOrders(t.Context(), "42", &TradeUpdateOrdersRequest{CancelTakeProfit: true})
+			return err
+		}},
+		{"position close", http.StatusBadRequest, func(c *Client) error {
+			_, err := c.Position.Close(t.Context(), "USD_JPY", NewPositionCloseRequest().SetLongAll())
+			return err
+		}},
+	}
+	bodies := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"HTML page", "<html><body>Bad Gateway</body></html>\n", "<html><body>Bad Gateway</body></html>"},
+		{"empty body", "", "empty response body"},
+	}
+	for _, tc := range cases {
+		for _, body := range bodies {
+			t.Run(tc.name+"/"+body.name, func(t *testing.T) {
+				fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(tc.status, body.body)}}
+				err := tc.call(newFakeClient(fake))
+				if got := httpStatusOf(err); got != tc.status {
+					t.Fatalf("error = %T (%v), want an HTTP %d error", err, err, tc.status)
+				}
+				if !strings.Contains(err.Error(), body.want) {
+					t.Errorf("error = %q, want it to contain %q", err, body.want)
+				}
+			})
+		}
+	}
+}
+
+// httpStatusOf returns the status code of an error built by wrapHTTPError for
+// the statuses that have typed endpoint errors, or 0 for any other error.
+func httpStatusOf(err error) int {
+	var badRequest BadRequest
+	var forbidden Forbidden
+	var notFound NotFound
+	switch {
+	case errors.As(err, &badRequest):
+		return badRequest.StatusCode
+	case errors.As(err, &forbidden):
+		return forbidden.StatusCode
+	case errors.As(err, &notFound):
+		return notFound.StatusCode
+	}
+	return 0
 }
 
 // --- Streaming ---

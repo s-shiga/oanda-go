@@ -296,12 +296,16 @@ type TradeListResponse struct {
 }
 
 // List retrieves a list of Trades for the Account configured via [WithAccountID].
-// Use [NewTradeListRequest] to create and configure filter parameters.
+// Use [NewTradeListRequest] to create and configure filter parameters, or pass
+// nil to use the defaults.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/trades
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_2
 func (s *tradeService) List(ctx context.Context, req *TradeListRequest) (*TradeListResponse, error) {
+	if req == nil {
+		req = NewTradeListRequest()
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/trades", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -624,6 +628,9 @@ func (r TradeUpdateOrdersErrorResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/trade-ep/#collapse_endpoint_7
 func (s *tradeService) UpdateOrders(ctx context.Context, specifier TradeSpecifier, req *TradeUpdateOrdersRequest) (*TradeUpdateOrdersResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/trades/%s/orders", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {

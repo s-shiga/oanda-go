@@ -2357,11 +2357,15 @@ type TransactionListResponse struct {
 }
 
 // List retrieves a list of Transactions for the Account configured via [WithAccountID].
+// Pass nil to use the default parameters.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/transactions
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_1
 func (s *transactionService) List(ctx context.Context, req *TransactionListRequest) (*TransactionListResponse, error) {
+	if req == nil {
+		req = NewTransactionListRequest()
+	}
 	path := fmt.Sprintf("/v3/accounts/%v/transactions", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -2470,6 +2474,9 @@ func (r *TransactionsResponse) UnmarshalJSON(bytes []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_3
 func (s *transactionService) GetByIDRange(ctx context.Context, req *TransactionGetByIDRangeRequest) (*TransactionsResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/idrange", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -2517,6 +2524,9 @@ func (r *TransactionGetBySinceIDRequest) values() (url.Values, error) {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/transaction-ep/#collapse_endpoint_4
 func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionGetBySinceIDRequest) (*TransactionsResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/transactions/sinceid", s.client.accountID)
 	v, err := req.values()
 	if err != nil {

@@ -10,6 +10,11 @@ import (
 // should treat this as a signal to reconnect rather than a fatal error.
 var ErrStreamEnded = errors.New("stream ended by server")
 
+// ErrNilRequest is returned, before anything is sent, when a method that
+// needs a request is passed nil. List methods whose parameters are all
+// optional accept nil and use the defaults instead.
+var ErrNilRequest = errors.New("request must not be nil")
+
 type HTTPError struct {
 	StatusCode int
 	Message    string

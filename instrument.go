@@ -345,6 +345,9 @@ func (req *CandlesticksRequest) values() (url.Values, error) {
 // Candlesticks fetches candlestick data for an instrument.
 // See: https://developer.oanda.com/rest-live-v20/instrument-ep/
 func (s *instrumentService) Candlesticks(ctx context.Context, req *CandlesticksRequest) (*CandlestickResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/instruments/%s/candles", req.Instrument)
 	v, err := req.values()
 	if err != nil {

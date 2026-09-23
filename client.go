@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -68,7 +69,8 @@ type Client struct {
 // [NewClient], [NewDemoClient], [NewStreamClient], or [NewDemoStreamClient].
 type Option func(*clientConfig)
 
-// WithBaseURL overrides the default OANDA API base URL.
+// WithBaseURL overrides the default OANDA API base URL. Any path in baseURL,
+// such as a proxy prefix, is kept in front of each endpoint path.
 func WithBaseURL(baseURL string) Option {
 	return func(c *clientConfig) {
 		c.baseURL = baseURL
@@ -145,7 +147,8 @@ func joinURL(baseURL string, path string, query url.Values) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	u.Path = path
+	u.Path = strings.TrimSuffix(u.Path, "/") + path
+	u.RawPath = ""
 	if len(query) > 0 {
 		u.RawQuery = query.Encode()
 	}
@@ -259,12 +262,18 @@ func decodeJSON[R any](resp *http.Response) (*R, error) {
 
 // decodeTypedError decodes an HTTP error response body into an
 // endpoint-specific error type E and wraps it in the error matching the
-// response status code. It does not close the body; callers are
-// responsible for that.
+// response status code. A body that is not the documented JSON (such as an
+// empty body or an HTML page from a proxy) is handled as in
+// decodeErrorResponse, so the status code is never lost. It does not close
+// the body; callers are responsible for that.
 func decodeTypedError[E error](resp *http.Response) error {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return wrapHTTPError(resp.StatusCode, fmt.Errorf("failed to read error response body: %w", err))
+	}
 	var e E
-	if err := json.NewDecoder(resp.Body).Decode(&e); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(body, &e); err != nil {
+		return errorFromBody(resp.StatusCode, body)
 	}
 	return wrapHTTPError(resp.StatusCode, e)
 }
@@ -289,20 +298,30 @@ func wrapHTTPError(statusCode int, err error) error {
 func decodeErrorResponse(resp *http.Response) error {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read error response body: %w", err)
+		return wrapHTTPError(resp.StatusCode, fmt.Errorf("failed to read error response body: %w", err))
 	}
+	return errorFromBody(resp.StatusCode, body)
+}
+
+// errorFromBody builds the error for an HTTP error response, using OANDA's
+// errorCode and errorMessage when the body has them and the raw text otherwise.
+func errorFromBody(statusCode int, body []byte) error {
 	errResp := struct {
 		Code    string `json:"errorCode"`
 		Message string `json:"errorMessage"`
 	}{}
 	if err := json.Unmarshal(body, &errResp); err != nil || errResp.Message == "" {
 		// Non-JSON body (e.g. a gateway/HTML error page): keep the raw text.
-		return wrapHTTPError(resp.StatusCode, errors.New(string(bytes.TrimSpace(body))))
+		text := string(bytes.TrimSpace(body))
+		if text == "" {
+			text = "empty response body"
+		}
+		return wrapHTTPError(statusCode, errors.New(text))
 	}
 	if errResp.Code != "" {
-		return wrapHTTPError(resp.StatusCode, fmt.Errorf("%s: %s", errResp.Code, errResp.Message))
+		return wrapHTTPError(statusCode, fmt.Errorf("%s: %s", errResp.Code, errResp.Message))
 	}
-	return wrapHTTPError(resp.StatusCode, errors.New(errResp.Message))
+	return wrapHTTPError(statusCode, errors.New(errResp.Message))
 }
 
 // streamLoop opens a streaming GET connection and decodes newline-delimited

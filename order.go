@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -740,6 +741,15 @@ type DynamicOrderState struct {
 // OrderRequest is the interface implemented by all order request types (e.g. MarketOrderRequest).
 type OrderRequest interface {
 	body() (*bytes.Buffer, error)
+}
+
+// isNilRequest reports whether req is nil or holds a nil pointer.
+func isNilRequest(req OrderRequest) bool {
+	if req == nil {
+		return true
+	}
+	v := reflect.ValueOf(req)
+	return v.Kind() == reflect.Pointer && v.IsNil()
 }
 
 // MarketOrderRequest is used to create a Market Order.
@@ -1849,6 +1859,9 @@ func orderRequestWrapper(req OrderRequest) (*bytes.Buffer, error) {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_1
 func (s *orderService) Create(ctx context.Context, req OrderRequest) (*OrderCreateResponse, error) {
+	if isNilRequest(req) {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	body, err := req.body()
 	if err != nil {
@@ -1979,12 +1992,16 @@ func (r *OrderListResponse) UnmarshalJSON(bytes []byte) error {
 }
 
 // List retrieves a list of Orders for the Account configured via WithAccountID.
-// Use [NewOrderListRequest] to create and configure filter parameters.
+// Use [NewOrderListRequest] to create and configure filter parameters, or pass
+// nil to use the defaults.
 //
 // This corresponds to the OANDA API endpoint: GET /v3/accounts/{accountID}/orders
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_2
 func (s *orderService) List(ctx context.Context, req *OrderListRequest) (*OrderListResponse, error) {
+	if req == nil {
+		req = NewOrderListRequest()
+	}
 	path := fmt.Sprintf("/v3/accounts/%v/orders", s.client.accountID)
 	v, err := req.values()
 	if err != nil {
@@ -2100,6 +2117,9 @@ func (r *OrderReplaceResponse) UnmarshalJSON(b []byte) error {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/order-ep/#collapse_endpoint_5
 func (s *orderService) Replace(ctx context.Context, specifier OrderSpecifier, req OrderRequest) (*OrderReplaceResponse, error) {
+	if isNilRequest(req) {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%v/orders/%v", s.client.accountID, specifier)
 	body, err := req.body()
 	if err != nil {

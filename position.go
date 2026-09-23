@@ -249,6 +249,9 @@ func (r PositionCloseErrorResponse) Error() string {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/position-ep/#collapse_endpoint_4
 func (s *positionService) Close(ctx context.Context, instrument InstrumentName, req *PositionCloseRequest) (*PositionCloseResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%v/positions/%v/close", s.client.accountID, instrument)
 	body, err := req.body()
 	if err != nil {

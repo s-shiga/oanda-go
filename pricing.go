@@ -259,6 +259,9 @@ type PriceLatestCandlesticksResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/pricing-ep/#collapse_endpoint_1
 func (s *priceService) LatestCandlesticks(ctx context.Context, req *PriceLatestCandlesticksRequest) ([]CandlestickResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/candles/latest", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
@@ -340,6 +343,9 @@ type PriceInformationResponse struct {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/pricing-ep/#collapse_endpoint_2
 func (s *priceService) Information(ctx context.Context, req *PriceInformationRequest) (*PriceInformationResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/pricing", s.client.accountID)
 	values, err := req.values()
 	if err != nil {
@@ -454,6 +460,9 @@ func (req *PriceCandlesticksRequest) values() (url.Values, error) {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/pricing-ep/#collapse_endpoint_4
 func (s *priceService) Candlesticks(ctx context.Context, req *PriceCandlesticksRequest) (*CandlestickResponse, error) {
+	if req == nil {
+		return nil, ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/instruments/%s/candles", s.client.accountID, req.Instrument)
 	values, err := req.values()
 	if err != nil {
@@ -527,6 +536,9 @@ type PriceStreamItem interface {
 //
 // Reference: https://developer.oanda.com/rest-live-v20/pricing-ep/#collapse_endpoint_3
 func (c *StreamClient) Price(ctx context.Context, req *PriceStreamRequest, ch chan<- PriceStreamItem, done <-chan struct{}) error {
+	if req == nil {
+		return ErrNilRequest
+	}
 	path := fmt.Sprintf("/v3/accounts/%s/pricing/stream", c.accountID)
 	values, err := req.values()
 	if err != nil {
