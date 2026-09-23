@@ -222,3 +222,22 @@ func TestStreamStallTimeoutOption(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 }
+
+func TestStreamCloseDoesNotDrain(t *testing.T) {
+	// Closing a live stream must not wait for the rest of it, which never ends.
+	sc := newStallTestClient(stallingHTTPClient{body: testHeartbeat}, time.Minute)
+	done := make(chan struct{})
+	close(done)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- sc.Price(t.Context(), NewPriceStreamRequest("EUR_USD"), make(chan PriceStreamItem), done)
+	}()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("err = %v, want nil when done is closed", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("closing the stream blocked reading the rest of it")
+	}
+}

@@ -294,10 +294,21 @@ func (c *StreamClient) setHeaders(req *http.Request) {
 	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
-// closeBody closes a response body. By then the body has been decoded or its
-// error returned, so a Close error is not actionable and is ignored rather
-// than written to the application's logs.
+// maxDrainBytes bounds how much of a response body closeBody reads before
+// closing it. The remainder is normally at most a trailing newline or the end
+// of the chunked encoding; anything longer is not worth reading to save a
+// connection.
+const maxDrainBytes = 4 << 10
+
+// closeBody reads what is left of a REST response body, up to maxDrainBytes,
+// and closes it. The JSON decoder stops at the end of the value, and the HTTP
+// client reuses a connection only if its body was read to the end, so without
+// this every request could need a new connection and TLS handshake. By now
+// the body has been decoded or its error returned, so read and Close errors
+// are not actionable and are ignored rather than written to the
+// application's logs.
 func closeBody(resp *http.Response) {
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxDrainBytes))
 	_ = resp.Body.Close()
 }
 
@@ -455,7 +466,8 @@ func streamLoop[T any](
 		}
 		return fmt.Errorf("failed to send GET request: %w", err)
 	}
-	defer closeBody(httpResp)
+	// Close without draining: the rest of a live stream never ends.
+	defer func() { _ = httpResp.Body.Close() }()
 	if httpResp.StatusCode != http.StatusOK {
 		return decodeErrorResponse(httpResp)
 	}

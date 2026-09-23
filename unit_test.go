@@ -11,8 +11,11 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -827,5 +830,36 @@ func TestLibraryDoesNotLog(t *testing.T) {
 	}
 	if logs.Len() != 0 {
 		t.Errorf("library wrote to the application's logs: %s", logs.String())
+	}
+}
+
+func TestConnectionReused(t *testing.T) {
+	var newConns atomic.Int32
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := io.WriteString(w, `{"accounts":[]}`); err != nil {
+			return
+		}
+		// Send the JSON, then end the chunked body separately, so the client
+		// decodes the value before it has read to the end of the body.
+		w.(http.Flusher).Flush()
+		time.Sleep(20 * time.Millisecond)
+	}))
+	srv.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			newConns.Add(1)
+		}
+	}
+	srv.Start()
+	defer srv.Close()
+
+	c := NewClient("test-key", WithBaseURL(srv.URL), WithHTTPClient(srv.Client()))
+	for range 3 {
+		if _, err := c.Account.List(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := newConns.Load(); n != 1 {
+		t.Errorf("opened %d connections for 3 requests, want 1 reused connection", n)
 	}
 }
