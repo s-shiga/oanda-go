@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -272,9 +273,9 @@ func TestUnmarshalOrderUnknownType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unknown, ok := order.(UnknownOrder)
+	unknown, ok := order.(*UnknownOrder)
 	if !ok {
-		t.Fatalf("order = %T, want UnknownOrder", order)
+		t.Fatalf("order = %T, want *UnknownOrder", order)
 	}
 	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetState() != OrderStatePending || unknown.GetCreateTime().IsZero() {
 		t.Errorf("common fields not decoded: %#v", unknown)
@@ -709,11 +710,11 @@ func TestPriceStreamServerEnd(t *testing.T) {
 	if !errors.Is(err, ErrStreamEnded) {
 		t.Fatalf("err = %v, want ErrStreamEnded", err)
 	}
-	price, ok := (<-ch).(ClientPrice)
+	price, ok := (<-ch).(*ClientPrice)
 	if !ok || price.Instrument != "EUR_USD" {
 		t.Errorf("first item = %#v, want ClientPrice for EUR_USD", price)
 	}
-	if _, ok := (<-ch).(PricingHeartbeat); !ok {
+	if _, ok := (<-ch).(*PricingHeartbeat); !ok {
 		t.Error("second item should be a PricingHeartbeat")
 	}
 }
@@ -743,14 +744,14 @@ func TestPriceStreamDecimalLiquidity(t *testing.T) {
 	if !errors.Is(err, ErrStreamEnded) {
 		t.Fatalf("err = %v, want ErrStreamEnded", err)
 	}
-	price, ok := (<-ch).(ClientPrice)
+	price, ok := (<-ch).(*ClientPrice)
 	if !ok || len(price.Bids) != 1 || len(price.Asks) != 1 {
 		t.Fatalf("first item = %#v, want ClientPrice with one bid and one ask", price)
 	}
 	if price.Bids[0].Liquidity != "1.5" || price.Asks[0].Liquidity != "0.5" {
 		t.Errorf("liquidity = %q/%q, want 1.5/0.5", price.Bids[0].Liquidity, price.Asks[0].Liquidity)
 	}
-	if _, ok := (<-ch).(PricingHeartbeat); !ok {
+	if _, ok := (<-ch).(*PricingHeartbeat); !ok {
 		t.Error("second item should be a PricingHeartbeat")
 	}
 }
@@ -861,5 +862,26 @@ func TestConnectionReused(t *testing.T) {
 	}
 	if n := newConns.Load(); n != 1 {
 		t.Errorf("opened %d connections for 3 requests, want 1 reused connection", n)
+	}
+}
+
+func TestOnlyPointersImplementInterfaces(t *testing.T) {
+	// Decoded Orders, Transactions, and stream items are pointers. Pointer
+	// receivers make a stale `case oanda.LimitOrder:` a compile error instead
+	// of a type switch case that silently never matches.
+	for iface, values := range map[reflect.Type][]any{
+		reflect.TypeFor[Order](): {MarketOrder{}, FixedPriceOrder{}, LimitOrder{}, StopOrder{}, MarketIfTouchedOrder{},
+			TakeProfitOrder{}, StopLossOrder{}, GuaranteedStopLossOrder{}, TrailingStopLossOrder{}, UnknownOrder{}},
+		// Every Transaction type gets its methods from TransactionBase.
+		reflect.TypeFor[Transaction]():           {TransactionBase{}, OrderFillTransaction{}, UnknownTransaction{}, TransactionHeartbeat{}},
+		reflect.TypeFor[TransactionStreamItem](): {OrderFillTransaction{}, TransactionHeartbeat{}},
+		reflect.TypeFor[PriceStreamItem]():       {ClientPrice{}, PricingHeartbeat{}},
+	} {
+		for _, v := range values {
+			typ := reflect.TypeOf(v)
+			if typ.Implements(iface) || !reflect.PointerTo(typ).Implements(iface) {
+				t.Errorf("%s: only *%s should implement it", iface, typ)
+			}
+		}
 	}
 }

@@ -211,11 +211,11 @@ go func() {
 
 for item := range ch {
 	switch v := item.(type) {
-	case oanda.ClientPrice:
+	case *oanda.ClientPrice:
 		if len(v.Bids) > 0 && len(v.Asks) > 0 {
 			fmt.Printf("Bid: %s Ask: %s\n", v.Bids[0].Price, v.Asks[0].Price)
 		}
-	case oanda.PricingHeartbeat:
+	case *oanda.PricingHeartbeat:
 		fmt.Println("Heartbeat:", v.Time)
 	}
 }

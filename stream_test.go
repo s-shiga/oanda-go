@@ -66,11 +66,18 @@ func TestStreamClientTransaction(t *testing.T) {
 				if item.GetType() != want || item.GetID() != "42" || item.GetTime().IsZero() {
 					t.Errorf("unexpected stream item: %#v", item)
 				}
-				if fill, ok := item.(OrderFillTransaction); ok && (fill.Instrument != "USD_JPY" || fill.Units != "10000") {
-					t.Errorf("unexpected fill: %#v", fill)
-				}
-				if unknown, ok := item.(UnknownTransaction); ok && !strings.Contains(string(unknown.Raw), `"newField":"x"`) {
-					t.Errorf("unknown transaction lost its raw JSON: %s", unknown.Raw)
+				switch v := item.(type) {
+				case *OrderFillTransaction:
+					if v.Instrument != "USD_JPY" || v.Units != "10000" {
+						t.Errorf("unexpected fill: %#v", v)
+					}
+				case *UnknownTransaction:
+					if !strings.Contains(string(v.Raw), `"newField":"x"`) {
+						t.Errorf("unknown transaction lost its raw JSON: %s", v.Raw)
+					}
+				case *TransactionHeartbeat:
+				default:
+					t.Errorf("stream item has type %T, want a pointer type", item)
 				}
 			}
 			if len(fake.requests) != 1 {
@@ -240,4 +247,60 @@ func TestStreamCloseDoesNotDrain(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("closing the stream blocked reading the rest of it")
 	}
+}
+
+func TestRESTAndStreamItemTypesMatch(t *testing.T) {
+	fill := `{"id":"42","type":"ORDER_FILL","instrument":"USD_JPY","units":"10000","time":"2025-01-01T00:00:00Z"}`
+	price := `{"type":"PRICE","instrument":"USD_JPY","time":"2025-01-01T00:00:00Z","tradeable":true}`
+	heartbeat := `{"type":"HEARTBEAT","time":"2025-01-01T00:00:05Z"}`
+
+	fake := &fakeHTTPClient{responses: []*http.Response{
+		jsonResponse(http.StatusOK, `{"transaction":`+fill+`,"lastTransactionID":"42"}`),
+		jsonResponse(http.StatusOK, `{"order":{"id":"43","type":"LIMIT","state":"PENDING"},"lastTransactionID":"43"}`),
+		jsonResponse(http.StatusOK, fill+"\n"),
+		jsonResponse(http.StatusOK, price+"\n"+heartbeat+"\n"),
+	}}
+	c := newFakeClient(fake)
+	details, err := c.Transaction.Details(t.Context(), "42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := c.Order.Details(t.Context(), "43")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sc := NewStreamClient("test-key", WithAccountID("101-001-1234567-001"), WithHTTPClient(fake))
+	transactions := make(chan TransactionStreamItem, 1)
+	if err := sc.Transaction(t.Context(), transactions, make(chan struct{})); !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("transaction stream: err = %v, want ErrStreamEnded", err)
+	}
+	prices := make(chan PriceStreamItem, 2)
+	if err := sc.Price(t.Context(), NewPriceStreamRequest("USD_JPY"), prices, make(chan struct{})); !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("price stream: err = %v, want ErrStreamEnded", err)
+	}
+
+	streamedTransaction := <-transactions
+	streamedPrice := <-prices
+	streamedHeartbeat := <-prices
+	for _, tc := range []struct {
+		name string
+		ok   bool
+		got  any
+	}{
+		{"REST transaction", is[*OrderFillTransaction](details.Transaction), details.Transaction},
+		{"REST order", is[*LimitOrder](order.Order), order.Order},
+		{"streamed transaction", is[*OrderFillTransaction](streamedTransaction), streamedTransaction},
+		{"streamed price", is[*ClientPrice](streamedPrice), streamedPrice},
+		{"streamed heartbeat", is[*PricingHeartbeat](streamedHeartbeat), streamedHeartbeat},
+	} {
+		if !tc.ok {
+			t.Errorf("%s has type %T, want a pointer to its concrete type", tc.name, tc.got)
+		}
+	}
+}
+
+// is reports whether v holds a T.
+func is[T any](v any) bool {
+	_, ok := v.(T)
+	return ok
 }

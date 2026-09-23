@@ -20,6 +20,8 @@ import (
 // Orders
 
 // Order is the interface implemented by all order types returned by the OANDA v20 API.
+// Orders decoded from the API are pointers to the concrete type, such as *LimitOrder, or
+// *UnknownOrder for a type this library does not recognise.
 type Order interface {
 	GetID() OrderID
 	GetCreateTime() DateTime
@@ -43,55 +45,55 @@ func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
 		if err := json.Unmarshal(rawOrder, &marketOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal market order: %w", err)
 		}
-		order = marketOrder
+		order = &marketOrder
 	case OrderTypeFixedPrice:
 		var fixedPriceOrder FixedPriceOrder
 		if err := json.Unmarshal(rawOrder, &fixedPriceOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal fixed price order: %w", err)
 		}
-		order = fixedPriceOrder
+		order = &fixedPriceOrder
 	case OrderTypeLimit:
 		var limitOrder LimitOrder
 		if err := json.Unmarshal(rawOrder, &limitOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal limit order: %w", err)
 		}
-		order = limitOrder
+		order = &limitOrder
 	case OrderTypeStop:
 		var stopOrder StopOrder
 		if err := json.Unmarshal(rawOrder, &stopOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal stop order: %w", err)
 		}
-		order = stopOrder
+		order = &stopOrder
 	case OrderTypeMarketIfTouched:
 		var marketIfTouchedOrder MarketIfTouchedOrder
 		if err := json.Unmarshal(rawOrder, &marketIfTouchedOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal market if touched order: %w", err)
 		}
-		order = marketIfTouchedOrder
+		order = &marketIfTouchedOrder
 	case OrderTypeTakeProfit:
 		var takeProfitOrder TakeProfitOrder
 		if err := json.Unmarshal(rawOrder, &takeProfitOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal take profit order: %w", err)
 		}
-		order = takeProfitOrder
+		order = &takeProfitOrder
 	case OrderTypeStopLoss:
 		var stopLossOrder StopLossOrder
 		if err := json.Unmarshal(rawOrder, &stopLossOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal stop loss order: %w", err)
 		}
-		order = stopLossOrder
+		order = &stopLossOrder
 	case OrderTypeGuaranteedStopLoss:
 		var guaranteedStopLossOrder GuaranteedStopLossOrder
 		if err := json.Unmarshal(rawOrder, &guaranteedStopLossOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal guaranteed stop loss order: %w", err)
 		}
-		order = guaranteedStopLossOrder
+		order = &guaranteedStopLossOrder
 	case OrderTypeTrailingStopLoss:
 		var trailingStopLossOrder TrailingStopLossOrder
 		if err := json.Unmarshal(rawOrder, &trailingStopLossOrder); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal trailing stop loss order: %w", err)
 		}
-		order = trailingStopLossOrder
+		order = &trailingStopLossOrder
 	default:
 		if typeOnly.Type == "" {
 			return nil, errors.New("order has no type")
@@ -101,7 +103,7 @@ func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
 			return nil, fmt.Errorf("failed to unmarshal %s order: %w", typeOnly.Type, err)
 		}
 		unknownOrder.Raw = rawOrder
-		order = unknownOrder
+		order = &unknownOrder
 	}
 	return order, nil
 }
@@ -254,23 +256,23 @@ type MarketOrder struct {
 	CancellingDetails
 }
 
-func (o MarketOrder) GetID() OrderID {
+func (o *MarketOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o MarketOrder) GetCreateTime() DateTime {
+func (o *MarketOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o MarketOrder) GetState() OrderState {
+func (o *MarketOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o MarketOrder) GetClientExtensions() *ClientExtensions {
+func (o *MarketOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o MarketOrder) GetType() OrderType {
+func (o *MarketOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -297,23 +299,23 @@ type FixedPriceOrder struct {
 	CancellingDetails
 }
 
-func (o FixedPriceOrder) GetID() OrderID {
+func (o *FixedPriceOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o FixedPriceOrder) GetCreateTime() DateTime {
+func (o *FixedPriceOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o FixedPriceOrder) GetState() OrderState {
+func (o *FixedPriceOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o FixedPriceOrder) GetClientExtensions() *ClientExtensions {
+func (o *FixedPriceOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o FixedPriceOrder) GetType() OrderType {
+func (o *FixedPriceOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -350,23 +352,23 @@ type LimitOrder struct {
 	ReplaceDetails
 }
 
-func (o LimitOrder) GetID() OrderID {
+func (o *LimitOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o LimitOrder) GetCreateTime() DateTime {
+func (o *LimitOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o LimitOrder) GetState() OrderState {
+func (o *LimitOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o LimitOrder) GetClientExtensions() *ClientExtensions {
+func (o *LimitOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o LimitOrder) GetType() OrderType {
+func (o *LimitOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -402,23 +404,23 @@ type StopOrder struct {
 	ReplaceDetails
 }
 
-func (o StopOrder) GetID() OrderID {
+func (o *StopOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o StopOrder) GetCreateTime() DateTime {
+func (o *StopOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o StopOrder) GetState() OrderState {
+func (o *StopOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o StopOrder) GetClientExtensions() *ClientExtensions {
+func (o *StopOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o StopOrder) GetType() OrderType {
+func (o *StopOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -460,23 +462,23 @@ type MarketIfTouchedOrder struct {
 	ReplaceDetails
 }
 
-func (o MarketIfTouchedOrder) GetID() OrderID {
+func (o *MarketIfTouchedOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o MarketIfTouchedOrder) GetCreateTime() DateTime {
+func (o *MarketIfTouchedOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o MarketIfTouchedOrder) GetState() OrderState {
+func (o *MarketIfTouchedOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o MarketIfTouchedOrder) GetClientExtensions() *ClientExtensions {
+func (o *MarketIfTouchedOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o MarketIfTouchedOrder) GetType() OrderType {
+func (o *MarketIfTouchedOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -505,23 +507,23 @@ type TakeProfitOrder struct {
 	ReplaceDetails
 }
 
-func (o TakeProfitOrder) GetID() OrderID {
+func (o *TakeProfitOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o TakeProfitOrder) GetCreateTime() DateTime {
+func (o *TakeProfitOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o TakeProfitOrder) GetState() OrderState {
+func (o *TakeProfitOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o TakeProfitOrder) GetClientExtensions() *ClientExtensions {
+func (o *TakeProfitOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o TakeProfitOrder) GetType() OrderType {
+func (o *TakeProfitOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -554,23 +556,23 @@ type StopLossOrder struct {
 	ReplaceDetails
 }
 
-func (o StopLossOrder) GetID() OrderID {
+func (o *StopLossOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o StopLossOrder) GetCreateTime() DateTime {
+func (o *StopLossOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o StopLossOrder) GetState() OrderState {
+func (o *StopLossOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o StopLossOrder) GetClientExtensions() *ClientExtensions {
+func (o *StopLossOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o StopLossOrder) GetType() OrderType {
+func (o *StopLossOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -612,23 +614,23 @@ type GuaranteedStopLossOrder struct {
 	ReplaceDetails
 }
 
-func (o GuaranteedStopLossOrder) GetID() OrderID {
+func (o *GuaranteedStopLossOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o GuaranteedStopLossOrder) GetCreateTime() DateTime {
+func (o *GuaranteedStopLossOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o GuaranteedStopLossOrder) GetState() OrderState {
+func (o *GuaranteedStopLossOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o GuaranteedStopLossOrder) GetClientExtensions() *ClientExtensions {
+func (o *GuaranteedStopLossOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o GuaranteedStopLossOrder) GetType() OrderType {
+func (o *GuaranteedStopLossOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -664,23 +666,23 @@ type TrailingStopLossOrder struct {
 	ReplaceDetails
 }
 
-func (o TrailingStopLossOrder) GetID() OrderID {
+func (o *TrailingStopLossOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o TrailingStopLossOrder) GetCreateTime() DateTime {
+func (o *TrailingStopLossOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o TrailingStopLossOrder) GetState() OrderState {
+func (o *TrailingStopLossOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o TrailingStopLossOrder) GetClientExtensions() *ClientExtensions {
+func (o *TrailingStopLossOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o TrailingStopLossOrder) GetType() OrderType {
+func (o *TrailingStopLossOrder) GetType() OrderType {
 	return o.Type
 }
 
@@ -693,23 +695,23 @@ type UnknownOrder struct {
 	Raw json.RawMessage `json:"-"`
 }
 
-func (o UnknownOrder) GetID() OrderID {
+func (o *UnknownOrder) GetID() OrderID {
 	return o.ID
 }
 
-func (o UnknownOrder) GetCreateTime() DateTime {
+func (o *UnknownOrder) GetCreateTime() DateTime {
 	return o.CreateTime
 }
 
-func (o UnknownOrder) GetState() OrderState {
+func (o *UnknownOrder) GetState() OrderState {
 	return o.State
 }
 
-func (o UnknownOrder) GetClientExtensions() *ClientExtensions {
+func (o *UnknownOrder) GetClientExtensions() *ClientExtensions {
 	return o.ClientExtensions
 }
 
-func (o UnknownOrder) GetType() OrderType {
+func (o *UnknownOrder) GetType() OrderType {
 	return o.Type
 }
 

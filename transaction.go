@@ -17,6 +17,9 @@ import (
 
 // Transactions
 
+// Transaction is implemented by every Transaction type. Transactions decoded from the API are
+// pointers to the concrete type, such as *OrderFillTransaction, or *UnknownTransaction for a
+// type this library does not recognise.
 type Transaction interface {
 	GetID() TransactionID
 	GetTime() DateTime
@@ -311,15 +314,15 @@ type TransactionBase struct {
 	Type TransactionType `json:"type"`
 }
 
-func (t TransactionBase) GetType() TransactionType {
+func (t *TransactionBase) GetType() TransactionType {
 	return t.Type
 }
 
-func (t TransactionBase) GetID() TransactionID {
+func (t *TransactionBase) GetID() TransactionID {
 	return t.ID
 }
 
-func (t TransactionBase) GetTime() DateTime {
+func (t *TransactionBase) GetTime() DateTime {
 	return t.Time
 }
 
@@ -2246,17 +2249,17 @@ type TransactionHeartbeat struct {
 }
 
 // GetType returns the type of the heartbeat message.
-func (t TransactionHeartbeat) GetType() TransactionType {
+func (t *TransactionHeartbeat) GetType() TransactionType {
 	return t.Type
 }
 
 // GetID returns the last Transaction ID.
-func (t TransactionHeartbeat) GetID() TransactionID {
+func (t *TransactionHeartbeat) GetID() TransactionID {
 	return t.LastTransactionID
 }
 
 // GetTime returns the time of the heartbeat message.
-func (t TransactionHeartbeat) GetTime() DateTime {
+func (t *TransactionHeartbeat) GetTime() DateTime {
 	return t.Time
 }
 
@@ -2547,7 +2550,8 @@ func (s *transactionService) GetBySinceID(ctx context.Context, req *TransactionG
 	return doGet[TransactionsResponse](s.client, ctx, path, v)
 }
 
-// TransactionStreamItem is an interface for items received from a Transaction stream.
+// TransactionStreamItem is an interface for items received from a Transaction stream: the
+// same pointer types as [Transaction], plus *TransactionHeartbeat.
 type TransactionStreamItem interface {
 	GetType() TransactionType
 	GetID() TransactionID
@@ -2576,48 +2580,6 @@ func (c *StreamClient) Transaction(ctx context.Context, ch chan<- TransactionStr
 	return streamLoop(ctx, c, path, nil, ch, done, parseTransactionStreamItem)
 }
 
-var transactionStreamUnmarshalers = map[TransactionType]func(json.RawMessage) (TransactionStreamItem, error){
-	"CREATE":                                unmarshalItem[CreateTransaction],
-	"CLOSE":                                 unmarshalItem[CloseTransaction],
-	"REOPEN":                                unmarshalItem[ReopenTransaction],
-	"CLIENT_CONFIGURE":                      unmarshalItem[ClientConfigureTransaction],
-	"CLIENT_CONFIGURE_REJECT":               unmarshalItem[ClientConfigureRejectTransaction],
-	"TRANSFER_FUNDS":                        unmarshalItem[TransferFundsTransaction],
-	"TRANSFER_FUNDS_REJECT":                 unmarshalItem[TransferFundsRejectTransaction],
-	"MARKET_ORDER":                          unmarshalItem[MarketOrderTransaction],
-	"MARKET_ORDER_REJECT":                   unmarshalItem[MarketOrderRejectTransaction],
-	"FIXED_PRICE_ORDER":                     unmarshalItem[FixedPriceOrderTransaction],
-	"LIMIT_ORDER":                           unmarshalItem[LimitOrderTransaction],
-	"LIMIT_ORDER_REJECT":                    unmarshalItem[LimitOrderRejectTransaction],
-	"STOP_ORDER":                            unmarshalItem[StopOrderTransaction],
-	"STOP_ORDER_REJECT":                     unmarshalItem[StopOrderRejectTransaction],
-	"MARKET_IF_TOUCHED_ORDER":               unmarshalItem[MarketIfTouchedOrderTransaction],
-	"MARKET_IF_TOUCHED_ORDER_REJECT":        unmarshalItem[MarketIfTouchedOrderRejectTransaction],
-	"TAKE_PROFIT_ORDER":                     unmarshalItem[TakeProfitOrderTransaction],
-	"TAKE_PROFIT_ORDER_REJECT":              unmarshalItem[TakeProfitOrderRejectTransaction],
-	"STOP_LOSS_ORDER":                       unmarshalItem[StopLossOrderTransaction],
-	"STOP_LOSS_ORDER_REJECT":                unmarshalItem[StopLossOrderRejectTransaction],
-	"GUARANTEED_STOP_LOSS_ORDER":            unmarshalItem[GuaranteedStopLossOrderTransaction],
-	"GUARANTEED_STOP_LOSS_ORDER_REJECT":     unmarshalItem[GuaranteedStopLossOrderRejectTransaction],
-	"TRAILING_STOP_LOSS_ORDER":              unmarshalItem[TrailingStopLossOrderTransaction],
-	"TRAILING_STOP_LOSS_ORDER_REJECT":       unmarshalItem[TrailingStopLossOrderRejectTransaction],
-	"ORDER_FILL":                            unmarshalItem[OrderFillTransaction],
-	"ORDER_CANCEL":                          unmarshalItem[OrderCancelTransaction],
-	"ORDER_CANCEL_REJECT":                   unmarshalItem[OrderCancelRejectTransaction],
-	"ORDER_CLIENT_EXTENSIONS_MODIFY":        unmarshalItem[OrderClientExtensionsModifyTransaction],
-	"ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT": unmarshalItem[OrderClientExtensionsModifyRejectTransaction],
-	"TRADE_CLIENT_EXTENSIONS_MODIFY":        unmarshalItem[TradeClientExtensionsModifyTransaction],
-	"TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT": unmarshalItem[TradeClientExtensionsModifyRejectTransaction],
-	"MARGIN_CALL_ENTER":                     unmarshalItem[MarginCallEnterTransaction],
-	"MARGIN_CALL_EXTEND":                    unmarshalItem[MarginCallExtendTransaction],
-	"MARGIN_CALL_EXIT":                      unmarshalItem[MarginCallExitTransaction],
-	"DELAYED_TRADE_CLOSURE":                 unmarshalItem[DelayedTradeClosureTransaction],
-	"DAILY_FINANCING":                       unmarshalItem[DailyFinancingTransaction],
-	"DIVIDEND_ADJUSTMENT":                   unmarshalItem[DividendAdjustmentTransaction],
-	"RESET_RESETTABLE_PL":                   unmarshalItem[ResetResettablePLTransaction],
-	"HEARTBEAT":                             unmarshalItem[TransactionHeartbeat],
-}
-
 func parseTransactionStreamItem(raw json.RawMessage) (TransactionStreamItem, bool, error) {
 	var typeOnly struct {
 		Type TransactionType `json:"type"`
@@ -2625,28 +2587,12 @@ func parseTransactionStreamItem(raw json.RawMessage) (TransactionStreamItem, boo
 	if err := json.Unmarshal(raw, &typeOnly); err != nil {
 		return nil, false, fmt.Errorf("failed to unmarshal type: %w", err)
 	}
-	unmarshal, ok := transactionStreamUnmarshalers[typeOnly.Type]
-	if !ok {
-		if typeOnly.Type == "" {
-			return nil, false, nil
-		}
-		unknownTransaction, err := unmarshalUnknownTransaction(raw)
-		if err != nil {
-			return nil, false, err
-		}
-		return unknownTransaction, true, nil
+	if typeOnly.Type == "" {
+		return nil, false, nil
 	}
-	item, err := unmarshal(raw)
+	transaction, err := unmarshalTransaction(raw)
 	if err != nil {
 		return nil, false, err
 	}
-	return item, true, nil
-}
-
-func unmarshalItem[R TransactionStreamItem](raw json.RawMessage) (TransactionStreamItem, error) {
-	var t R
-	if err := json.Unmarshal(raw, &t); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON response: %w", err)
-	}
-	return t, nil
+	return transaction, true, nil
 }

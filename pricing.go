@@ -36,12 +36,12 @@ type ClientPrice struct {
 }
 
 // GetType returns the price type string.
-func (p ClientPrice) GetType() string {
+func (p *ClientPrice) GetType() string {
 	return p.Type
 }
 
 // GetTime returns the time of the price.
-func (p ClientPrice) GetTime() DateTime {
+func (p *ClientPrice) GetTime() DateTime {
 	return p.Time
 }
 
@@ -93,12 +93,12 @@ type PricingHeartbeat struct {
 }
 
 // GetType returns the heartbeat type string ("HEARTBEAT").
-func (p PricingHeartbeat) GetType() string {
+func (p *PricingHeartbeat) GetType() string {
 	return p.Type
 }
 
 // GetTime returns the time of the heartbeat.
-func (p PricingHeartbeat) GetTime() DateTime {
+func (p *PricingHeartbeat) GetTime() DateTime {
 	return p.Time
 }
 
@@ -525,8 +525,8 @@ func (r *PriceStreamRequest) values() (url.Values, error) {
 	return values, nil
 }
 
-// PriceStreamItem is the interface implemented by items received from the pricing stream
-// ([ClientPrice] and [PricingHeartbeat]).
+// PriceStreamItem is the interface implemented by items received from the pricing stream:
+// *[ClientPrice] and *[PricingHeartbeat].
 type PriceStreamItem interface {
 	GetType() string
 	GetTime() DateTime
@@ -573,13 +573,13 @@ func parsePriceStreamItem(raw json.RawMessage) (PriceStreamItem, bool, error) {
 		if err := json.Unmarshal(raw, &price); err != nil {
 			return nil, false, err
 		}
-		return price, true, nil
+		return &price, true, nil
 	case "HEARTBEAT":
 		var heartbeat PricingHeartbeat
 		if err := json.Unmarshal(raw, &heartbeat); err != nil {
 			return nil, false, err
 		}
-		return heartbeat, true, nil
+		return &heartbeat, true, nil
 	}
 	return nil, false, nil
 }
