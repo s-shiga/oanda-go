@@ -2556,8 +2556,10 @@ type TransactionStreamItem interface {
 
 // Transaction opens a streaming connection for Transactions on the Account configured via [WithAccountID].
 // Items (including heartbeats, sent every 5 seconds) are sent to ch until done
-// is closed, the context is cancelled, or the server ends the stream (in which
-// case [ErrStreamEnded] is returned — callers should reconnect).
+// is closed, the context is cancelled, the server ends the stream
+// ([ErrStreamEnded]), or no data arrives within the stall timeout
+// ([ErrStreamStalled], see [WithStreamStallTimeout]). Callers should reconnect
+// after either error.
 //
 // ch is never closed by this method; consumers must not range over it without
 // separately observing Transaction returning. done is only checked between

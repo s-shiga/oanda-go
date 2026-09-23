@@ -84,6 +84,7 @@ client = oanda.NewDemoClient("YOUR_API_KEY", oanda.WithAccountID("your-account-i
 | `WithHTTPClient(client)` | Replace the default HTTP client |
 | `WithBaseURL(url)` | Override the default API base URL |
 | `WithUserAgent(ua)` | Override the default User-Agent header |
+| `WithStreamStallTimeout(d)` | How long a stream may go without data, even a heartbeat, before it is closed as stalled (default 15s; 0 disables) |
 
 ### Orders
 
@@ -178,6 +179,11 @@ txn, err := client.Transaction.Details(ctx, "6356")
 
 ### Streaming
 
+OANDA sends a heartbeat every 5 seconds and routinely drops idle or slow
+connections. A stream method returns `ErrStreamEnded` when the server closes
+the connection and `ErrStreamStalled` when no data has arrived within the
+stall timeout; reconnect after either.
+
 ```go
 // Stream prices
 streamClient := oanda.NewDemoStreamClient(
@@ -190,9 +196,16 @@ done := make(chan struct{})
 
 go func() {
 	defer close(ch) // The producer owns channel closure; the client does not close it.
-	err := streamClient.Price(ctx, oanda.NewPriceStreamRequest("EUR_USD"), ch, done)
-	if err != nil {
-		log.Fatal(err)
+	for {
+		err := streamClient.Price(ctx, oanda.NewPriceStreamRequest("EUR_USD"), ch, done)
+		if errors.Is(err, oanda.ErrStreamEnded) || errors.Is(err, oanda.ErrStreamStalled) {
+			time.Sleep(time.Second)
+			continue // reconnect
+		}
+		if err != nil && ctx.Err() == nil {
+			log.Println("price stream:", err)
+		}
+		return
 	}
 }()
 
@@ -215,9 +228,16 @@ done := make(chan struct{})
 
 go func() {
 	defer close(ch)
-	err := streamClient.Transaction(ctx, ch, done)
-	if err != nil {
-		log.Fatal(err)
+	for {
+		err := streamClient.Transaction(ctx, ch, done)
+		if errors.Is(err, oanda.ErrStreamEnded) || errors.Is(err, oanda.ErrStreamStalled) {
+			time.Sleep(time.Second)
+			continue // reconnect
+		}
+		if err != nil && ctx.Err() == nil {
+			log.Println("transaction stream:", err)
+		}
+		return
 	}
 }()
 

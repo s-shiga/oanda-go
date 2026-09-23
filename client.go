@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -43,12 +45,17 @@ func defaultUserAgent() string {
 	)
 }
 
+// defaultStreamStallTimeout is three missed heartbeats: OANDA sends one every
+// 5 seconds on both the price and transaction streams.
+const defaultStreamStallTimeout = 15 * time.Second
+
 type clientConfig struct {
-	baseURL    string
-	apiKey     string
-	userAgent  string
-	accountID  AccountID
-	httpClient HTTPClient
+	baseURL            string
+	apiKey             string
+	userAgent          string
+	accountID          AccountID
+	httpClient         HTTPClient
+	streamStallTimeout time.Duration
 }
 
 // Client is the OANDA v20 REST API client. Create one with [NewClient] (live)
@@ -91,6 +98,19 @@ func WithAccountID(id AccountID) Option {
 	}
 }
 
+// WithStreamStallTimeout sets how long a [StreamClient] waits for data (price
+// updates, transactions, or heartbeats) before it treats the connection as
+// dead, closes it, and returns [ErrStreamStalled]. The default is 15 seconds,
+// three missed heartbeats. A timeout of zero or less disables the check. The
+// connection is closed by cancelling the request's context, so a custom
+// [HTTPClient] must honour it, as *http.Client does. It has no effect on a
+// [Client].
+func WithStreamStallTimeout(timeout time.Duration) Option {
+	return func(c *clientConfig) {
+		c.streamStallTimeout = timeout
+	}
+}
+
 // WithHTTPClient replaces the default HTTP client used for API requests.
 // Any implementation of [HTTPClient] (including *http.Client) is accepted,
 // which allows injecting a fake transport in tests.
@@ -102,11 +122,12 @@ func WithHTTPClient(client HTTPClient) Option {
 
 func defaultConfig(baseURL, apiKey string) clientConfig {
 	return clientConfig{
-		baseURL:    baseURL,
-		apiKey:     apiKey,
-		userAgent:  defaultUserAgent(),
-		accountID:  "",
-		httpClient: http.DefaultClient,
+		baseURL:            baseURL,
+		apiKey:             apiKey,
+		userAgent:          defaultUserAgent(),
+		accountID:          "",
+		httpClient:         http.DefaultClient,
+		streamStallTimeout: defaultStreamStallTimeout,
 	}
 }
 
@@ -354,16 +375,55 @@ func errorFromBody(statusCode int, body []byte) error {
 	return wrapHTTPError(statusCode, errors.New(errResp.Message))
 }
 
+// stallWatchdog aborts a stream's request when no data arrives for timeout,
+// so a connection that died without closing surfaces as ErrStreamStalled
+// instead of a read that blocks forever.
+type stallWatchdog struct {
+	timer   *time.Timer
+	timeout time.Duration
+	stalled atomic.Bool
+}
+
+// newStallWatchdog starts a countdown that calls abort after timeout unless it
+// is stopped first. A timeout of zero or less disables the watchdog.
+func newStallWatchdog(timeout time.Duration, abort context.CancelFunc) *stallWatchdog {
+	w := &stallWatchdog{timeout: timeout}
+	if timeout > 0 {
+		w.timer = time.AfterFunc(timeout, func() {
+			w.stalled.Store(true)
+			abort()
+		})
+	}
+	return w
+}
+
+// reset restarts the countdown from the full timeout.
+func (w *stallWatchdog) reset() {
+	if w.timer != nil {
+		w.timer.Reset(w.timeout)
+	}
+}
+
+// stop pauses the countdown until the next reset.
+func (w *stallWatchdog) stop() {
+	if w.timer != nil {
+		w.timer.Stop()
+	}
+}
+
 // streamLoop opens a streaming GET connection and decodes newline-delimited
-// JSON objects until done is closed, the context is cancelled, or the server
-// ends the stream. Each object is passed to parse; items it accepts are sent
-// to ch.
+// JSON objects until done is closed, the context is cancelled, the server
+// ends the stream, or the stream stalls. Each object is passed to parse;
+// items it accepts are sent to ch.
 //
 // ch is never closed by streamLoop; the caller detects the end of the stream
 // by streamLoop returning. done is only checked between messages, so it
 // cannot interrupt a read that is blocked waiting for data — cancel ctx to
 // abort the connection reliably. When the server ends the stream, streamLoop
-// returns ErrStreamEnded.
+// returns ErrStreamEnded. When no data arrives for the stall timeout while
+// connecting or waiting for the next message, it closes the connection and
+// returns ErrStreamStalled; time spent waiting for the consumer to receive
+// from ch does not count.
 func streamLoop[T any](
 	ctx context.Context,
 	c *StreamClient,
@@ -377,13 +437,22 @@ func streamLoop[T any](
 	if err != nil {
 		return err
 	}
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	// The watchdog cancels only the request; ctx still reports whether the
+	// caller cancelled.
+	reqCtx, abort := context.WithCancel(ctx)
+	defer abort()
+	watchdog := newStallWatchdog(c.streamStallTimeout, abort)
+	defer watchdog.stop()
+	httpReq, err := http.NewRequestWithContext(reqCtx, http.MethodGet, u, nil)
 	if err != nil {
 		return err
 	}
 	c.setHeaders(httpReq)
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
+		if ctx.Err() == nil && watchdog.stalled.Load() {
+			return ErrStreamStalled
+		}
 		return fmt.Errorf("failed to send GET request: %w", err)
 	}
 	defer closeBody(httpResp)
@@ -400,9 +469,15 @@ func streamLoop[T any](
 		default:
 		}
 		var raw json.RawMessage
-		if err := dec.Decode(&raw); err != nil {
+		watchdog.reset()
+		err := dec.Decode(&raw)
+		watchdog.stop()
+		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
+			}
+			if watchdog.stalled.Load() {
+				return ErrStreamStalled
 			}
 			if errors.Is(err, io.EOF) {
 				return ErrStreamEnded
