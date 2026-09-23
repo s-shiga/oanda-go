@@ -99,7 +99,7 @@ func newPositionService(client *Client) *positionService {
 // PositionListResponse is the response returned by [positionService.List] and [positionService.ListOpen].
 type PositionListResponse struct {
 	Positions         []Position    `json:"positions"`
-	LastTransactionID TransactionID `json:"lastTransactionId"`
+	LastTransactionID TransactionID `json:"lastTransactionID"`
 }
 
 // List retrieves all Positions for the Account configured via [WithAccountID].
@@ -146,9 +146,26 @@ type PositionCloseRequest struct {
 	ShortClientExtensions *ClientExtensions `json:"shortClientExtensions,omitempty"`
 }
 
-// NewPositionCloseRequest creates a new request with empty fields.
+// NewPositionCloseRequest creates a new request with no sides selected.
+// Select the sides to close with SetLongAll, SetLongUnits, SetShortAll, or SetShortUnits.
 func NewPositionCloseRequest() *PositionCloseRequest {
 	return &PositionCloseRequest{}
+}
+
+// MarshalJSON explicitly leaves unselected sides open. OANDA defaults an
+// omitted longUnits or shortUnits field to ALL, so omitting either field could
+// close a position that the caller did not select.
+func (r PositionCloseRequest) MarshalJSON() ([]byte, error) {
+	type plain PositionCloseRequest
+	request := plain(r)
+	none := "NONE"
+	if request.LongUnits == nil {
+		request.LongUnits = &none
+	}
+	if request.ShortUnits == nil {
+		request.ShortUnits = &none
+	}
+	return json.Marshal(request)
 }
 
 // SetLongAll sets the request to close all units of the long side.

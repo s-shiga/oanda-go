@@ -157,6 +157,23 @@ func TestNewGuaranteedStopLossOrderRequest(t *testing.T) {
 		t.Errorf("body: %v", err)
 	}
 	req.SetDistance("0.005")
+	if req.Price != nil {
+		t.Error("SetDistance should clear Price")
+	}
+	if body, err := req.body(); err != nil {
+		t.Errorf("body with distance: %v", err)
+	} else if !strings.Contains(body.String(), `"distance":"0.005"`) {
+		t.Errorf("body with distance = %s", body)
+	}
+	req.SetPrice("1.2500")
+	if req.Distance != nil {
+		t.Error("SetPrice should clear Distance")
+	}
+	if _, err := req.body(); err != nil {
+		t.Errorf("body with price: %v", err)
+	}
+	distance := DecimalNumber("0.005")
+	req.Distance = &distance
 	if _, err := req.body(); err == nil {
 		t.Error("body should reject price and distance both set")
 	}

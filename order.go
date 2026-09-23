@@ -1422,11 +1422,13 @@ func NewGuaranteedStopLossOrderRequest(tradeID TradeID, price PriceValue) *Guara
 
 func (r *GuaranteedStopLossOrderRequest) SetPrice(price PriceValue) *GuaranteedStopLossOrderRequest {
 	r.Price = &price
+	r.Distance = nil
 	return r
 }
 
 func (r *GuaranteedStopLossOrderRequest) SetDistance(distance DecimalNumber) *GuaranteedStopLossOrderRequest {
 	r.Distance = &distance
+	r.Price = nil
 	return r
 }
 
