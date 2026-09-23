@@ -334,6 +334,20 @@ type AccountChangesState struct {
 	// GuaranteedExecutionFees is the total amount of fees charged over the lifetime of the Account
 	// for the execution of guaranteed Stop Loss Orders.
 	GuaranteedExecutionFees AccountUnits `json:"guaranteedExecutionFees"`
+	// MarginCallEnterTime is the date/time when the Account entered a margin call state. Only
+	// provided if the Account is in a margin call.
+	MarginCallEnterTime *DateTime `json:"marginCallEnterTime,omitempty"`
+	// MarginCallExtensionCount is the number of times that the Account's current margin call was
+	// extended.
+	MarginCallExtensionCount *int `json:"marginCallExtensionCount,omitempty"`
+	// LastMarginCallExtensionTime is the date/time of the Account's last margin call extension.
+	LastMarginCallExtensionTime *DateTime `json:"lastMarginCallExtensionTime,omitempty"`
+	// Orders is the price-dependent state of each pending Order in the Account.
+	Orders []DynamicOrderState `json:"orders"`
+	// Trades is the price-dependent state for each open Trade in the Account.
+	Trades []CalculatedTradeState `json:"trades"`
+	// Positions is the price-dependent state for each open Position in the Account.
+	Positions []CalculatedPositionState `json:"positions"`
 }
 
 // AccountChanges represents the changes to an Account's Orders, Trades and Positions since a

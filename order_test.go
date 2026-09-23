@@ -24,6 +24,40 @@ func TestOrderCreateRejected(t *testing.T) {
 	}
 }
 
+func TestOrderReplaceRejected(t *testing.T) {
+	t.Run("invalid order", func(t *testing.T) {
+		fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusBadRequest,
+			`{"orderRejectTransaction":{"id":"51","type":"LIMIT_ORDER_REJECT","rejectReason":"PRICE_INVALID"},"errorCode":"PRICE_INVALID","errorMessage":"Invalid price","lastTransactionID":"51"}`)}}
+		_, err := newFakeClient(fake).Order.Replace(t.Context(), "42", NewLimitOrderRequest("USD_JPY", "10000", "110.00"))
+		var badRequest BadRequest
+		var rejection OrderErrorResponse
+		if !errors.As(err, &badRequest) || !errors.As(err, &rejection) {
+			t.Fatalf("error = %T (%v), want BadRequest wrapping OrderErrorResponse", err, err)
+		}
+		txn, ok := rejection.OrderRejectTransaction.(*LimitOrderRejectTransaction)
+		if !ok || txn.GetID() != "51" || txn.RejectReason != "PRICE_INVALID" {
+			t.Errorf("unexpected rejection transaction: %#v", rejection.OrderRejectTransaction)
+		}
+	})
+	t.Run("order not found", func(t *testing.T) {
+		fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusNotFound,
+			`{"orderCancelRejectTransaction":{"id":"51","type":"ORDER_CANCEL_REJECT","orderID":"42","rejectReason":"ORDER_DOESNT_EXIST"},"relatedTransactionIDs":["51"],"lastTransactionID":"51","errorCode":"ORDER_DOESNT_EXIST","errorMessage":"The Order specified does not exist"}`)}}
+		_, err := newFakeClient(fake).Order.Replace(t.Context(), "42", NewLimitOrderRequest("USD_JPY", "10000", "110.00"))
+		var notFound NotFound
+		var rejection OrderCancelErrorResponse
+		if !errors.As(err, &notFound) || !errors.As(err, &rejection) {
+			t.Fatalf("error = %T (%v), want NotFound wrapping OrderCancelErrorResponse", err, err)
+		}
+		txn := rejection.OrderCancelRejectTransaction
+		if txn.ID != "51" || txn.OrderID != "42" || txn.RejectReason != "ORDER_DOESNT_EXIST" {
+			t.Errorf("unexpected cancel reject transaction: %#v", txn)
+		}
+		if rejection.ErrorCode != "ORDER_DOESNT_EXIST" || rejection.LastTransactionID != "51" {
+			t.Errorf("unexpected rejection: %#v", rejection)
+		}
+	})
+}
+
 func TestOrderService(t *testing.T) {
 	runEndpointTests(t, []endpointTest{
 		{
@@ -93,6 +127,20 @@ func TestOrderService(t *testing.T) {
 			path:     testAccountPath + "/orders/42",
 			response: `{"order":{"id":"42","type":"LIMIT","instrument":"USD_JPY","units":"10000","price":"100.00","state":"PENDING"},"lastTransactionID":"50"}`,
 			call:     func(c *Client) (any, error) { return c.Order.Details(t.Context(), "42") },
+		},
+		{
+			name:     `details cancelled limit`,
+			method:   `GET`,
+			path:     testAccountPath + "/orders/42",
+			response: `{"order":{"id":"42","type":"LIMIT","instrument":"USD_JPY","units":"10000","price":"100.00","state":"CANCELLED","cancellingTransactionID":"45","cancelledTime":"2025-01-02T00:00:00Z","replacedByOrderID":"46"},"lastTransactionID":"50"}`,
+			call:     func(c *Client) (any, error) { return c.Order.Details(t.Context(), "42") },
+		},
+		{
+			name:     `details market`,
+			method:   `GET`,
+			path:     testAccountPath + "/orders/41",
+			response: `{"order":{"id":"41","type":"MARKET","instrument":"USD_JPY","units":"-10000","timeInForce":"FOK","positionFill":"REDUCE_ONLY","state":"FILLED","fillingTransactionID":"42","filledTime":"2025-01-01T00:00:00Z"},"lastTransactionID":"50"}`,
+			call:     func(c *Client) (any, error) { return c.Order.Details(t.Context(), "41") },
 		},
 		{
 			name:     `replace`,

@@ -1,6 +1,9 @@
 package oanda
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestPricingService(t *testing.T) {
 	runEndpointTests(t, []endpointTest{
@@ -20,7 +23,8 @@ func TestPricingService(t *testing.T) {
 			method:   `GET`,
 			path:     testAccountPath + "/pricing",
 			query:    `instruments=USD_JPY`,
-			response: `{"prices":[{"type":"PRICE","instrument":"USD_JPY","time":"2025-01-01T00:00:00Z","tradeable":true,"bids":[{"price":"150.000","liquidity":1000000}],"asks":[{"price":"150.010","liquidity":1000000}]}],"time":"2025-01-01T00:00:00Z"}`,
+			response: `{"prices":[{"type":"PRICE","instrument":"USD_JPY","time":"2025-01-01T00:00:00Z","tradeable":true,"bids":[{"price":"150.000","liquidity":1000000}],"asks":[{"price":"150.010","liquidity":"250000.5"}]}],"time":"2025-01-01T00:00:00Z"}`,
+			want:     `{"prices":[{"type":"PRICE","instrument":"USD_JPY","time":"2025-01-01T00:00:00Z","tradeable":true,"bids":[{"price":"150.000","liquidity":"1000000"}],"asks":[{"price":"150.010","liquidity":"250000.5"}]}],"time":"2025-01-01T00:00:00Z"}`,
 			call: func(c *Client) (any, error) {
 				return c.Price.Information(t.Context(), NewPriceInformationRequest().AddInstruments("USD_JPY"))
 			},
@@ -36,4 +40,34 @@ func TestPricingService(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestPriceBucketLiquidity(t *testing.T) {
+	cases := []struct {
+		name string
+		json string
+		want DecimalNumber
+	}{
+		{"integer number", `{"price":"1.1","liquidity":1000000}`, "1000000"},
+		{"decimal number", `{"price":"1.1","liquidity":0.5}`, "0.5"},
+		{"integer string", `{"price":"1.1","liquidity":"1000000"}`, "1000000"},
+		{"decimal string", `{"price":"1.1","liquidity":"250000.5"}`, "250000.5"},
+		{"null", `{"price":"1.1","liquidity":null}`, ""},
+		{"missing", `{"price":"1.1"}`, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var bucket PriceBucket
+			if err := json.Unmarshal([]byte(tc.json), &bucket); err != nil {
+				t.Fatal(err)
+			}
+			if bucket.Price != "1.1" || bucket.Liquidity != tc.want {
+				t.Errorf("bucket = %#v, want price 1.1 and liquidity %q", bucket, tc.want)
+			}
+		})
+	}
+	var bucket PriceBucket
+	if err := json.Unmarshal([]byte(`{"price":"1.1","liquidity":"lots"}`), &bucket); err == nil {
+		t.Error("want error for non-numeric liquidity, got nil")
+	}
 }

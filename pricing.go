@@ -116,32 +116,23 @@ type PriceValue string
 type PriceBucket struct {
 	// Price is the price offered.
 	Price PriceValue `json:"price"`
-	// Liquidity is the amount of liquidity offered.
-	Liquidity int `json:"liquidity"`
+	// Liquidity is the amount of liquidity offered. It is usually a whole number of units, but
+	// the API may send a decimal.
+	Liquidity DecimalNumber `json:"liquidity"`
 }
 
+// UnmarshalJSON accepts liquidity as either a JSON number or a numeric string,
+// keeping its exact decimal text.
 func (p *PriceBucket) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Price     PriceValue `json:"price"`
-		Liquidity any        `json:"liquidity"`
+		Price     PriceValue  `json:"price"`
+		Liquidity json.Number `json:"liquidity"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal price bucket: %w", err)
 	}
 	p.Price = raw.Price
-	switch v := raw.Liquidity.(type) {
-	case string:
-		n, err := strconv.Atoi(v)
-		if err != nil {
-			return err
-		}
-		p.Liquidity = n
-	case float64:
-		p.Liquidity = int(v)
-	case nil:
-	default:
-		return fmt.Errorf("unexpected type %T for liquidity", v)
-	}
+	p.Liquidity = DecimalNumber(raw.Liquidity)
 	return nil
 }
 

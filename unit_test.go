@@ -262,14 +262,52 @@ func TestDateTimeUnmarshalZeroSentinel(t *testing.T) {
 }
 
 func TestUnmarshalOrderUnknownType(t *testing.T) {
-	if _, err := unmarshalOrder([]byte(`{"type":"SOMETHING_NEW"}`)); err == nil {
-		t.Error("want error for unknown order type, got nil")
+	raw := `{"id":"42","type":"SOMETHING_NEW","state":"PENDING","createTime":"2025-01-01T00:00:00Z","newField":"x"}`
+	order, err := unmarshalOrder([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown, ok := order.(UnknownOrder)
+	if !ok {
+		t.Fatalf("order = %T, want UnknownOrder", order)
+	}
+	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetState() != OrderStatePending || unknown.GetCreateTime().Time == nil {
+		t.Errorf("common fields not decoded: %#v", unknown)
+	}
+	encoded, err := json.Marshal(unknown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != raw {
+		t.Errorf("MarshalJSON = %s, want the original JSON %s", encoded, raw)
+	}
+	if _, err := unmarshalOrder([]byte(`{"id":"42"}`)); err == nil {
+		t.Error("want error for an order without a type, got nil")
 	}
 }
 
 func TestUnmarshalTransactionUnknownType(t *testing.T) {
-	if _, err := unmarshalTransaction([]byte(`{"type":"SOMETHING_NEW"}`)); err == nil {
-		t.Error("want error for unknown transaction type, got nil")
+	raw := `{"id":"42","type":"SOMETHING_NEW","time":"2025-01-01T00:00:00Z","accountID":"101-001-1234567-001","newField":"x"}`
+	transaction, err := unmarshalTransaction([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown, ok := transaction.(*UnknownTransaction)
+	if !ok {
+		t.Fatalf("transaction = %T, want *UnknownTransaction", transaction)
+	}
+	if unknown.GetID() != "42" || unknown.GetType() != "SOMETHING_NEW" || unknown.GetTime().Time == nil || unknown.AccountID != "101-001-1234567-001" {
+		t.Errorf("common fields not decoded: %#v", unknown)
+	}
+	encoded, err := json.Marshal(unknown)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != raw {
+		t.Errorf("MarshalJSON = %s, want the original JSON %s", encoded, raw)
+	}
+	if _, err := unmarshalTransaction([]byte(`{"id":"42"}`)); err == nil {
+		t.Error("want error for a transaction without a type, got nil")
 	}
 }
 
@@ -363,6 +401,28 @@ func TestPriceStreamSkipsUnknownTypes(t *testing.T) {
 	}
 	if got := len(ch); got != 1 {
 		t.Errorf("received %d items, want 1 (unknown type skipped)", got)
+	}
+}
+
+func TestPriceStreamDecimalLiquidity(t *testing.T) {
+	body := `{"type":"PRICE","instrument":"XAU_USD","time":"2024-05-01T12:30:45.000000000Z","bids":[{"price":"2300.10","liquidity":"1.5"}],"asks":[{"price":"2300.50","liquidity":0.5}]}` + "\n" +
+		`{"type":"HEARTBEAT","time":"2024-05-01T12:30:50.000000000Z"}` + "\n"
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK, body)}}
+	sc := newFakeStreamClient(fake)
+	ch := make(chan PriceStreamItem, 4)
+	err := sc.Price(t.Context(), NewPriceStreamRequest("XAU_USD"), ch, make(chan struct{}))
+	if !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("err = %v, want ErrStreamEnded", err)
+	}
+	price, ok := (<-ch).(ClientPrice)
+	if !ok || len(price.Bids) != 1 || len(price.Asks) != 1 {
+		t.Fatalf("first item = %#v, want ClientPrice with one bid and one ask", price)
+	}
+	if price.Bids[0].Liquidity != "1.5" || price.Asks[0].Liquidity != "0.5" {
+		t.Errorf("liquidity = %q/%q, want 1.5/0.5", price.Bids[0].Liquidity, price.Asks[0].Liquidity)
+	}
+	if _, ok := (<-ch).(PricingHeartbeat); !ok {
+		t.Error("second item should be a PricingHeartbeat")
 	}
 }
 

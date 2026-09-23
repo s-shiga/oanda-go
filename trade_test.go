@@ -1,6 +1,9 @@
 package oanda
 
-import "testing"
+import (
+	"net/http"
+	"testing"
+)
 
 func TestTradeService(t *testing.T) {
 	runEndpointTests(t, []endpointTest{
@@ -57,4 +60,19 @@ func TestTradeService(t *testing.T) {
 			call:     func(c *Client) (any, error) { return c.Trade.Close(t.Context(), "42", NewTradeCloseALLRequest()) },
 		},
 	})
+}
+
+func TestTradeCloseCancelled(t *testing.T) {
+	fake := &fakeHTTPClient{responses: []*http.Response{jsonResponse(http.StatusOK,
+		`{"orderCreateTransaction":{"id":"51","type":"MARKET_ORDER","tradeClose":{"tradeID":"42","units":"ALL"}},"orderCancelTransaction":{"id":"52","type":"ORDER_CANCEL","orderID":"51","reason":"MARKET_HALTED"},"relatedTransactionIDs":["51","52"],"lastTransactionID":"52"}`)}}
+	resp, err := newFakeClient(fake).Trade.Close(t.Context(), "42", NewTradeCloseALLRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.OrderFillTransaction != nil {
+		t.Errorf("OrderFillTransaction = %#v, want nil when the close order was cancelled", resp.OrderFillTransaction)
+	}
+	if resp.OrderCancelTransaction == nil || resp.OrderCancelTransaction.Reason != "MARKET_HALTED" {
+		t.Errorf("OrderCancelTransaction = %#v, want reason MARKET_HALTED", resp.OrderCancelTransaction)
+	}
 }

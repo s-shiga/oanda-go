@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -22,6 +23,13 @@ func TestStreamClientTransaction(t *testing.T) {
 			body: "{\"id\":\"42\",\"type\":\"ORDER_FILL\",\"instrument\":\"USD_JPY\",\"units\":\"10000\",\"time\":\"2025-01-01T00:00:00Z\"}\n" +
 				"{\"type\":\"HEARTBEAT\",\"lastTransactionID\":\"42\",\"time\":\"2025-01-01T00:00:05Z\"}\n",
 			wantTypes: []TransactionType{TransactionTypeOrderFill, "HEARTBEAT"},
+			wantErr:   ErrStreamEnded,
+		},
+		{
+			name:      "unknown transaction type",
+			status:    http.StatusOK,
+			body:      "{\"id\":\"42\",\"type\":\"SOMETHING_NEW\",\"time\":\"2025-01-01T00:00:00Z\",\"newField\":\"x\"}\n",
+			wantTypes: []TransactionType{"SOMETHING_NEW"},
 			wantErr:   ErrStreamEnded,
 		},
 		{name: "empty stream", status: http.StatusOK, wantErr: ErrStreamEnded},
@@ -59,6 +67,9 @@ func TestStreamClientTransaction(t *testing.T) {
 				}
 				if fill, ok := item.(OrderFillTransaction); ok && (fill.Instrument != "USD_JPY" || fill.Units != "10000") {
 					t.Errorf("unexpected fill: %#v", fill)
+				}
+				if unknown, ok := item.(UnknownTransaction); ok && !strings.Contains(string(unknown.Raw), `"newField":"x"`) {
+					t.Errorf("unknown transaction lost its raw JSON: %s", unknown.Raw)
 				}
 			}
 			if len(fake.requests) != 1 {

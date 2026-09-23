@@ -92,7 +92,15 @@ func unmarshalOrder(rawOrder json.RawMessage) (Order, error) {
 		}
 		order = trailingStopLossOrder
 	default:
-		return nil, fmt.Errorf("unknown order type %q", typeOnly.Type)
+		if typeOnly.Type == "" {
+			return nil, errors.New("order has no type")
+		}
+		var unknownOrder UnknownOrder
+		if err := json.Unmarshal(rawOrder, &unknownOrder); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal %s order: %w", typeOnly.Type, err)
+		}
+		unknownOrder.Raw = rawOrder
+		order = unknownOrder
 	}
 	return order, nil
 }
@@ -235,6 +243,9 @@ type MarketOrder struct {
 	TimeInForce TimeInForce `json:"timeInForce"`
 	// PriceBound is the worst price that the client is willing to have the MarketOrder filled at.
 	PriceBound *PriceValue `json:"priceBound,omitempty"`
+	// PositionFill is specification of how Positions in the Account are modified when the Order
+	// is filled.
+	PositionFill OrderPositionFill `json:"positionFill"`
 	PositionClosingDetails
 	OrdersOnFill
 	FillingDetails
@@ -334,6 +345,7 @@ type LimitOrder struct {
 	OrdersOnFill
 	FillingDetails
 	RelatedTradeIDs
+	CancellingDetails
 	ReplaceDetails
 }
 
@@ -669,6 +681,58 @@ func (o TrailingStopLossOrder) GetClientExtensions() *ClientExtensions {
 
 func (o TrailingStopLossOrder) GetType() OrderType {
 	return o.Type
+}
+
+// UnknownOrder is an Order whose type this library does not recognise, such as
+// a type added to the API after this version was released. Only the fields
+// common to all Orders are decoded; Raw holds the complete JSON object.
+type UnknownOrder struct {
+	OrderBase
+	// Raw is the Order's JSON object as received from the API.
+	Raw json.RawMessage `json:"-"`
+}
+
+func (o UnknownOrder) GetID() OrderID {
+	return o.ID
+}
+
+func (o UnknownOrder) GetCreateTime() DateTime {
+	return o.CreateTime
+}
+
+func (o UnknownOrder) GetState() OrderState {
+	return o.State
+}
+
+func (o UnknownOrder) GetClientExtensions() *ClientExtensions {
+	return o.ClientExtensions
+}
+
+func (o UnknownOrder) GetType() OrderType {
+	return o.Type
+}
+
+// MarshalJSON encodes the Order exactly as it was received when Raw is set.
+func (o UnknownOrder) MarshalJSON() ([]byte, error) {
+	if len(o.Raw) > 0 {
+		return o.Raw, nil
+	}
+	return json.Marshal(o.OrderBase)
+}
+
+// DynamicOrderState is the dynamic (calculated) state of a pending Order.
+type DynamicOrderState struct {
+	// ID is the Order's ID.
+	ID OrderID `json:"id"`
+	// TrailingStopValue is the Order's calculated trailing stop value.
+	TrailingStopValue *PriceValue `json:"trailingStopValue,omitempty"`
+	// TriggerDistance is the distance (in price units) between the Trailing Stop Loss Order's
+	// trailingStopValue and the current market price. It is not set if the distance could not be
+	// determined.
+	TriggerDistance *PriceValue `json:"triggerDistance,omitempty"`
+	// IsTriggerDistanceExact is true if an exact trigger distance could be calculated. If false,
+	// TriggerDistance is a best estimate. It is not set if the distance could not be determined.
+	IsTriggerDistanceExact *bool `json:"isTriggerDistanceExact,omitempty"`
 }
 
 // Order Requests
@@ -2049,8 +2113,10 @@ func (s *orderService) Replace(ctx context.Context, specifier OrderSpecifier, re
 	switch httpResp.StatusCode {
 	case http.StatusCreated:
 		return decodeJSON[OrderReplaceResponse](httpResp)
-	case http.StatusBadRequest, http.StatusNotFound:
+	case http.StatusBadRequest:
 		return nil, decodeTypedError[OrderErrorResponse](httpResp)
+	case http.StatusNotFound:
+		return nil, decodeTypedError[OrderCancelErrorResponse](httpResp)
 	default:
 		return nil, decodeErrorResponse(httpResp)
 	}
@@ -2064,7 +2130,7 @@ type OrderCancelResponse struct {
 }
 
 // OrderCancelErrorResponse is the error response returned by [orderService.Cancel]
-// when the Order specified does not exist.
+// and [orderService.Replace] when the Order specified does not exist.
 type OrderCancelErrorResponse struct {
 	OrderCancelRejectTransaction OrderCancelRejectTransaction `json:"orderCancelRejectTransaction"`
 	RelatedTransactionIDs        []TransactionID              `json:"relatedTransactionIDs"`

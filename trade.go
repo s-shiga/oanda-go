@@ -366,10 +366,14 @@ func NewTradeCloseALLRequest() TradeCloseRequest {
 	return TradeCloseRequest{Units: "ALL"}
 }
 
-// TradeCloseResponse is the successful response returned by [Client.TradeClose].
+// TradeCloseResponse is the successful response returned by [tradeService.Close].
+//
+// A 200 response does not guarantee the Trade was closed: the closing Market
+// Order may be cancelled instead (for example, when the market is halted). In
+// that case OrderFillTransaction is nil and OrderCancelTransaction explains why.
 type TradeCloseResponse struct {
 	OrderCreateTransaction MarketOrderTransaction  `json:"orderCreateTransaction"`
-	OrderFillTransaction   OrderFillTransaction    `json:"orderFillTransaction"`
+	OrderFillTransaction   *OrderFillTransaction   `json:"orderFillTransaction,omitempty"`
 	OrderCancelTransaction *OrderCancelTransaction `json:"orderCancelTransaction,omitempty"`
 	RelatedTransactionIDs  []TransactionID         `json:"relatedTransactionIDs"`
 	LastTransactionID      TransactionID           `json:"lastTransactionID"`

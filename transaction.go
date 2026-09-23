@@ -268,7 +268,14 @@ func unmarshalTransaction(rawTransaction json.RawMessage) (Transaction, error) {
 		}
 		transaction = &heartbeat
 	default:
-		return nil, fmt.Errorf("unknown transaction type %q", typeOnly.Type)
+		if typeOnly.Type == "" {
+			return nil, errors.New("transaction has no type")
+		}
+		unknownTransaction, err := unmarshalUnknownTransaction(rawTransaction)
+		if err != nil {
+			return nil, err
+		}
+		transaction = &unknownTransaction
 	}
 	return transaction, nil
 }
@@ -314,6 +321,33 @@ func (t TransactionBase) GetID() TransactionID {
 
 func (t TransactionBase) GetTime() DateTime {
 	return t.Time
+}
+
+// UnknownTransaction is a Transaction whose type this library does not
+// recognise, such as a type added to the API after this version was released.
+// Only the fields common to all Transactions are decoded; Raw holds the
+// complete JSON object.
+type UnknownTransaction struct {
+	TransactionBase
+	// Raw is the Transaction's JSON object as received from the API.
+	Raw json.RawMessage `json:"-"`
+}
+
+// MarshalJSON encodes the Transaction exactly as it was received when Raw is set.
+func (t UnknownTransaction) MarshalJSON() ([]byte, error) {
+	if len(t.Raw) > 0 {
+		return t.Raw, nil
+	}
+	return json.Marshal(t.TransactionBase)
+}
+
+func unmarshalUnknownTransaction(rawTransaction json.RawMessage) (UnknownTransaction, error) {
+	var transaction UnknownTransaction
+	if err := json.Unmarshal(rawTransaction, &transaction); err != nil {
+		return UnknownTransaction{}, fmt.Errorf("failed to unmarshal unknown transaction: %w", err)
+	}
+	transaction.Raw = rawTransaction
+	return transaction, nil
 }
 
 // CreateTransaction represents a Transaction that creates an Account.
@@ -1105,6 +1139,40 @@ type DelayedTradeClosureTransaction struct {
 	Reason MarketOrderReason `json:"reason"`
 	// TradeIDs are the IDs of the Trades that will be closed.
 	TradeIDs []TradeID `json:"tradeIDs"`
+}
+
+// UnmarshalJSON accepts tradeIDs as either a JSON array or a single string.
+// The specification describes the field as a list but types it as one
+// TradeID, so a comma-separated string is split into its IDs.
+func (t *DelayedTradeClosureTransaction) UnmarshalJSON(b []byte) error {
+	type Alias DelayedTradeClosureTransaction
+
+	aux := &struct {
+		Alias
+		TradeIDs json.RawMessage `json:"tradeIDs"`
+	}{}
+
+	if err := json.Unmarshal(b, aux); err != nil {
+		return err
+	}
+	*t = DelayedTradeClosureTransaction(aux.Alias)
+
+	if len(aux.TradeIDs) == 0 || string(aux.TradeIDs) == "null" {
+		return nil
+	}
+	if aux.TradeIDs[0] == '[' {
+		return json.Unmarshal(aux.TradeIDs, &t.TradeIDs)
+	}
+	var tradeIDs string
+	if err := json.Unmarshal(aux.TradeIDs, &tradeIDs); err != nil {
+		return fmt.Errorf("failed to unmarshal tradeIDs: %w", err)
+	}
+	for _, id := range strings.Split(tradeIDs, ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			t.TradeIDs = append(t.TradeIDs, id)
+		}
+	}
+	return nil
 }
 
 // DailyFinancingTransaction represents a Transaction that accounts for daily financing charges.
@@ -2532,7 +2600,14 @@ func parseTransactionStreamItem(raw json.RawMessage) (TransactionStreamItem, boo
 	}
 	unmarshal, ok := transactionStreamUnmarshalers[typeOnly.Type]
 	if !ok {
-		return nil, false, nil
+		if typeOnly.Type == "" {
+			return nil, false, nil
+		}
+		unknownTransaction, err := unmarshalUnknownTransaction(raw)
+		if err != nil {
+			return nil, false, err
+		}
+		return unknownTransaction, true, nil
 	}
 	item, err := unmarshal(raw)
 	if err != nil {

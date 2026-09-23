@@ -15,7 +15,7 @@ func TestAccountService(t *testing.T) {
 			name:     `details`,
 			method:   `GET`,
 			path:     testAccountPath + "",
-			response: `{"account":{"id":"101-001-1234567-001","balance":"1000.00","orders":[{"id":"42","type":"LIMIT","instrument":"USD_JPY","price":"100.00","state":"PENDING"}]},"lastTransactionID":"50"}`,
+			response: `{"account":{"id":"101-001-1234567-001","balance":"1000.00","orders":[{"id":"42","type":"LIMIT","instrument":"USD_JPY","price":"100.00","state":"PENDING"},{"id":"43","type":"SOMETHING_NEW","state":"PENDING","newField":"x"}]},"lastTransactionID":"50"}`,
 			call:     func(c *Client) (any, error) { return c.Account.Details(t.Context()) },
 		},
 		{
@@ -40,7 +40,7 @@ func TestAccountService(t *testing.T) {
 			method:   `GET`,
 			path:     testAccountPath + "/changes",
 			query:    `sinceTransactionID=40`,
-			response: `{"changes":{"ordersCreated":[{"id":"42","type":"LIMIT","price":"100.00"}],"transactions":[{"id":"42","type":"LIMIT_ORDER","price":"100.00"}]},"state":{"NAV":"1001.00"},"lastTransactionID":"50"}`,
+			response: `{"changes":{"ordersCreated":[{"id":"42","type":"LIMIT","price":"100.00"}],"ordersCancelled":[{"id":"41","type":"LIMIT","price":"99.00","state":"CANCELLED","cancellingTransactionID":"44","cancelledTime":"2025-01-01T00:00:00Z"}],"transactions":[{"id":"42","type":"LIMIT_ORDER","price":"100.00"},{"id":"43","type":"SOMETHING_NEW","newField":"x"}]},"state":{"NAV":"1001.00","marginCallEnterTime":"2025-01-01T00:00:00Z","marginCallExtensionCount":1,"lastMarginCallExtensionTime":"2025-01-01T01:00:00Z","orders":[{"id":"42","trailingStopValue":"99.50","triggerDistance":"0.50","isTriggerDistanceExact":true}],"trades":[{"id":"40","unrealizedPL":"12.34","marginUsed":"40.00"}],"positions":[{"instrument":"USD_JPY","netUnrealizedPL":"12.34","longUnrealizedPL":"12.34","shortUnrealizedPL":"0.00","marginUsed":"40.00"}]},"lastTransactionID":"50"}`,
 			call:     func(c *Client) (any, error) { return c.Account.Changes(t.Context(), "40") },
 		},
 	})
