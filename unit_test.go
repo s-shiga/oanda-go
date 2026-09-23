@@ -5,10 +5,12 @@ package oanda
 // exercise decode and streaming paths against canned responses.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -789,5 +791,41 @@ func TestPriceStreamContextCancel(t *testing.T) {
 	}
 	if err := <-errCh; !errors.Is(err, context.Canceled) {
 		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+// errCloseBody is a response body whose Close always fails.
+type errCloseBody struct{ io.Reader }
+
+func (errCloseBody) Close() error { return errors.New("close failed") }
+
+func TestLibraryDoesNotLog(t *testing.T) {
+	// The default slog handler writes through the log package, so this
+	// captures both log and slog output.
+	var logs bytes.Buffer
+	prev := log.Writer()
+	log.SetOutput(&logs)
+	t.Cleanup(func() { log.SetOutput(prev) })
+
+	response := func(status int, body string) *http.Response {
+		return &http.Response{StatusCode: status, Body: errCloseBody{strings.NewReader(body)}, Header: http.Header{}}
+	}
+	fake := &fakeHTTPClient{responses: []*http.Response{
+		response(http.StatusOK, `{"accounts":[]}`),
+		response(http.StatusNotFound, `{"errorMessage":"The Order specified does not exist"}`),
+		response(http.StatusOK, testHeartbeat),
+	}}
+	if _, err := newFakeClient(fake).Account.List(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := newFakeClient(fake).Order.Cancel(t.Context(), "42"); err == nil {
+		t.Fatal("want an error for a 404 response")
+	}
+	ch := make(chan PriceStreamItem, 1)
+	if err := newFakeStreamClient(fake).Price(t.Context(), NewPriceStreamRequest("EUR_USD"), ch, make(chan struct{})); !errors.Is(err, ErrStreamEnded) {
+		t.Fatalf("err = %v, want ErrStreamEnded", err)
+	}
+	if logs.Len() != 0 {
+		t.Errorf("library wrote to the application's logs: %s", logs.String())
 	}
 }

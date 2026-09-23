@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -295,10 +294,11 @@ func (c *StreamClient) setHeaders(req *http.Request) {
 	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 }
 
+// closeBody closes a response body. By then the body has been decoded or its
+// error returned, so a Close error is not actionable and is ignored rather
+// than written to the application's logs.
 func closeBody(resp *http.Response) {
-	if err := resp.Body.Close(); err != nil {
-		slog.Error(err.Error())
-	}
+	_ = resp.Body.Close()
 }
 
 // decodeJSON decodes an HTTP response body into a value of type R.
